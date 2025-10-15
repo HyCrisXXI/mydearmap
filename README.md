@@ -44,13 +44,14 @@ lib/
 ├── main.dart                   # Entry point de la app
 ├── app.dart                    # Configuración de rutas, themes, providers
 ├── core/                       # Funciones y utilidades comunes
-│   ├── constants/          # Colores, tamaños, strings
-│   └── utils/                  # Helpers generales (fechas, mapas, imágenes, excepciones)
+│   ├── constants/              # Colores, tamaños, strings
+│   ├── utils/                  # Helpers generales (fechas, mapas, imágenes, excepciones)
+│   ├── providers/
+│   └── widgets/                # Widgets reutilizables de toda la app
 ├── data/                       # Acceso a datos, API, local storage
 │   ├── models/                 # Modelos de objetos (User, Memory, MapPin)
 │   ├── repositories/           # Lógica de acceso a datos (abstract + impl)
-│   ├── datasources/            # APIs, SQLite, Firebase, etc.
-│   └── providers/              # Providers o blocs si usamos state management
+│   └── datasources/            # APIs
 ├── features/                   # Cada "pantalla" o feature principal
 │   ├── map/                    # Map view
 │   │   ├── view/               # Widgets y pantallas
@@ -63,7 +64,6 @@ lib/
 │   ├── memories/
 │   ├── users/
 │   └── settings/
-├── widgets/                    # Widgets reutilizables de toda la app
 └── routes/                     # Rutas/navegación
 
 ## Recursos de interés

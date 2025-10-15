@@ -8,6 +8,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
+      title: 'Login',
+      debugShowCheckedModeBanner: false,
       home: Scaffold(body: Center(child: Text('Hello MyDearMap'))),
     );
   }
