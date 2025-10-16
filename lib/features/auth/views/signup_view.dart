@@ -1,208 +1,290 @@
+// lib/features/auth/views/signup_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../controller/auth_controller.dart';
-import '../../../../core/utils/validators.dart';
+import '../controllers/auth_controller.dart';
+import '../controllers/signup_controller.dart';
+import '../../../core/utils/validators.dart';
 
-class SignUpScreen extends ConsumerStatefulWidget {
-  const SignUpScreen({super.key});
+class SignupView extends ConsumerStatefulWidget {
+  const SignupView({super.key});
 
   @override
-  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
+  ConsumerState<SignupView> createState() => _SignupViewState();
 }
 
-class _SignUpScreenState extends ConsumerState<SignUpScreen> {
+class _SignupViewState extends ConsumerState<SignupView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  final _verificationCodeController = TextEditingController();
+  final _numberController = TextEditingController();
+  final _birthDateController = TextEditingController();
 
-  bool _isLoading = false;
-  bool _codeSent = false;
-  String? _emailForVerification;
+  String? _emailError;
+  String? _passwordError;
+  String? _nameError;
+  String? _numberError;
+  String? _birthDateError;
 
-  Future<void> _sendVerificationCode() async {
-    if (!Validators.isValidEmail(_emailController.text)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Email inválido')));
-      return;
-    }
+  String? _selectedGender;
 
-    setState(() => _isLoading = true);
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedData();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    _numberController.dispose();
+    _birthDateController.dispose();
+    super.dispose();
+  }
+
+  void _loadSavedData() {
+    final formState = ref.read(signupFormProvider);
+
+    _emailController.text = formState.email;
+    _passwordController.text = formState.password;
+    _nameController.text = formState.name;
+    _numberController.text = formState.number ?? '';
+    _birthDateController.text = formState.birthDate ?? '';
+    _selectedGender = formState.gender;
+
+    _validateEmail(_emailController.text);
+    _validatePassword(_passwordController.text);
+    _validateName(_nameController.text);
+    _validatenumber(_numberController.text);
+    _validateBirthDate(_birthDateController.text);
+  }
+
+  void _saveFormData() {
+    final notifier = ref.read(signupFormProvider.notifier);
+    notifier.updateEmail(_emailController.text);
+    notifier.updatePassword(_passwordController.text);
+    notifier.updateName(_nameController.text);
+    notifier.updateNumber(
+      _numberController.text.isEmpty ? null : _numberController.text,
+    );
+    notifier.updateBirthDate(
+      _birthDateController.text.isEmpty ? null : _birthDateController.text,
+    );
+    notifier.updateGender(_selectedGender);
+  }
+
+  void _validateEmail(String value) =>
+      setState(() => _emailError = Validators.emailValidator(value));
+  void _validatePassword(String value) =>
+      setState(() => _passwordError = Validators.passwordValidator(value));
+  void _validateName(String value) =>
+      setState(() => _nameError = Validators.nameValidator(value));
+  void _validatenumber(String value) =>
+      setState(() => _numberError = Validators.numberValidator(value));
+  void _validateBirthDate(String value) =>
+      setState(() => _birthDateError = Validators.birthDateValidator(value));
+
+  bool get _isFormValid {
+    return _emailError == null &&
+        _passwordError == null &&
+        _nameError == null &&
+        _numberError == null &&
+        _birthDateError == null &&
+        _emailController.text.isNotEmpty &&
+        _passwordController.text.isNotEmpty &&
+        _nameController.text.isNotEmpty;
+  }
+
+  Future<void> _signUp() async {
+    if (!_isFormValid) return;
+
+    // Crear el estado del formulario directamente desde los controladores
+    final formData = SignupFormState(
+      email: _emailController.text,
+      password: _passwordController.text,
+      name: _nameController.text,
+      number: _numberController.text.isEmpty ? null : _numberController.text,
+      birthDate: _birthDateController.text.isEmpty
+          ? null
+          : _birthDateController.text,
+      gender: _selectedGender,
+    );
+
+    final authControllerNotifier = ref.read(authControllerProvider.notifier);
 
     try {
-      await ref
-          .read(authControllerProvider)
-          .sendVerificationCode(_emailController.text.trim());
+      await authControllerNotifier.signUp(formData);
 
-      setState(() {
-        _codeSent = true;
-        _emailForVerification = _emailController.text.trim();
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Código enviado a tu email')),
-      );
+      if (mounted) {
+        ref.read(signupFormProvider.notifier).clear();
+        Navigator.of(context).pop();
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al registrar: ${e.toString()}')),
+        );
+      }
     }
   }
 
-  Future<void> _completeSignUp() async {
-    if (!_validateForm()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Verificar código primero
-      await ref
-          .read(authControllerProvider)
-          .verifyEmailCode(
-            _emailForVerification!,
-            _verificationCodeController.text.trim(),
-          );
-
-      // Luego crear cuenta
-      await ref
-          .read(authControllerProvider)
-          .signUp(
-            _emailController.text.trim(),
-            _passwordController.text.trim(),
-            _nameController.text.trim(),
-          );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    } finally {
-      setState(() => _isLoading = false);
+  Future<void> _selectBirthDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      _birthDateController.text =
+          "${picked.day}/${picked.month}/${picked.year}";
+      _validateBirthDate(_birthDateController.text);
+      _saveFormData();
     }
-  }
-
-  bool _validateForm() {
-    if (_nameController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Nombre requerido')));
-      return false;
-    }
-
-    if (!Validators.isValidEmail(_emailController.text)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Email inválido')));
-      return false;
-    }
-
-    if (!Validators.isValidPassword(_passwordController.text)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Contraseña debe tener al menos 6 caracteres'),
-        ),
-      );
-      return false;
-    }
-
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Las contraseñas no coinciden')),
-      );
-      return false;
-    }
-
-    return true;
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
+    final isLoading = authState.isLoading;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Registro')),
+      appBar: AppBar(
+        title: const Text('Crear Cuenta'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            _saveFormData();
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+        padding: const EdgeInsets.all(24.0),
+        child: ListView(
           children: [
-            if (!_codeSent) ...[
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre completo',
-                  prefixIcon: Icon(Icons.person),
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Nombre completo *',
+                prefixIcon: const Icon(Icons.person),
+                border: const OutlineInputBorder(),
+                errorText: _nameError,
+              ),
+              onChanged: (value) {
+                _validateName(value);
+                _saveFormData();
+              },
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                labelText: 'Email *',
+                prefixIcon: const Icon(Icons.email),
+                border: const OutlineInputBorder(),
+                errorText: _emailError,
+              ),
+              keyboardType: TextInputType.emailAddress,
+              onChanged: (value) {
+                _validateEmail(value);
+                _saveFormData();
+              },
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _passwordController,
+              decoration: InputDecoration(
+                labelText: 'Contraseña *',
+                prefixIcon: const Icon(Icons.lock),
+                border: const OutlineInputBorder(),
+                errorText: _passwordError,
+              ),
+              obscureText: true,
+              onChanged: (value) {
+                _validatePassword(value);
+                _saveFormData();
+              },
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _numberController,
+              decoration: InputDecoration(
+                labelText: 'Teléfono (opcional)',
+                prefixIcon: const Icon(Icons.phone),
+                border: const OutlineInputBorder(),
+                errorText: _numberError,
+              ),
+              keyboardType: TextInputType.phone,
+              onChanged: (value) {
+                _validatenumber(value);
+                _saveFormData();
+              },
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _birthDateController,
+              decoration: InputDecoration(
+                labelText: 'Fecha de nacimiento (opcional) DD/MM/AAAA',
+                prefixIcon: const Icon(Icons.calendar_today),
+                border: const OutlineInputBorder(),
+                errorText: _birthDateError,
+              ),
+              readOnly: true,
+              onTap: _selectBirthDate,
+            ),
+            const SizedBox(height: 16),
+
+            DropdownButtonFormField<String>(
+              value: _selectedGender,
+              decoration: const InputDecoration(
+                labelText: 'Género (opcional)',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: null,
+                  child: Text('— Sin especificar —'),
                 ),
+                DropdownMenuItem(value: 'male', child: Text('Masculino')),
+                DropdownMenuItem(value: 'female', child: Text('Femenino')),
+                DropdownMenuItem(value: 'other', child: Text('Otro')),
+              ],
+              onChanged: (String? value) {
+                setState(() {
+                  _selectedGender = value;
+                });
+                _saveFormData();
+              },
+            ),
+            const SizedBox(height: 30),
+
+            SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isFormValid && !isLoading ? _signUp : null,
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Registrarse'),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email),
+            ),
+
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('¿Ya tienes cuenta?'),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Iniciar Sesión'),
                 ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  prefixIcon: Icon(Icons.lock),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _confirmPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Confirmar contraseña',
-                  prefixIcon: Icon(Icons.lock_outline),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _sendVerificationCode,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Enviar Código de Verificación'),
-                ),
-              ),
-            ] else ...[
-              Text(
-                'Código enviado a $_emailForVerification',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _verificationCodeController,
-                decoration: const InputDecoration(
-                  labelText: 'Código de 6 dígitos',
-                  prefixIcon: Icon(Icons.code),
-                ),
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _completeSignUp,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Completar Registro'),
-                ),
-              ),
-              TextButton(
-                onPressed: _isLoading
-                    ? null
-                    : () => setState(() => _codeSent = false),
-                child: const Text('Cambiar Email'),
-              ),
-            ],
+              ],
+            ),
           ],
         ),
       ),

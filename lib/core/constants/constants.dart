@@ -1,3 +1,4 @@
+// lib/core/constants/constants.dart
 import 'dart:ui';
 
 class AppColors {

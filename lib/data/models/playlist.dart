@@ -1,8 +1,9 @@
+// lib/data/models/playlist.dart
 import 'user.dart';
 import 'memory.dart';
 
 class Playlist {
-  final int id;
+  final String id;
   final String name;
   final String? description;
   final DateTime createdAt;
@@ -19,6 +20,16 @@ class Playlist {
     required this.updatedAt,
     required this.creator,
   });
+  factory Playlist.fromJson(Map<String, dynamic> json) {
+    return Playlist(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      creator: User.fromJson(json['creator']),
+    );
+  }
 }
 
 class MemoryEntry {

@@ -1,100 +1,109 @@
+// lib/features/auth/controllers/auth_controller.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../data/repositories/auth_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../data/models/user_session.dart';
+import '../../../data/repositories/session_repository.dart';
+import 'signup_controller.dart';
 
-class AuthController extends StateNotifier<AuthState> {
-  final AuthRepository _authRepository;
+final authStateProvider = StreamProvider<User?>((ref) {
+  return Supabase.instance.client.auth.onAuthStateChange.map((event) {
+    return event.session?.user;
+  });
+});
 
-  AuthController(this._authRepository) : super(const AuthState.initial());
+final authControllerProvider = AsyncNotifierProvider<AuthController, void>(() {
+  return AuthController();
+});
 
-  // Inicia el proceso de login/registro enviando el código OTP al email
-  Future<void> signInWithOtp(String email) async {
-    state = const AuthState.loading();
+final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
+  return SessionRepository(Supabase.instance.client);
+});
+
+class UserSessionNotifier extends Notifier<UserSession?> {
+  @override
+  UserSession? build() {
+    return null;
+  }
+
+  void setSession(UserSession session) {
+    state = session;
+  }
+
+  void clearSession() {
+    state = null;
+  }
+}
+
+final userSessionProvider = NotifierProvider<UserSessionNotifier, UserSession?>(
+  UserSessionNotifier.new,
+);
+
+class AuthController extends AsyncNotifier<void> {
+  @override
+  Future<void> build() async {
+    return;
+  }
+
+  SupabaseClient get _supabaseClient => Supabase.instance.client;
+
+  Future<void> signUp(SignupFormState form) async {
+    state = const AsyncValue.loading();
 
     try {
-      await _authRepository.signInWithOtp(email);
-      state = AuthState.otpSent(email: email);
-    } catch (e) {
-      state = AuthState.error(e.toString());
+      print("Contraseña a enviar: '${form.password}'");
+      final AuthResponse response = await _supabaseClient.auth.signUp(
+        email: form.email.trim(),
+        password: form.password.trim(),
+      );
+
+      final user = response.user;
+
+      if (user == null) {
+        throw Exception("Registro fallido: usuario no retornado.");
+      }
+
+      final profileData = {
+        'id': user.id,
+        'name': form.name.trim(),
+        'email': form.email.trim(),
+        'number': form.number?.isEmpty ?? true ? null : form.number,
+        'birth_date': form.birthDate?.isEmpty ?? true ? null : form.birthDate,
+        'gender': form.gender?.isEmpty ?? true ? 'other' : form.gender,
+      };
+
+      await _supabaseClient.from('users').insert(profileData);
+
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
       rethrow;
     }
   }
 
-  // Verifica el código OTP que el usuario introduce
-  Future<void> verifyOtp(String email, String token) async {
-    state = const AuthState.loading();
+  Future<void> signInWithPassword({
+    required String email,
+    required String password,
+  }) async {
+    state = const AsyncValue.loading();
 
     try {
-      await _authRepository.verifyOtp(email, token);
-      state = const AuthState.authenticated();
-    } catch (e) {
-      state = AuthState.error(e.toString());
-      rethrow;
+      await _supabaseClient.auth.signInWithPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
+
+      state = const AsyncValue.data(null);
+    } on AuthException catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      throw Exception(e.message);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      throw Exception('Error desconocido al iniciar sesión: $e');
     }
   }
 
-  // Cierra la sesión
   Future<void> signOut() async {
-    state = const AuthState.loading();
-
-    try {
-      await _authRepository.signOut();
-      state = const AuthState.unauthenticated();
-    } catch (e) {
-      state = AuthState.error(e.toString());
-      rethrow;
-    }
+    ref.read(userSessionProvider.notifier).clearSession();
+    await _supabaseClient.auth.signOut();
   }
-
-  // Resetea el estado de error
-  void clearError() {
-    if (state is AuthError) {
-      state = const AuthState.initial();
-    }
-  }
-}
-
-// Estados de la autenticación
-sealed class AuthState {
-  const AuthState();
-}
-
-class AuthInitial extends AuthState {
-  const AuthInitial();
-}
-
-class AuthLoading extends AuthState {
-  const AuthLoading();
-}
-
-class AuthOtpSent extends AuthState {
-  final String email;
-
-  const AuthOtpSent({required this.email});
-}
-
-class AuthAuthenticated extends AuthState {
-  const AuthAuthenticated();
-}
-
-class AuthUnauthenticated extends AuthState {
-  const AuthUnauthenticated();
-}
-
-class AuthError extends AuthState {
-  final String message;
-
-  const AuthError(this.message);
-}
-
-// Extension methods para facilitar el uso de los estados
-extension AuthStateExtension on AuthState {
-  bool get isInitial => this is AuthInitial;
-  bool get isLoading => this is AuthLoading;
-  bool get isOtpSent => this is AuthOtpSent;
-  bool get isAuthenticated => this is AuthAuthenticated;
-  bool get isUnauthenticated => this is AuthUnauthenticated;
-  bool get isError => this is AuthError;
-
-  String? get email => isOtpSent ? (this as AuthOtpSent).email : null;
-  String? get errorMessage => isError ? (this as AuthError).message : null;
 }

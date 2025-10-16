@@ -1,3 +1,4 @@
+// lib/data/repositories/user_repository_impl.dart
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'auth_repository.dart';
 import '../models/user.dart';
@@ -12,7 +13,6 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = event.session?.user;
       if (user == null) return null;
 
-      // Mapear el usuario de Supabase a tu modelo User
       return User(
         id: user.id,
         name:
@@ -20,50 +20,78 @@ class AuthRepositoryImpl implements AuthRepository {
             user.email?.split('@').first ??
             'Usuario',
         email: user.email!,
-        gender: Gender.other, // Valor por defecto
+        gender: Gender.other,
         createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
     });
   }
 
   @override
-  Future<void> signInWithOtp(String email) async {
+  Future<void> signUpWithPassword(String email, String password) async {
     try {
-      final response = await _supabase.auth.signInWithOtp(
-        email: email,
-        emailRedirectTo:
-            'mi-app://login-callback', // Para deep linking en apps nativas
+      final response = await _supabase.auth.signUp(
+        email: email.trim(),
+        password: password,
+        emailRedirectTo: null,
       );
-      // No necesitas hacer nada más aquí. Supabase se encarga de enviar el email.
+
+      if (response.user != null) {
+        await createUserProfile(response.user!.id, email);
+      }
+    } on AuthException catch (e) {
+      if (e.message.toLowerCase().contains('already registered') ||
+          e.message.toLowerCase().contains(
+            'user with this email address already exists',
+          )) {
+        throw AuthException(
+          'El email ya está registrado. Por favor, inicia sesión.',
+        );
+      }
+      throw AuthException('Error en el registro: ${e.message}');
     } catch (e) {
-      throw AuthException('Error al enviar el código OTP: $e');
+      throw AuthException('Error en el registro: $e');
     }
   }
 
   @override
-  Future<void> verifyOtp(String email, String token) async {
+  Future<void> signInWithPassword(String email, String password) async {
     try {
-      final response = await _supabase.auth.verifyOTP(
-        email: email,
-        token: token,
-        type: OtpType.email,
+      await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: password,
       );
-
-      if (response.user != null) {
-        final isNewUser = response.session?.user?.identities?.isEmpty ?? true;
-
-        if (isNewUser) {
-          await _supabase.from('users').insert({
-            'id': response.user!.id,
-            'name':
-                response.user?.userMetadata?['name'] ?? email.split('@').first,
-            'email': email,
-            'gender': 'other',
-          });
-        }
+    } on AuthException catch (e) {
+      if (e.message.toLowerCase().contains('invalid login credentials')) {
+        throw AuthException('Email o contraseña incorrectos.');
       }
+      throw AuthException('Error en el inicio de sesión: ${e.message}');
     } catch (e) {
-      throw AuthException('Código OTP inválido o expirado: $e');
+      throw AuthException('Error en el inicio de sesión: $e');
+    }
+  }
+
+  @override
+  Future<bool> isNewUser(String userId) async {
+    try {
+      final response = await _supabase.from('users').select().eq('id', userId);
+      return response.isEmpty;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  @override
+  Future<void> createUserProfile(String userId, String email) async {
+    try {
+      await _supabase.from('users').insert({
+        'id': userId,
+        'name': email.split('@').first,
+        'email': email,
+        'gender': 'other',
+      });
+    } catch (e) {
+      throw AuthException('Error al crear el perfil: $e');
     }
   }
 
@@ -71,12 +99,4 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }
-}
-
-class AuthException implements Exception {
-  final String message;
-  AuthException(this.message);
-
-  @override
-  String toString() => message;
 }

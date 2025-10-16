@@ -23,7 +23,7 @@ La app busca ser cálida, íntima, nostalgica, minimalista, cercana, y servir co
 - Vista tipo línea / grafo de relaciones
 - Relaciones personalizadas entre usuarios
 - Autenticación (login / registro)
-- Persistencia local (Hive) + sincronización con Supabase
+- Persistencia local (Drift) + sincronización con Supabase
 - Temas / estilos globales reutilizables
 - Widgets personalizados reutilizables
 - Navegación estructurada con rutas definidas
@@ -54,12 +54,12 @@ lib/
 │   └── datasources/            # APIs
 ├── features/                   # Cada "pantalla" o feature principal
 │   ├── map/                    # Map view
-│   │   ├── view/               # Widgets y pantallas
-│   │   ├── controller/         # State, bloc, cubit o provider
+│   │   ├── views/               # Widgets y pantallas
+│   │   ├── controllers/         # State, bloc, cubit o provider
 │   │   └── widgets/            # Componentes específicos de map
 │   ├── timeline/
-│   │   ├── view/
-│   │   ├── controller/
+│   │   ├── views/
+│   │   ├── controllers/
 │   │   └── widgets/
 │   ├── memories/
 │   ├── users/

@@ -1,3 +1,4 @@
+// lib/data/models/user_relation.dart
 import 'user.dart';
 
 class UserRelation {

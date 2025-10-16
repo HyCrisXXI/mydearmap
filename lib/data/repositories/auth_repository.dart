@@ -1,10 +1,13 @@
+// lib/data/repositories/auth_repository.dart
 import '../models/user.dart';
 
 abstract class AuthRepository {
   Stream<User?> get currentUser;
-  Future<void> sendOtp(String email);
-  Future<void> verifyOtp(String email, String token);
-  Future<void> signOut();
+
+  Future<void> signUpWithPassword(String email, String password);
+  Future<void> signInWithPassword(String email, String password);
+
   Future<bool> isNewUser(String userId);
-  Future<void> createUserProfile(User user);
+  Future<void> createUserProfile(String userId, String email);
+  Future<void> signOut();
 }
