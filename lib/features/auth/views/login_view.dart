@@ -24,8 +24,6 @@ class LoginView extends ConsumerWidget {
           email: emailController.text,
           password: passwordController.text,
         );
-
-        // Éxito. La navegación al home debería ocurrir a través del widget AuthGate/StreamBuilder
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

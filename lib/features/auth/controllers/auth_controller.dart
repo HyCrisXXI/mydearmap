@@ -50,7 +50,6 @@ class AuthController extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
 
     try {
-      print("Contraseña a enviar: '${form.password}'");
       final AuthResponse response = await _supabaseClient.auth.signUp(
         email: form.email.trim(),
         password: form.password.trim(),
