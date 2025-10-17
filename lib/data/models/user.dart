@@ -1,9 +1,4 @@
 // lib/data/models/user.dart
-import 'user_stats.dart';
-import 'memory.dart';
-import 'playlist.dart';
-import 'wishlist.dart';
-import 'user_relation.dart';
 
 class User {
   final String id;
@@ -15,12 +10,6 @@ class User {
   final String? profileUrl;
   final DateTime createdAt;
   final DateTime updatedAt;
-
-  UserStats? stats;
-  List<Memory> memories = [];
-  List<Playlist> playlists = [];
-  List<Wishlist> wishlists = [];
-  List<UserRelation> relations = [];
 
   User({
     required this.id,

@@ -41,30 +41,28 @@ La app busca ser cálida, íntima, nostalgica, minimalista, cercana, y servir co
 ## Estructura
 
 lib/
-├── main.dart                   # Entry point de la app
-├── app.dart                    # Configuración de rutas, themes, providers
-├── core/                       # Funciones y utilidades comunes
-│   ├── constants/              # Colores, tamaños, strings
-│   ├── utils/                  # Helpers generales (fechas, mapas, imágenes, excepciones)
+├── main.dart               # Entry point de la app
+├── app.dart                # Configuración de rutas, themes, providers
+├── core/                   # Funciones y utilidades comunes
+│   ├── constants/          # Colores, tamaños, strings
+│   ├── utils/              # Helpers generales (fechas, mapas, imágenes, excepciones)
 │   ├── providers/
-│   └── widgets/                # Widgets reutilizables de toda la app
-├── data/                       # Acceso a datos, API, local storage
-│   ├── models/                 # Modelos de objetos (User, Memory, MapPin)
-│   ├── repositories/           # Lógica de acceso a datos (abstract + impl)
-│   └── datasources/            # APIs
-├── features/                   # Cada "pantalla" o feature principal
-│   ├── map/                    # Map view
-│   │   ├── views/               # Widgets y pantallas
-│   │   ├── controllers/         # State, bloc, cubit o provider
-│   │   └── widgets/            # Componentes específicos de map
-│   ├── timeline/
-│   │   ├── views/
-│   │   ├── controllers/
-│   │   └── widgets/
+│   ├── widgets/            # Widgets reutilizables de toda la app
+│   └── errors/             # Distintos tipos de errores
+├── data/                   # Acceso a datos, API, local storage
+│   ├── models/             # Modelos de objetos (User, Memory, MapPin)
+│   ├── repositories/       # Lógica de acceso a datos (abstract + impl)
+│   └── datasources/        # APIs
+├── features/               # Cada "pantalla" o feature principal
+│   ├── auth/               # Auth view
+│   │   ├── views/          # Widgets y pantallas
+│   │   ├── controllers/    # State, bloc, cubit o provider
+│   │   ├── models/         # Modelos específicos de auth
+│   │   └── widgets/        # Componentes específicos de auth
+│   ├── map/
 │   ├── memories/
-│   ├── users/
-│   └── settings/
-└── routes/                     # Rutas/navegación
+│   └── timeline/
+└── routes/                 # Rutas/navegación
 
 ## Recursos de interés
 

@@ -5,7 +5,7 @@ import '../controllers/auth_controller.dart';
 import '../controllers/signup_controller.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/errors/auth_errors.dart';
-import '../../../core/utils/form_cache.dart';
+import '../models/form_cache.dart';
 
 class SignupView extends ConsumerStatefulWidget {
   const SignupView({super.key});
@@ -31,6 +31,7 @@ class _SignupViewState extends ConsumerState<SignupView> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _isSignUpInProgress = false;
+  DateTime? _selectedDate;
 
   @override
   void initState() {
@@ -55,7 +56,20 @@ class _SignupViewState extends ConsumerState<SignupView> {
     _passwordController.text = formState.password;
     _nameController.text = formState.name;
     _numberController.text = formState.number ?? '';
-    _birthDateController.text = formState.birthDate ?? '';
+
+    if (formState.birthDate != null && formState.birthDate!.isNotEmpty) {
+      try {
+        _selectedDate = DateTime.parse(formState.birthDate!);
+        _birthDateController.text =
+            "${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}";
+      } catch (e) {
+        _selectedDate = null;
+        _birthDateController.text = '';
+      }
+    } else {
+      _birthDateController.text = '';
+    }
+
     _selectedGender = formState.gender;
 
     _validateEmail(_emailController.text);
@@ -73,9 +87,13 @@ class _SignupViewState extends ConsumerState<SignupView> {
     notifier.updateNumber(
       _numberController.text.isEmpty ? null : _numberController.text,
     );
-    notifier.updateBirthDate(
-      _birthDateController.text.isEmpty ? null : _birthDateController.text,
-    );
+
+    String? isoDate;
+    if (_selectedDate != null) {
+      isoDate = _selectedDate!.toIso8601String().split('T')[0]; // YYYY-MM-DD
+    }
+    notifier.updateBirthDate(isoDate);
+
     notifier.updateGender(_selectedGender);
   }
 
@@ -108,6 +126,8 @@ class _SignupViewState extends ConsumerState<SignupView> {
       _isLoading = true;
       _isSignUpInProgress = true;
     });
+
+    _saveFormData();
 
     final formState = ref.read(signupFormProvider);
     final email = formState.email;
@@ -186,13 +206,19 @@ class _SignupViewState extends ConsumerState<SignupView> {
   Future<void> _selectBirthDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+      initialDate:
+          _selectedDate ??
+          DateTime.now().subtract(const Duration(days: 365 * 18)),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
+
     if (picked != null) {
-      _birthDateController.text =
-          "${picked.day}/${picked.month}/${picked.year}";
+      setState(() {
+        _selectedDate = picked;
+        _birthDateController.text =
+            "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      });
       _validateBirthDate(_birthDateController.text);
       _saveFormData();
     }
