@@ -1,40 +1,6 @@
 // lib/features/auth/controllers/signup_controller.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-class SignupFormState {
-  final String email;
-  final String password;
-  final String name;
-  final String? number;
-  final String? birthDate;
-  final String? gender;
-
-  const SignupFormState({
-    this.email = '',
-    this.password = '',
-    this.name = '',
-    this.number,
-    this.birthDate,
-    this.gender,
-  });
-
-  SignupFormState copyWith({
-    String? email,
-    String? password,
-    String? name,
-    String? number,
-    String? birthDate,
-    String? gender,
-  }) {
-    return SignupFormState(
-      email: email ?? this.email,
-      name: name ?? this.name,
-      number: number ?? this.number,
-      birthDate: birthDate ?? this.birthDate,
-      gender: gender ?? this.gender,
-    );
-  }
-}
+import '../models/signup_form_state.dart';
 
 class SignupFormNotifier extends Notifier<SignupFormState> {
   @override
@@ -72,6 +38,6 @@ class SignupFormNotifier extends Notifier<SignupFormState> {
 }
 
 final signupFormProvider =
-    NotifierProvider<SignupFormNotifier, SignupFormState>(
-      () => SignupFormNotifier(),
-    );
+    NotifierProvider<SignupFormNotifier, SignupFormState>(() {
+      return SignupFormNotifier();
+    });

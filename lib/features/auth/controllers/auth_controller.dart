@@ -1,42 +1,13 @@
 // lib/features/auth/controllers/auth_controller.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../data/models/user_session.dart';
-import '../../../data/repositories/session_repository.dart';
-import 'signup_controller.dart';
-
-final authStateProvider = StreamProvider<User?>((ref) {
-  return Supabase.instance.client.auth.onAuthStateChange.map((event) {
-    return event.session?.user;
-  });
-});
+import '../../../core/errors/auth_errors.dart';
+import '../../../core/utils/validators.dart';
+import '../models/signup_form_state.dart';
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, void>(() {
   return AuthController();
 });
-
-final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
-  return SessionRepository(Supabase.instance.client);
-});
-
-class UserSessionNotifier extends Notifier<UserSession?> {
-  @override
-  UserSession? build() {
-    return null;
-  }
-
-  void setSession(UserSession session) {
-    state = session;
-  }
-
-  void clearSession() {
-    state = null;
-  }
-}
-
-final userSessionProvider = NotifierProvider<UserSessionNotifier, UserSession?>(
-  UserSessionNotifier.new,
-);
 
 class AuthController extends AsyncNotifier<void> {
   @override
@@ -46,36 +17,61 @@ class AuthController extends AsyncNotifier<void> {
 
   SupabaseClient get _supabaseClient => Supabase.instance.client;
 
+  void _validateBeforeSend(String email, String password) {
+    final emailError = Validators.emailValidator(email);
+    if (emailError != null) {
+      throw AppAuthException.invalidEmail();
+    }
+
+    final passwordError = Validators.passwordValidator(password);
+    if (passwordError != null) {
+      throw AppAuthException.weakPassword();
+    }
+  }
+
   Future<void> signUp(SignupFormState form) async {
     state = const AsyncValue.loading();
 
     try {
+      _validateBeforeSend(form.email, form.password);
+
       final AuthResponse response = await _supabaseClient.auth.signUp(
         email: form.email.trim(),
         password: form.password.trim(),
       );
 
-      final user = response.user;
-
-      if (user == null) {
-        throw Exception("Registro fallido: usuario no retornado.");
+      if (response.user == null) {
+        throw AppAuthException("Error al crear la cuenta");
       }
 
       final profileData = {
-        'id': user.id,
+        'id': response.user!.id,
         'name': form.name.trim(),
         'email': form.email.trim(),
-        'number': form.number?.isEmpty ?? true ? null : form.number,
-        'birth_date': form.birthDate?.isEmpty ?? true ? null : form.birthDate,
-        'gender': form.gender?.isEmpty ?? true ? 'other' : form.gender,
+        'number': form.number,
+        'birth_date': form.birthDate,
+        'gender': form.gender ?? 'other',
       };
 
       await _supabaseClient.from('users').insert(profileData);
-
       state = const AsyncValue.data(null);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      rethrow;
+    } on AuthException catch (e) {
+      final appAuthException = AppAuthException.fromSupabase(e);
+      state = AsyncValue.error(appAuthException, StackTrace.current);
+      throw appAuthException;
+    } catch (e) {
+      if (e.toString().contains('socket') || e.toString().contains('network')) {
+        final networkException = AppAuthException.networkError();
+        state = AsyncValue.error(networkException, StackTrace.current);
+        throw networkException;
+      }
+      if (e is AppAuthException) {
+        state = AsyncValue.error(e, StackTrace.current);
+        rethrow;
+      }
+      final genericException = AppAuthException('Error inesperado: $e');
+      state = AsyncValue.error(genericException, StackTrace.current);
+      throw genericException;
     }
   }
 
@@ -84,25 +80,35 @@ class AuthController extends AsyncNotifier<void> {
     required String password,
   }) async {
     state = const AsyncValue.loading();
-
     try {
+      _validateBeforeSend(email, password);
       await _supabaseClient.auth.signInWithPassword(
         email: email.trim(),
         password: password.trim(),
       );
-
       state = const AsyncValue.data(null);
     } on AuthException catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-      throw Exception(e.message);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      throw Exception('Error desconocido al iniciar sesión: $e');
+      final appAuthException = AppAuthException.fromSupabase(e);
+      state = AsyncValue.error(appAuthException, StackTrace.current);
+      throw appAuthException;
+    } catch (e) {
+      if (e.toString().contains('socket') || e.toString().contains('network')) {
+        final networkException = AppAuthException.networkError();
+        state = AsyncValue.error(networkException, StackTrace.current);
+        throw networkException;
+      }
+      if (e is AppAuthException) {
+        state = AsyncValue.error(e, StackTrace.current);
+        rethrow;
+      }
+      final genericException = AppAuthException('Error inesperado: $e');
+      state = AsyncValue.error(genericException, StackTrace.current);
+      throw genericException;
     }
   }
 
   Future<void> signOut() async {
-    ref.read(userSessionProvider.notifier).clearSession();
     await _supabaseClient.auth.signOut();
+    state = const AsyncValue.data(null);
   }
 }

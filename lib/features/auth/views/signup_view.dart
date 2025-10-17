@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/signup_controller.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/errors/auth_errors.dart';
+import '../../../core/utils/form_cache.dart';
 
 class SignupView extends ConsumerStatefulWidget {
   const SignupView({super.key});
@@ -26,6 +28,9 @@ class _SignupViewState extends ConsumerState<SignupView> {
   String? _birthDateError;
 
   String? _selectedGender;
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _isSignUpInProgress = false;
 
   @override
   void initState() {
@@ -97,36 +102,85 @@ class _SignupViewState extends ConsumerState<SignupView> {
   }
 
   Future<void> _signUp() async {
-    if (!_isFormValid) return;
+    if (!_isFormValid || _isSignUpInProgress) return;
 
-    // Crear el estado del formulario directamente desde los controladores
-    final formData = SignupFormState(
-      email: _emailController.text,
-      password: _passwordController.text,
-      name: _nameController.text,
-      number: _numberController.text.isEmpty ? null : _numberController.text,
-      birthDate: _birthDateController.text.isEmpty
-          ? null
-          : _birthDateController.text,
-      gender: _selectedGender,
-    );
+    setState(() {
+      _isLoading = true;
+      _isSignUpInProgress = true;
+    });
+
+    final formState = ref.read(signupFormProvider);
+    final email = formState.email;
+    final password = formState.password;
 
     final authControllerNotifier = ref.read(authControllerProvider.notifier);
 
     try {
-      await authControllerNotifier.signUp(formData);
+      await authControllerNotifier.signUp(formState);
 
       if (mounted) {
+        FormErrorCache.clearCache();
         ref.read(signupFormProvider.notifier).clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Cuenta creada exitosamente!'),
+            backgroundColor: Colors.green,
+          ),
+        );
         Navigator.of(context).pop();
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al registrar: ${e.toString()}')),
+    } on AppAuthException catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      if (FormErrorCache.isRepeatedError(email, password, e.message)) {
+        _showErrorSnackBar(
+          'Por favor, corrige los datos antes de intentar nuevamente',
         );
+      } else {
+        FormErrorCache.cacheFailedAttempt(email, password, e.message);
+        _showErrorSnackBar(e.message);
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      final errorMessage = 'Error al registrar: ${e.toString()}';
+      if (FormErrorCache.isRepeatedError(email, password, errorMessage)) {
+        _showErrorSnackBar(
+          'Error persistente. Por favor, verifica tu conexión o intenta más tarde',
+        );
+      } else {
+        FormErrorCache.cacheFailedAttempt(email, password, errorMessage);
+        _showErrorSnackBar(errorMessage);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isSignUpInProgress = false;
+        });
       }
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscurePassword = !_obscurePassword;
+    });
   }
 
   Future<void> _selectBirthDate() async {
@@ -146,9 +200,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authControllerProvider);
-    final isLoading = authState.isLoading;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crear Cuenta'),
@@ -178,7 +229,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
               },
             ),
             const SizedBox(height: 16),
-
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
@@ -194,7 +244,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
               },
             ),
             const SizedBox(height: 16),
-
             TextField(
               controller: _passwordController,
               decoration: InputDecoration(
@@ -202,15 +251,20 @@ class _SignupViewState extends ConsumerState<SignupView> {
                 prefixIcon: const Icon(Icons.lock),
                 border: const OutlineInputBorder(),
                 errorText: _passwordError,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: _togglePasswordVisibility,
+                ),
               ),
-              obscureText: true,
+              obscureText: _obscurePassword,
               onChanged: (value) {
                 _validatePassword(value);
                 _saveFormData();
               },
             ),
             const SizedBox(height: 16),
-
             TextField(
               controller: _numberController,
               decoration: InputDecoration(
@@ -226,7 +280,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
               },
             ),
             const SizedBox(height: 16),
-
             TextField(
               controller: _birthDateController,
               decoration: InputDecoration(
@@ -239,9 +292,8 @@ class _SignupViewState extends ConsumerState<SignupView> {
               onTap: _selectBirthDate,
             ),
             const SizedBox(height: 16),
-
             DropdownButtonFormField<String>(
-              value: _selectedGender,
+              initialValue: _selectedGender,
               decoration: const InputDecoration(
                 labelText: 'Género (opcional)',
                 border: OutlineInputBorder(),
@@ -263,17 +315,15 @@ class _SignupViewState extends ConsumerState<SignupView> {
               },
             ),
             const SizedBox(height: 30),
-
             SizedBox(
               height: 50,
               child: ElevatedButton(
-                onPressed: _isFormValid && !isLoading ? _signUp : null,
-                child: isLoading
+                onPressed: _isFormValid && !_isLoading ? _signUp : null,
+                child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('Registrarse'),
               ),
             ),
-
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
