@@ -30,17 +30,34 @@ class Memory {
 
   factory Memory.fromJson(Map<String, dynamic> json) {
     return Memory(
-      id: json['id'] as String,
+      id: json['id'] as int,
       title: json['title'] as String,
       description: json['description'] as String?,
-      location: json['location'] != null
-          ? GeoPoint.fromJson(json['location'])
-          : null,
+      location: json['location'] as GeoPoint?,
       happenedAt: DateTime.parse(json['happened_at'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      // reactions: (json['reactions'] as List<dynamic>?)
+      //         ?.map((r) => Reaction.fromJson(r as Map<String, dynamic>))
+      //         .toList() ??
+        // [],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'location': location,
+      'happened_at': happenedAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      if (reactions.isNotEmpty)
+        'reactions': reactions.map((r) => r.toJson()).toList(),
+    };
+
+ }
 }
 
 class UserRole {
