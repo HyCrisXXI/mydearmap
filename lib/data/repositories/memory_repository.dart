@@ -1,25 +1,21 @@
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../models/memory.dart';
-import '../../core/utils/supabase_setup.dart';
 
 class MemoryRepository {
   final SupabaseClient _client;
 
   MemoryRepository(this._client);
 
-  /// Crear una nueva memory
   Future<Memory?> createMemory(Memory memory) async {
     final response = await _client
         .from('memories')
-        .insert(memory.toMap())
+        .insert(memory.toJson())
         .select()
         .single();
 
-    if (response == null) return null;
-    return Memory.fromMap(response);
+    return Memory.fromJson(response);
   }
 
-  /// Obtener una memory por ID
   Future<Memory?> getMemoryById(String id) async {
     final response = await _client
         .from('memories')
@@ -28,10 +24,9 @@ class MemoryRepository {
         .maybeSingle();
 
     if (response == null) return null;
-    return Memory.fromMap(response);
+    return Memory.fromJson(response);
   }
 
-  /// Obtener todas las memories de un usuario (por ejemplo)
   Future<List<Memory>> getMemoriesByUser(String userId) async {
     final response = await _client
         .from('memories')
@@ -39,17 +34,25 @@ class MemoryRepository {
         .eq('user_id', userId);
 
     return (response as List)
-        .map((item) => Memory.fromMap(item))
+        .map((item) => Memory.fromJson(item))
         .toList();
   }
 
-  /// Verificar si ya existe una memory con el mismo título
-  Future<bool> existsByTitle(String title) async {
-    final response = await _client
-        .from('memories')
-        .select('id', const FetchOptions(count: CountOption.exact, head: true))
-        .eq('title', title);
+  
+Future<bool> existsByTitle(String title) async {
+  final response = await _client
+      .from('memories')
+      .select('id')
+      .eq('title', title);
 
-    return (response.count ?? 0) > 0;
+  return response.isNotEmpty;
+}
+
+Future<bool> deleteMemory(String id) async {
+  final response = await _client
+        .from('memories')
+        .delete().eq('id', id);
+
+    return response.isNotEmpty;
   }
 }

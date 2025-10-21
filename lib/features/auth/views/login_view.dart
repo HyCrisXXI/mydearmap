@@ -6,6 +6,7 @@ import 'signup_view.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/errors/auth_errors.dart';
 import '../models/form_cache.dart';
+import '../../memory/views/memory_create_view.dart';
 
 class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
@@ -176,7 +177,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       : () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const SignupView(),
+                              builder: (context) => const MemoryCreateView(), //cambio para ver recuerdo 
                             ),
                           );
                         },
