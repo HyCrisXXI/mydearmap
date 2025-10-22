@@ -1,4 +1,5 @@
 // lib/data/models/user.dart
+import 'dart:typed_data';
 
 class User {
   final String id;
@@ -8,6 +9,7 @@ class User {
   final DateTime? birthDate;
   final Gender gender;
   final String? profileUrl;
+  final Uint8List? profileImage;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,6 +21,7 @@ class User {
     this.birthDate,
     required this.gender,
     this.profileUrl,
+    this.profileImage,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -37,6 +40,7 @@ class User {
         orElse: () => Gender.other,
       ),
       profileUrl: json['profile_url'] as String?,
+      profileImage: json['profile_image'] as Uint8List?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );

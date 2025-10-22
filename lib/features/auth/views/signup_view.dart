@@ -325,10 +325,7 @@ class _SignupViewState extends ConsumerState<SignupView> {
                 border: OutlineInputBorder(),
               ),
               items: const [
-                DropdownMenuItem(
-                  value: null,
-                  child: Text('— Sin especificar —'),
-                ),
+                DropdownMenuItem(value: null, child: Text('Sin especificar')),
                 DropdownMenuItem(value: 'male', child: Text('Masculino')),
                 DropdownMenuItem(value: 'female', child: Text('Femenino')),
                 DropdownMenuItem(value: 'other', child: Text('Otro')),
