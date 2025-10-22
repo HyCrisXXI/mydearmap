@@ -1,15 +1,17 @@
-
+// lib/features/relations/controllers/relation_controller.dart
+import 'package:mydearmap/data/models/user.dart';
+import 'package:mydearmap/core/errors/auth_errors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
-import '../../../data/models/user.dart';
-import '../../../core/errors/auth_errors.dart';
 
-final userRelationController = AsyncNotifierProvider<UserRelationController, List<User>>(() {
-  return UserRelationController();
-});
+final userRelationController =
+    AsyncNotifierProvider<UserRelationController, List<User>>(() {
+      return UserRelationController();
+    });
 
 class UserRelationController extends AsyncNotifier<List<User>> {
-  supabase.SupabaseClient get _supabaseClient => supabase.Supabase.instance.client;
+  supabase.SupabaseClient get _supabaseClient =>
+      supabase.Supabase.instance.client;
 
   @override
   Future<List<User>> build() async {
@@ -24,7 +26,9 @@ class UserRelationController extends AsyncNotifier<List<User>> {
       final list = (response as List<dynamic>)
           .map<User?>((e) {
             try {
-              return User.fromJson(Map<String, dynamic>.from(e as Map<String, dynamic>));
+              return User.fromJson(
+                Map<String, dynamic>.from(e as Map<String, dynamic>),
+              );
             } catch (_) {
               return null;
             }
@@ -37,7 +41,10 @@ class UserRelationController extends AsyncNotifier<List<User>> {
         state = AsyncValue.error(e, StackTrace.current);
         rethrow;
       }
-      state = AsyncValue.error(AppAuthException('Error inesperado: $e'), StackTrace.current);
+      state = AsyncValue.error(
+        AppAuthException('Error inesperado: $e'),
+        StackTrace.current,
+      );
     }
   }
 }

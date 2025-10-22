@@ -1,3 +1,4 @@
+// lib/data/models/reaction.dart
 import 'user.dart';
 
 class Reaction {
@@ -13,7 +14,7 @@ class Reaction {
     required this.createdAt,
   });
 
-factory Reaction.fromJson(Map<String, dynamic> json) {
+  factory Reaction.fromJson(Map<String, dynamic> json) {
     return Reaction(
       id: json['id'] as int,
       user: User.fromJson(json['user'] as Map<String, dynamic>),
@@ -29,5 +30,5 @@ factory Reaction.fromJson(Map<String, dynamic> json) {
       'reaction_type': reactionType,
       'created_at': createdAt.toIso8601String(),
     };
- }
+  }
 }

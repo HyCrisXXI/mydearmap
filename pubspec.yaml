@@ -36,14 +36,11 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_secure_storage: ^9.2.4
   flutter_dotenv: ^6.0.0
-  mailer: ^6.5.0
   flutter_riverpod: ^3.0.3
-  riverpod: ^3.0.3
   supabase_flutter: ^2.10.3 
-  flutter_map: 8.0.0
+  flutter_map: 8.1.1
   latlong2: ^0.9.1
   http: ^1.5.0
-  flutter_map_cancellable_tile_provider: ^3.1.1
 
 dev_dependencies:
   flutter_test:

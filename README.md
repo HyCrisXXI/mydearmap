@@ -14,7 +14,7 @@ MyDearMap permite a los usuarios:
 - Explorar dicha "timeline".
 - Añadir ubicaciones a la "wishlist".
 
-La app busca ser cálida, íntima, nostalgica, minimalista, cercana, y servir como diario virtual colaborativo.
+La app busca ser cálida, íntima, nostalgica, cercana, y servir como diario virtual colaborativo.
 
 ## Principales características
 
@@ -36,7 +36,7 @@ La app busca ser cálida, íntima, nostalgica, minimalista, cercana, y servir co
 - Almacenamiento local offline: Hive
 - Arquitectura en capas: presentación / controladores / datos / servicios
 - Modularización en widgets reutilizables
-- Google maps
+- OpenStreetMap con MapTiler
 
 ## Estructura
 

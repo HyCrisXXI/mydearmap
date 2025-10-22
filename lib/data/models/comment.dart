@@ -1,3 +1,4 @@
+// lib/data/models/comment.dart
 import 'user.dart';
 
 class Comment {

@@ -1,6 +1,6 @@
 // lib/features/auth/controllers/signup_controller.dart
+import 'package:mydearmap/features/auth/models/signup_form_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/signup_form_state.dart';
 
 class SignupFormNotifier extends Notifier<SignupFormState> {
   @override

@@ -1,4 +1,4 @@
-// lib/features/memory/controllers/memory_controller.dart
+// lib/features/memories/controllers/memory_controller.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/models/memory.dart';
@@ -6,10 +6,11 @@ import '../../../data/repositories/memory_repository.dart';
 import '../../../core/errors/memory_errors.dart';
 
 /// Provider del controlador
-final memoryControllerProvider =
-    AsyncNotifierProvider<MemoryController, void>(() {
-  return MemoryController(MemoryRepository(Supabase.instance.client));
-});
+final memoryControllerProvider = AsyncNotifierProvider<MemoryController, void>(
+  () {
+    return MemoryController(MemoryRepository(Supabase.instance.client));
+  },
+);
 
 class MemoryController extends AsyncNotifier<void> {
   final MemoryRepository _repository;
@@ -34,7 +35,7 @@ class MemoryController extends AsyncNotifier<void> {
     }
   }
 
-/// Obtener todos los recuerdos
+  /// Obtener todos los recuerdos
   Future<List<Memory>> getAllMemories() async {
     state = const AsyncValue.loading();
     try {
@@ -75,20 +76,19 @@ class MemoryController extends AsyncNotifier<void> {
 
   /// Verificar si ya existe un recuerdo con el mismo título
   Future<bool> existsByTitle(String title) async {
-  state = const AsyncValue.loading();
-  try {
-    final exists = await _repository.existsByTitle(title);
+    state = const AsyncValue.loading();
+    try {
+      final exists = await _repository.existsByTitle(title);
 
-    if (!exists) throw MemoryException.notFound(title);
+      if (!exists) throw MemoryException.notFound(title);
 
-    state = const AsyncValue.data(null);
-    return exists;
-  } catch (e) {
-    state = AsyncValue.error(e, StackTrace.current);
-    rethrow;
+      state = const AsyncValue.data(null);
+      return exists;
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
+    }
   }
-}
-
 
   /// Eliminar un recuerdo por ID
   Future<void> deleteMemory(String id) async {

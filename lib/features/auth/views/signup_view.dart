@@ -1,11 +1,11 @@
 // lib/features/auth/views/signup_view.dart
-import 'package:flutter/material.dart';
+import 'package:mydearmap/features/auth/controllers/signup_controller.dart';
+import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
+import 'package:mydearmap/features/auth/models/form_cache.dart';
+import 'package:mydearmap/core/errors/auth_errors.dart';
+import 'package:mydearmap/core/utils/validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../controllers/auth_controller.dart';
-import '../controllers/signup_controller.dart';
-import '../../../core/utils/validators.dart';
-import '../../../core/errors/auth_errors.dart';
-import '../models/form_cache.dart';
+import 'package:flutter/material.dart';
 
 class SignupView extends ConsumerStatefulWidget {
   const SignupView({super.key});

@@ -1,4 +1,4 @@
-// ...existing code...
+// lib/features/memories/views/memory_create_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/constants.dart';
@@ -114,8 +114,12 @@ class _MemoryCreateViewState extends ConsumerState<MemoryCreateView> {
                 dateController: _dateController,
                 readOnly: false,
                 onPickDate: _pickDate,
-                titleValidator: (value) => (value == null || value.isEmpty) ? 'Ingresa un título' : null,
-                dateValidator: (_) => _selectedDate == null ? 'Selecciona la fecha del recuerdo' : null,
+                titleValidator: (value) => (value == null || value.isEmpty)
+                    ? 'Ingresa un título'
+                    : null,
+                dateValidator: (_) => _selectedDate == null
+                    ? 'Selecciona la fecha del recuerdo'
+                    : null,
               ),
               const SizedBox(height: AppSizes.paddingLarge),
               MemoryActionButtons(

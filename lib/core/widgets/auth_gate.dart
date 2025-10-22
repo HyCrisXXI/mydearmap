@@ -1,9 +1,9 @@
 // lib/core/widgets/auth_gate.dart
+import 'package:mydearmap/features/map/views/map_view.dart';
+import 'package:mydearmap/features/auth/views/login_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mydearmap/features/map/views/map_view.dart';
-import 'package:mydearmap/features/auth/views/login_view.dart';
 
 class AuthGate extends ConsumerStatefulWidget {
   const AuthGate({super.key});

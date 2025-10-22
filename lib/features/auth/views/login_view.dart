@@ -1,11 +1,12 @@
 // lib/features/auth/views/login_view.dart
+import 'package:mydearmap/core/utils/validators.dart';
+import 'package:mydearmap/core/errors/auth_errors.dart';
+import 'package:mydearmap/features/auth/models/form_cache.dart';
+import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
+import 'package:mydearmap/features/auth/controllers/autosuggestion_controller.dart';
+import 'signup_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../controllers/auth_controller.dart';
-import 'signup_view.dart';
-import '../../../core/utils/validators.dart';
-import '../../../core/errors/auth_errors.dart';
-import '../models/form_cache.dart';
 
 class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
@@ -15,7 +16,7 @@ class LoginView extends ConsumerStatefulWidget {
 }
 
 class _LoginViewState extends ConsumerState<LoginView> {
-  final _emailController = TextEditingController();
+  late AutosuggestionController _emailController;
   final _passwordController = TextEditingController();
 
   String? _emailError;
@@ -24,15 +25,71 @@ class _LoginViewState extends ConsumerState<LoginView> {
   bool _obscurePassword = true;
   bool _isSignInInProgress = false;
 
+  String _suggestedDomain = '';
+  static const String _defaultSuggestion = 'gmail.com';
+
+  @override
+  void initState() {
+    super.initState();
+
+    final TextStyle initialSuggestionStyle = TextStyle(
+      fontSize: 16,
+      color: Colors.grey.withAlpha(153),
+    );
+
+    _emailController = AutosuggestionController(
+      initialSuggestion: '',
+      initialSuggestionStyle: initialSuggestionStyle,
+    );
+    _emailController.addListener(_onEmailChanged);
+  }
+
   @override
   void dispose() {
+    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  void _onEmailChanged() {
+    final value = _emailController.text;
+
+    String suggestion = '';
+    final atIndex = value.lastIndexOf('@');
+
+    if (atIndex != -1) {
+      final domainPart = value.substring(atIndex + 1);
+
+      if (domainPart.isEmpty) {
+        suggestion = _defaultSuggestion;
+      } else if (_defaultSuggestion.startsWith(domainPart)) {
+        suggestion = _defaultSuggestion.substring(domainPart.length);
+      }
+    }
+
+    if (_suggestedDomain != suggestion) {
+      _suggestedDomain = suggestion;
+
+      _emailController.suggestion = _suggestedDomain;
+    }
+
+    _validateEmail(value);
+  }
+
   void _validateEmail(String value) {
-    setState(() => _emailError = Validators.emailValidator(value));
+    String fullEmail = value;
+    if (value.contains('@') && _suggestedDomain.isNotEmpty) {
+      fullEmail = value + _suggestedDomain;
+    }
+
+    setState(() {
+      if (value.isNotEmpty) {
+        _emailError = Validators.emailValidator(fullEmail);
+      } else {
+        _emailError = null;
+      }
+    });
   }
 
   void _validatePassword(String value) {
@@ -48,7 +105,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
   Future<void> _signIn() async {
     if (!_isFormValid || _isLoading || _isSignInInProgress) return;
 
-    final email = _emailController.text;
+    String email = _emailController.text;
+    if (_suggestedDomain.isNotEmpty && email.contains('@')) {
+      email += _suggestedDomain;
+    }
+
     final password = _passwordController.text;
 
     setState(() {
@@ -116,6 +177,19 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final baseTextStyle = TextStyle(
+      fontSize: 16,
+      color: theme.colorScheme.onSurface,
+    );
+
+    final suggestionStyle = baseTextStyle.copyWith(
+      color: theme.colorScheme.onSurface.withAlpha(89),
+    );
+
+    _emailController.suggestionStyle = suggestionStyle;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Iniciar Sesión')),
       body: Padding(
@@ -132,8 +206,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 prefixIcon: const Icon(Icons.email),
               ),
               keyboardType: TextInputType.emailAddress,
-              onChanged: _validateEmail,
               onSubmitted: (_) => _signIn(),
+              style: baseTextStyle,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -176,8 +250,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       : () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  const SignupView(), //cambio para ver recuerdo
+                              builder: (context) => const SignupView(),
                             ),
                           );
                         },

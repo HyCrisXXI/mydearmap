@@ -1,3 +1,4 @@
+// lib/data/models/media.dart
 class Media {
   final int id;
   final MediaType type;
@@ -14,8 +15,7 @@ class Media {
     this.durationSec,
     required this.createdAt,
   });
- factory Media.fromJson(Map<String, dynamic> json) {
-  
+  factory Media.fromJson(Map<String, dynamic> json) {
     MediaType parseType(String type) {
       switch (type) {
         case 'image':
@@ -45,7 +45,7 @@ class Media {
     return {
       'id': id,
       'type': type.name,
-      'url' : url,
+      'url': url,
       'content': content,
       'durationSec': durationSec,
       'created_at': createdAt.toIso8601String(),

@@ -1,3 +1,4 @@
+// lib/data/models/user_stats.dart
 class UserStats {
   final int memoriesUploaded;
   final int commentsPosted;

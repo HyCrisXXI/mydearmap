@@ -1,16 +1,15 @@
 // lib/features/map/views/map_view.dart
-import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:convert';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -198,6 +197,8 @@ class _MapViewState extends ConsumerState<MapView> {
                         options: MapOptions(
                           initialCenter: LatLng(39.4699, -0.3763), // Valencia
                           initialZoom: 13,
+                          minZoom: 2.0,
+                          maxZoom: 18.0,
                           interactionOptions: const InteractionOptions(
                             flags: InteractiveFlag.all,
                           ),
@@ -207,9 +208,7 @@ class _MapViewState extends ConsumerState<MapView> {
                             urlTemplate:
                                 'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
                             userAgentPackageName: 'com.mydearmap.app',
-                            tileProvider: kIsWeb
-                                ? CancellableNetworkTileProvider()
-                                : null,
+                            tileProvider: kIsWeb ? NetworkTileProvider() : null,
                           ),
                           if (searchedLocation != null)
                             MarkerLayer(

@@ -1,4 +1,4 @@
-// lib/features/memory/views/memory_view.dart
+// lib/features/memories/views/memory_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/constants.dart';
@@ -36,12 +36,15 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
   Future<void> _loadMemory() async {
     setState(() => _isLoading = true);
     try {
-      final memory = await ref.read(memoryControllerProvider.notifier).getMemoryById(widget.memoryId);
+      final memory = await ref
+          .read(memoryControllerProvider.notifier)
+          .getMemoryById(widget.memoryId);
       if (memory != null) {
         _titleController.text = memory.title;
         _descriptionController.text = memory.description ?? '';
         _selectedDate = memory.happenedAt;
-        _dateController.text = '${_selectedDate!.day.toString().padLeft(2, '0')}/'
+        _dateController.text =
+            '${_selectedDate!.day.toString().padLeft(2, '0')}/'
             '${_selectedDate!.month.toString().padLeft(2, '0')}/'
             '${_selectedDate!.year}';
       }
@@ -64,7 +67,8 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
     if (picked != null) {
       setState(() {
         _selectedDate = picked;
-        _dateController.text = '${picked.day.toString().padLeft(2, '0')}/'
+        _dateController.text =
+            '${picked.day.toString().padLeft(2, '0')}/'
             '${picked.month.toString().padLeft(2, '0')}/'
             '${picked.year}';
       });
@@ -78,13 +82,17 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
     setState(() => _isLoading = true);
 
     try {
-      final existing = await ref.read(memoryControllerProvider.notifier).getMemoryById(widget.memoryId);
+      final existing = await ref
+          .read(memoryControllerProvider.notifier)
+          .getMemoryById(widget.memoryId);
       if (existing == null) throw Exception('Memory no encontrada');
 
       final updated = Memory(
         id: existing.id,
         title: _titleController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
         location: existing.location,
         happenedAt: _selectedDate ?? existing.happenedAt,
         createdAt: existing.createdAt,
@@ -95,7 +103,10 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Recuerdo actualizado'), backgroundColor: AppColors.accentColor),
+        const SnackBar(
+          content: Text('Recuerdo actualizado'),
+          backgroundColor: AppColors.accentColor,
+        ),
       );
       setState(() {
         _editing = false;
@@ -103,7 +114,10 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al actualizar: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(
+          content: Text('Error al actualizar: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -148,7 +162,7 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(AppSizes.paddingLarge),
-                child: Form(
+              child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,8 +173,13 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
                       dateController: _dateController,
                       readOnly: !_editing,
                       onPickDate: _pickDate,
-                      titleValidator: (value) => (value == null || value.isEmpty) ? 'Ingresa un título' : null,
-                      dateValidator: (_) => _selectedDate == null ? 'Selecciona la fecha del recuerdo' : null,
+                      titleValidator: (value) =>
+                          (value == null || value.isEmpty)
+                          ? 'Ingresa un título'
+                          : null,
+                      dateValidator: (_) => _selectedDate == null
+                          ? 'Selecciona la fecha del recuerdo'
+                          : null,
                     ),
                     const SizedBox(height: AppSizes.paddingLarge),
                     MemoryActionButtons(
@@ -172,7 +191,9 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
                       },
                       onSave: _save,
                       onEdit: () => setState(() => _editing = true),
-                      primaryLabel: _editing ? 'Guardar cambios' : 'Editar recuerdo',
+                      primaryLabel: _editing
+                          ? 'Guardar cambios'
+                          : 'Editar recuerdo',
                       cancelLabel: 'Cancelar',
                     ),
                   ],
@@ -187,7 +208,9 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar eliminación'),
-        content: const Text('¿Estás seguro de que quieres eliminar este recuerdo? Esta acción no se puede deshacer.'),
+        content: const Text(
+          '¿Estás seguro de que quieres eliminar este recuerdo? Esta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -205,16 +228,24 @@ class _MemoryViewState extends ConsumerState<MemoryView> {
 
     setState(() => _isLoading = true);
     try {
-      await ref.read(memoryControllerProvider.notifier).deleteMemory(widget.memoryId);
+      await ref
+          .read(memoryControllerProvider.notifier)
+          .deleteMemory(widget.memoryId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Recuerdo eliminado'), backgroundColor: AppColors.accentColor),
+        const SnackBar(
+          content: Text('Recuerdo eliminado'),
+          backgroundColor: AppColors.accentColor,
+        ),
       );
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: Colors.redAccent),
+        SnackBar(
+          content: Text('Error al eliminar: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

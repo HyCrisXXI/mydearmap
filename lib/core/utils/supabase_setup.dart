@@ -1,7 +1,7 @@
 // lib/core/utils/supabase_setup.dart
+import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../constants/env_constants.dart';
 
 class SupabaseSetup {
   static Future<void> initialize() async {

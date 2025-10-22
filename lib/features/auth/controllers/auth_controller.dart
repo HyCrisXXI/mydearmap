@@ -1,9 +1,9 @@
 // lib/features/auth/controllers/auth_controller.dart
+import 'package:mydearmap/features/auth/models/signup_form_state.dart';
+import 'package:mydearmap/core/errors/auth_errors.dart';
+import 'package:mydearmap/core/utils/validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/errors/auth_errors.dart';
-import '../../../core/utils/validators.dart';
-import '../models/signup_form_state.dart';
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, void>(() {
   return AuthController();
