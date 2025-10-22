@@ -16,6 +16,15 @@ class MemoryRepository {
     return Memory.fromJson(response);
   }
 
+  Future<List<Memory>> getAllMemories() async {
+    final response = await _client
+        .from('memories')
+        .select();
+        return (response as List)
+        .map((item) => Memory.fromJson(item))
+        .toList();
+  }
+
   Future<Memory?> getMemoryById(String id) async {
     final response = await _client
         .from('memories')
@@ -54,5 +63,17 @@ Future<bool> deleteMemory(String id) async {
         .delete().eq('id', id);
 
     return response.isNotEmpty;
+  }
+
+  Future<Memory?> updateMemory(Memory memory) async {
+    final response = await _client
+        .from('memories')
+        .update(memory.toJson())
+        .eq('id', memory.id)
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Memory.fromJson(response);
   }
 }

@@ -34,6 +34,19 @@ class MemoryController extends AsyncNotifier<void> {
     }
   }
 
+/// Obtener todos los recuerdos
+  Future<List<Memory>> getAllMemories() async {
+    state = const AsyncValue.loading();
+    try {
+      final memories = await _repository.getAllMemories();
+      state = const AsyncValue.data(null);
+      return memories;
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
+    }
+  }
+
   /// Obtener recuerdo por ID
   Future<Memory?> getMemoryById(String id) async {
     state = const AsyncValue.loading();
@@ -83,6 +96,20 @@ class MemoryController extends AsyncNotifier<void> {
     try {
       await _repository.deleteMemory(id);
       state = const AsyncValue.data(null);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
+    }
+  }
+
+  /// Actualizar un recuerdo existente
+  Future<Memory?> updateMemory(Memory memory) async {
+    state = const AsyncValue.loading();
+    try {
+      final updated = await _repository.updateMemory(memory);
+      if (updated == null) throw Exception('No se pudo actualizar la memory');
+      state = const AsyncValue.data(null);
+      return updated;
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
       rethrow;

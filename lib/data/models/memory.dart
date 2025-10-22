@@ -41,7 +41,6 @@ class Memory {
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
 
-   
     if (json['participants'] != null) {
       memory.participants = (json['participants'] as List)
           .map((p) => UserRole(
@@ -60,8 +59,7 @@ class Memory {
           .map((m) => Media.fromJson(m as Map<String, dynamic>))
           .toList();
     }
-
-   
+  
     if (json['comments'] != null) {
       memory.comments = (json['comments'] as List)
           .map((c) => Comment.fromJson(c as Map<String, dynamic>))

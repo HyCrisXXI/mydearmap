@@ -177,7 +177,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       : () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const MemoryCreateView(), //cambio para ver recuerdo 
+                              builder: (context) => const SignupView(), //cambio para ver recuerdo 
                             ),
                           );
                         },
