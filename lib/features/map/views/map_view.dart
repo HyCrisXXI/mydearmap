@@ -1,13 +1,54 @@
-// lib/features/map/views/map_view.dart
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/controllers/auth_controller.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:mydearmap/core/constants/env_constants.dart';
 
-class MapView extends ConsumerWidget {
+class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MapView> createState() => _MapViewState();
+}
+
+class _MapViewState extends ConsumerState<MapView> {
+  final mapController = MapController();
+  final searchController = TextEditingController();
+  LatLng? searchedLocation;
+
+  Future<void> searchPlace(String query) async {
+    if (query.trim().isEmpty) return;
+    final url = Uri.parse(
+      'https://api.maptiler.com/geocoding/${Uri.encodeComponent(query)}.json?key=${EnvConstants.mapTilesApiKey}',
+    );
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['features'] != null && data['features'].isNotEmpty) {
+        final coords = data['features'][0]['geometry']['coordinates'];
+        final lng = coords[0] as double;
+        final lat = coords[1] as double;
+        setState(() {
+          searchedLocation = LatLng(lat, lng);
+        });
+        mapController.move(LatLng(lat, lng), mapController.camera.zoom);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se encontró el lugar.')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Error buscando el lugar.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mi Mapa'),
@@ -15,7 +56,6 @@ class MapView extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              // Mostrar diálogo de confirmación
               final shouldLogout = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -35,7 +75,6 @@ class MapView extends ConsumerWidget {
                   ],
                 ),
               );
-
               if (shouldLogout == true) {
                 try {
                   await ref.read(authControllerProvider.notifier).signOut();
@@ -54,18 +93,83 @@ class MapView extends ConsumerWidget {
           ),
         ],
       ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.map, size: 100, color: Colors.grey),
-            SizedBox(height: 20),
-            Text(
-              'Vista de Mapa',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+      body: Column(
+        children: [
+          // Profile section
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  child: const Icon(Icons.person, size: 32),
+                ),
+                const SizedBox(width: 16),
+                const Text('Usuario', style: TextStyle(fontSize: 18)),
+              ],
             ),
-          ],
-        ),
+          ),
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Buscar recuerdos o lugares...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: () => searchPlace(searchController.text),
+                ),
+              ),
+              onSubmitted: searchPlace,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: FlutterMap(
+              mapController: mapController,
+              options: MapOptions(
+                initialCenter: LatLng(39.4699, -0.3763), // Valencia
+                initialZoom: 13,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all,
+                ),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate:
+                      'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
+                  userAgentPackageName: 'com.mydearmap.app',
+                ),
+                if (searchedLocation != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: searchedLocation!,
+                        width: 40,
+                        height: 40,
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.red,
+                          size: 40,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // TODO: Navigate to add memory screen
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }
