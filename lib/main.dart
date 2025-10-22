@@ -14,8 +14,7 @@ Future<void> main() async {
     url: EnvConstants.supabaseUrl,
     anonKey: EnvConstants.supabaseAnonKey,
   );
-
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -23,12 +22,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ProviderScope(
-      child: MaterialApp(
-        title: 'MyDearMap',
-        theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-        home: const AuthGate(),
-      ),
+    return MaterialApp(
+      title: 'MyDearMap',
+      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      home: const AuthGate(),
     );
   }
 }

@@ -71,12 +71,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
     }
 
     _selectedGender = formState.gender;
-
-    _validateEmail(_emailController.text);
-    _validatePassword(_passwordController.text);
-    _validateName(_nameController.text);
-    _validatenumber(_numberController.text);
-    _validateBirthDate(_birthDateController.text);
   }
 
   void _saveFormData() {

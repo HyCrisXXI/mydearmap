@@ -1,5 +1,4 @@
 // lib/data/models/user.dart
-import 'dart:typed_data';
 
 class User {
   final String id;
@@ -9,9 +8,7 @@ class User {
   final DateTime? birthDate;
   final Gender gender;
   final String? profileUrl;
-  final Uint8List? profileImage;
   final DateTime createdAt;
-  final DateTime updatedAt;
 
   User({
     required this.id,
@@ -21,9 +18,7 @@ class User {
     this.birthDate,
     required this.gender,
     this.profileUrl,
-    this.profileImage,
     required this.createdAt,
-    required this.updatedAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -40,9 +35,7 @@ class User {
         orElse: () => Gender.other,
       ),
       profileUrl: json['profile_url'] as String?,
-      profileImage: json['profile_image'] as Uint8List?,
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
@@ -56,7 +49,6 @@ class User {
       'gender': gender.name,
       'profile_url': profileUrl,
       'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
     };
   }
 }

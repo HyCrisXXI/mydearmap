@@ -1,7 +1,7 @@
 # mydearmap
 
 MyDearApp es un proyecto combinado entre etsinf y bellas artes de la Universitat Politècnica de València.
-Sus autores son Cris, Oscar, Nacho (programadores), Silvia e Ivonne (diseñadoras)
+Sus autores son Cristian, Oscar, Nacho (programadores), Silvia e Ivonne (diseñadoras)
 
 ## Descripción
 

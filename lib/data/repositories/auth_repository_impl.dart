@@ -22,7 +22,6 @@ class AuthRepositoryImpl implements AuthRepository {
         email: user.email!,
         gender: Gender.other,
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
       );
     });
   }
