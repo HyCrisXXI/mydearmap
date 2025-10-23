@@ -93,7 +93,22 @@ class _MapViewState extends ConsumerState<MapView> {
             }
           }
         },
+        /*onOpenRelations: () {
+        // Cambia userRelationsProvider por el provider real que expone List<UserRelation>
+          final currentUser = ref.read(currentUserProvider);
+          //final relations = ref.read(userRelationsProvider);
+
+          //Navigator.of(context).push(
+           //MaterialPageRoute(
+              //builder: (_) => UserRelationGraph(
+               //currentUser: currentUser,
+                //relations: relations ?? [],
+             ),
+           ),
+          );
+        },*/
       ),
+      
       body: SafeArea(
         child: Consumer(
           builder: (context, ref, _) {
