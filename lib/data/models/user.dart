@@ -50,6 +50,15 @@ class User {
       'created_at': createdAt.toIso8601String(),
     };
   }
+  factory User.fromMap(Map<String, dynamic> map) {
+    return User(
+      id: (map['id'] ?? map['user_id'] ?? '').toString(),
+      email: (map['email'] ?? '').toString(),
+      name: map['name'] as String,
+      profileUrl: (map['profile_url'] ?? map['profileUrl']) as String?,
+      gender: (map['gender'] != null)
+    );
+  }
 }
 
 enum Gender { male, female, other }
