@@ -53,10 +53,26 @@ class User {
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
       id: (map['id'] ?? map['user_id'] ?? '').toString(),
+      name: (map['name'] ?? map['full_name'] ?? '').toString(),
       email: (map['email'] ?? '').toString(),
-      name: map['name'] as String,
-      profileUrl: (map['profile_url'] ?? map['profileUrl']) as String?,
-      gender: (map['gender'] != null)
+      number: (map['number'] ?? map['phone']) as String?,
+      birthDate: map['birth_date'] != null
+          ? DateTime.tryParse(map['birth_date'].toString())
+          : (map['birthDate'] != null
+              ? DateTime.tryParse(map['birthDate'].toString())
+              : null),
+      gender: map['gender'] != null
+          ? Gender.values.firstWhere(
+              (e) => e.toString().split('.').last == map['gender'].toString(),
+              orElse: () => Gender.other,
+            )
+          : Gender.other,
+      profileUrl: (map['profile_url'] ?? map['profileUrl'] ?? map['avatar_url']) as String?,
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now()
+          : (map['createdAt'] != null
+              ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
+              : DateTime.now()),
     );
   }
 }

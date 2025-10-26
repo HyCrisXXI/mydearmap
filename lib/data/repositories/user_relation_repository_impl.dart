@@ -39,5 +39,21 @@ class UserRelationRepositoryImpl implements UserRelationRepository {
       throw AuthException('Error al eliminar la relación: $e');
     }
   }
+  @override
+  Future<List<UserRelation>> getRelationsForUser(String userId) async {
+    try {
+      final res = await _supabase
+          .from('user_relations')
+          .select('*, related_user:users(*)')
+          .eq('user_id', userId);
+
+      final rows = res as List<dynamic>;
+      return rows
+          .map((r) => UserRelation.fromMapWithRelated(Map<String, dynamic>.from(r as Map)))
+          .toList();
+    } catch (e) {
+      throw Exception('Error al obtener relaciones: $e');
+    }
+  }
 
 }

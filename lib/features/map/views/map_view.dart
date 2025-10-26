@@ -10,6 +10,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:convert';
+import 'package:mydearmap/features/relations/views/relation_view.dart';
+
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -93,20 +95,14 @@ class _MapViewState extends ConsumerState<MapView> {
             }
           }
         },
-        /*onOpenRelations: () {
-        // Cambia userRelationsProvider por el provider real que expone List<UserRelation>
-          final currentUser = ref.read(currentUserProvider);
-          //final relations = ref.read(userRelationsProvider);
-
-          //Navigator.of(context).push(
-           //MaterialPageRoute(
-              //builder: (_) => UserRelationGraph(
-               //currentUser: currentUser,
-                //relations: relations ?? [],
-             ),
-           ),
+        onOpenRelations: () {
+          Navigator.of(context).pop(); // cierra drawer
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const RelationCreateView(),
+            ),
           );
-        },*/
+        },
       ),
       
       body: SafeArea(
@@ -254,7 +250,7 @@ class _MapViewState extends ConsumerState<MapView> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Navigate to add memory screen
+          // 
         },
         child: const Icon(Icons.add),
       ),

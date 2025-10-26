@@ -1,5 +1,4 @@
 import '../models/user.dart';
-import '../../core/utils/supabase_setup.dart';
 import '../models/user_relation.dart';
 abstract class UserRelationRepository {
   Future<void> createUserRelation(
