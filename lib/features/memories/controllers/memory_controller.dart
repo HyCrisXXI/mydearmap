@@ -23,11 +23,12 @@ class MemoryController extends AsyncNotifier<void> {
   }
 
   /// Crear un nuevo recuerdo
-  Future<void> createMemory(Memory memory) async {
+  Future<void> createMemory(Memory memory, String userId) async {
     state = const AsyncValue.loading();
     try {
-      final created = await _repository.createMemory(memory);
-      if (created == null) throw Exception('No se pudo crear la memory');
+      final createdM = await _repository.createMemory(memory, userId);
+        // ref.invalidate(mapMemoriesProvider);
+      if (createdM == null) throw Exception('No se pudo crear el recuerdo');
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -37,42 +38,33 @@ class MemoryController extends AsyncNotifier<void> {
 
   /// Obtener recuerdo por ID
   Future<Memory?> getMemoryById(String id) async {
-    state = const AsyncValue.loading();
     try {
       final memory = await _repository.getMemoryById(id);
-      state = const AsyncValue.data(null);
       return memory;
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
       rethrow;
     }
   }
 
   /// Obtener todos las recuerdo de un usuario
   Future<List<Memory>> getMemoriesByUser(String userId) async {
-    state = const AsyncValue.loading();
     try {
       final memories = await _repository.getMemoriesByUser(userId);
-      state = const AsyncValue.data(null);
       return memories;
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
       rethrow;
     }
   }
 
   /// Verificar si ya existe un recuerdo con el mismo título
   Future<bool> existsByTitle(String title) async {
-    state = const AsyncValue.loading();
     try {
       final exists = await _repository.existsByTitle(title);
 
       if (!exists) throw MemoryException.notFound(title);
 
-      state = const AsyncValue.data(null);
       return exists;
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
       rethrow;
     }
   }
@@ -94,7 +86,7 @@ class MemoryController extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
     try {
       final updated = await _repository.updateMemory(memory);
-      if (updated == null) throw Exception('No se pudo actualizar la memory');
+      if (updated == null) throw Exception('No se pudo actualizar el recuerdo');
       state = const AsyncValue.data(null);
       return updated;
     } catch (e) {
