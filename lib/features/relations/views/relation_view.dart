@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:graphview/GraphView.dart';
+//import 'package:graphview/GraphView.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart' show currentUserProvider;
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
