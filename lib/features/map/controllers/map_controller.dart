@@ -1,4 +1,5 @@
 // lib/features/map/controllers/map_controller.dart
+import 'package:flutter/material.dart';
 import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,31 +7,62 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
+import 'package:mydearmap/core/constants/constants.dart';
 
 enum SearchType { place, memory }
 
 class MapScreenState {
   final LatLng? searchedLocation;
   final SearchType searchType;
+  final List<MapMemory> memorySuggestions;
 
-  MapScreenState({this.searchedLocation, this.searchType = SearchType.place});
+  MapScreenState({
+    this.searchedLocation,
+    this.searchType = SearchType.place,
+    this.memorySuggestions = const [],
+  });
 
-  MapScreenState copyWith({LatLng? searchedLocation, SearchType? searchType}) {
+  MapScreenState copyWith({
+    LatLng? searchedLocation,
+    SearchType? searchType,
+    List<MapMemory>? memorySuggestions,
+  }) {
     return MapScreenState(
       searchedLocation: searchedLocation ?? this.searchedLocation,
       searchType: searchType ?? this.searchType,
+      memorySuggestions: memorySuggestions ?? this.memorySuggestions,
     );
   }
 }
 
 class MapStateController extends Notifier<MapScreenState> {
+  final Map<String, Color> _memoryPinColorCache = {};
+  int _colorIndex = 0;
+  final List<Color> _memoryPinColors = const [
+    AppColors.cian,
+    AppColors.yellow,
+    AppColors.orange,
+    AppColors.pink,
+    AppColors.purple,
+  ];
+
+  Color getStableMemoryPinColor(String memoryId) {
+    if (_memoryPinColorCache.containsKey(memoryId)) {
+      return _memoryPinColorCache[memoryId]!;
+    }
+    final color = _memoryPinColors[_colorIndex];
+    _colorIndex = (_colorIndex + 1) % _memoryPinColors.length;
+    _memoryPinColorCache[memoryId] = color;
+    return color;
+  }
+
   @override
   MapScreenState build() {
     return MapScreenState();
   }
 
   void setSearchType(SearchType newType) {
-    state = state.copyWith(searchType: newType);
+    state = state.copyWith(searchType: newType, memorySuggestions: []);
   }
 
   Future<void> searchLocation(String query) async {
@@ -61,24 +93,26 @@ class MapStateController extends Notifier<MapScreenState> {
     }
   }
 
-  List<MapMemory> getMemorySuggestions(String query) {
+  void updateMemorySuggestions(String query) {
     if (query.trim().isEmpty) {
-      return [];
+      state = state.copyWith(memorySuggestions: []);
+      return;
     }
 
     final memoriesAsync = ref.read(mapMemoriesProvider);
-
     if (memoriesAsync is! AsyncData<List<MapMemory>>) {
-      return [];
+      state = state.copyWith(memorySuggestions: []);
+      return;
     }
 
     final allMemories = memoriesAsync.value;
-
-    return allMemories
+    final suggestions = allMemories
         .where(
           (memory) => memory.title.toLowerCase().contains(query.toLowerCase()),
         )
         .toList();
+
+    state = state.copyWith(memorySuggestions: suggestions);
   }
 }
 

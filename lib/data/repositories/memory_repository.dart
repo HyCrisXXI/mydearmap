@@ -26,14 +26,6 @@ class MemoryRepository {
     return Memory.fromJson(response);
   }
 
-  Future<List<Memory>> getAllMemories() async {
-    final response = await _client
-        .from('memories')
-        .select('*, participants:memory_users(*, user:users(*))');
-
-    return (response as List).map((item) => Memory.fromJson(item)).toList();
-  }
-
   Future<Memory?> getMemoryById(String id) async {
     final response = await _client
         .from('memories')
@@ -45,6 +37,7 @@ class MemoryRepository {
     return Memory.fromJson(response);
   }
 
+  // Esto devuelve los recuerdos del usuario solo con nombre, id y localización, para mostrarlos en el mapa
   Future<List<Memory>> getMemoriesByUser(String userId) async {
     final response = await _client.rpc(
       'get_memories_for_user',

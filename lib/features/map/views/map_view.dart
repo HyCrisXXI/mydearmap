@@ -22,34 +22,19 @@ class MapView extends ConsumerStatefulWidget {
 class _MapViewState extends ConsumerState<MapView> {
   final mapController = MapController();
   final searchController = TextEditingController();
-  List<MapMemory> _memorySuggestions = [];
-
-  final List<Color> _memoryPinColors = const [
-    AppColors.cian,
-    AppColors.yellow,
-    AppColors.orange,
-    AppColors.pink,
-    AppColors.purple,
-  ];
-
-  Color _getMemoryPinColor(String memoryId) {
-    final int hash = memoryId.hashCode;
-    final int index = hash % _memoryPinColors.length;
-    return _memoryPinColors[index];
-  }
+  String? _activeSnackBarMemoryId;
 
   void _searchAndMove(String query) async {
     if (query.trim().isEmpty) {
-      _memorySuggestions = [];
+      ref.read(mapStateControllerProvider.notifier).updateMemorySuggestions('');
       return;
     }
 
     FocusManager.instance.primaryFocus?.unfocus();
 
-    final mapState = ref.read(mapStateControllerProvider);
-    final searchType = mapState.searchType;
+    final searchType = ref.read(mapStateControllerProvider).searchType;
 
-    _memorySuggestions = [];
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     if (searchType == SearchType.memory) {
       final memoriesAsync = ref.read(mapMemoriesProvider);
@@ -102,17 +87,10 @@ class _MapViewState extends ConsumerState<MapView> {
 
   // Lógica para el autocompletado de recuerdos
   void _onSearchQueryChanged(String query) {
-    final searchType = ref.read(mapStateControllerProvider).searchType;
-    if (searchType == SearchType.memory && query.isNotEmpty) {
-      setState(() {
-        _memorySuggestions = ref
-            .read(mapStateControllerProvider.notifier)
-            .getMemorySuggestions(query);
-      });
-    } else {
-      setState(() {
-        _memorySuggestions = [];
-      });
+    if (ref.read(mapStateControllerProvider).searchType == SearchType.memory) {
+      ref
+          .read(mapStateControllerProvider.notifier)
+          .updateMemorySuggestions(query);
     }
   }
 
@@ -122,6 +100,7 @@ class _MapViewState extends ConsumerState<MapView> {
     final mapMemoriesAsync = ref.watch(mapMemoriesProvider);
 
     final mapState = ref.watch(mapStateControllerProvider);
+    final memorySuggestions = mapState.memorySuggestions;
     final currentSearchType = mapState.searchType;
     final searchedLocation = mapState.searchedLocation;
 
@@ -220,6 +199,7 @@ class _MapViewState extends ConsumerState<MapView> {
                               PopupMenuButton<SearchType>(
                                 initialValue: currentSearchType,
                                 onSelected: (SearchType result) {
+                                  searchController.clear();
                                   ref
                                       .read(mapStateControllerProvider.notifier)
                                       .setSearchType(result);
@@ -248,7 +228,7 @@ class _MapViewState extends ConsumerState<MapView> {
                         onSubmitted: _searchAndMove,
                       ),
                       if (currentSearchType == SearchType.memory &&
-                          _memorySuggestions.isNotEmpty)
+                          memorySuggestions.isNotEmpty)
                         Container(
                           constraints: const BoxConstraints(maxHeight: 200),
                           decoration: BoxDecoration(
@@ -274,13 +254,15 @@ class _MapViewState extends ConsumerState<MapView> {
                           ),
                           child: ListView.builder(
                             shrinkWrap: true,
-                            itemCount: _memorySuggestions.length,
+                            itemCount: memorySuggestions.length,
                             itemBuilder: (context, index) {
-                              final suggestion = _memorySuggestions[index];
+                              final suggestion = memorySuggestions[index];
                               return ListTile(
                                 leading: Icon(
                                   Icons.location_on,
-                                  color: _getMemoryPinColor(suggestion.id),
+                                  color: ref
+                                      .read(mapStateControllerProvider.notifier)
+                                      .getStableMemoryPinColor(suggestion.id),
                                 ),
                                 title: Text(suggestion.title),
                                 onTap: () {
@@ -301,6 +283,12 @@ class _MapViewState extends ConsumerState<MapView> {
                     options: const MapOptions(
                       initialCenter: LatLng(39.4699, -0.3763), // Valencia
                       initialZoom: 13,
+                      interactionOptions: InteractionOptions(
+                        flags:
+                            InteractiveFlag.pinchZoom |
+                            InteractiveFlag.drag |
+                            InteractiveFlag.scrollWheelZoom,
+                      ),
                     ),
                     children: [
                       TileLayer(
@@ -362,13 +350,40 @@ class _MapViewState extends ConsumerState<MapView> {
         height: 40,
         child: GestureDetector(
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Recuerdo: ${memory.title}')),
+            if (_activeSnackBarMemoryId == memory.id) {
+              return;
+            }
+            _activeSnackBarMemoryId = memory.id;
+
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context)
+                .showSnackBar(
+                  SnackBar(content: Text('Recuerdo: ${memory.title}')),
+                )
+                .closed
+                .then((_) {
+                  if (_activeSnackBarMemoryId == memory.id) {
+                    _activeSnackBarMemoryId = null;
+                  }
+                });
+          },
+          onLongPress: () {
+            // TODO: Placeholder para navegar a la pantalla de detalle del recuerdo.
+            // Se pasa el ID del recuerdo para que la siguiente pantalla
+            // pueda cargar los detalles completos desde la base de datos.
+            /*
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => MemoryDetailView(memoryId: memory.id),
+              ),
             );
+            */
           },
           child: Icon(
             Icons.location_on,
-            color: _getMemoryPinColor(memory.id),
+            color: ref
+                .read(mapStateControllerProvider.notifier)
+                .getStableMemoryPinColor(memory.id),
             size: 35,
           ),
         ),
