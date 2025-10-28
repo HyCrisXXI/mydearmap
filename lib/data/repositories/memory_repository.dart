@@ -1,3 +1,4 @@
+// lib/data/repositories/memory_repository.dart
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../models/memory.dart';
 
@@ -5,6 +6,15 @@ class MemoryRepository {
   final SupabaseClient _client;
 
   MemoryRepository(this._client);
+
+  Future<List<MapMemory>> getMemoriesForMap(String userId) async {
+    final response = await _client.rpc(
+      'get_map_memories_for_user',
+      params: {'user_id_param': userId},
+    );
+
+    return (response as List).map((item) => MapMemory.fromJson(item)).toList();
+  }
 
   Future<Memory?> createMemory(Memory memory) async {
     final response = await _client
@@ -19,16 +29,15 @@ class MemoryRepository {
   Future<List<Memory>> getAllMemories() async {
     final response = await _client
         .from('memories')
-        .select();
-        return (response as List)
-        .map((item) => Memory.fromJson(item))
-        .toList();
+        .select('*, participants:memory_users(*, user:users(*))');
+
+    return (response as List).map((item) => Memory.fromJson(item)).toList();
   }
 
   Future<Memory?> getMemoryById(String id) async {
     final response = await _client
         .from('memories')
-        .select()
+        .select('*, participants:memory_users(*, user:users(*))')
         .eq('id', id)
         .maybeSingle();
 
@@ -37,32 +46,25 @@ class MemoryRepository {
   }
 
   Future<List<Memory>> getMemoriesByUser(String userId) async {
-    final response = await _client
-        .from('memories')
-        .select()
-        .eq('user_id', userId);
+    final response = await _client.rpc(
+      'get_memories_for_user',
+      params: {'user_id_param': userId},
+    );
 
-    return (response as List)
-        .map((item) => Memory.fromJson(item))
-        .toList();
+    return (response as List).map((item) => Memory.fromJson(item)).toList();
   }
 
-  
-Future<bool> existsByTitle(String title) async {
-  final response = await _client
-      .from('memories')
-      .select('id')
-      .eq('title', title);
-
-  return response.isNotEmpty;
-}
-
-Future<bool> deleteMemory(String id) async {
-  final response = await _client
+  Future<bool> existsByTitle(String title) async {
+    final response = await _client
         .from('memories')
-        .delete().eq('id', id);
+        .select('id')
+        .eq('title', title);
 
     return response.isNotEmpty;
+  }
+
+  Future<void> deleteMemory(String id) async {
+    await _client.from('memories').delete().eq('id', id);
   }
 
   Future<Memory?> updateMemory(Memory memory) async {

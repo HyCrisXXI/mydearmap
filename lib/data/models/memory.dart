@@ -43,30 +43,30 @@ class Memory {
 
     if (json['participants'] != null) {
       memory.participants = (json['participants'] as List)
-          .map((p) => UserRole(
-                user: User.fromJson(p['user'] as Map<String, dynamic>),
-                role: MemoryRole.values.firstWhere(
-                  (r) => r.name == (p['role'] as String),
-                  orElse: () => MemoryRole.guest,
-                ),
-              ))
+          .map(
+            (p) => UserRole(
+              user: User.fromJson(p['user'] as Map<String, dynamic>),
+              role: MemoryRole.values.firstWhere(
+                (r) => r.name == (p['role'] as String),
+                orElse: () => MemoryRole.guest,
+              ),
+            ),
+          )
           .toList();
     }
 
-    
     if (json['media'] != null) {
       memory.media = (json['media'] as List)
           .map((m) => Media.fromJson(m as Map<String, dynamic>))
           .toList();
     }
-  
+
     if (json['comments'] != null) {
       memory.comments = (json['comments'] as List)
           .map((c) => Comment.fromJson(c as Map<String, dynamic>))
           .toList();
     }
 
-    
     if (json['reactions'] != null) {
       memory.reactions = (json['reactions'] as List)
           .map((r) => Reaction.fromJson(r as Map<String, dynamic>))
@@ -92,18 +92,32 @@ class Memory {
       'updated_at': updatedAt.toIso8601String(),
       if (participants.isNotEmpty)
         'participants': participants
-            .map((p) => {
-                  'user': p.user.toJson(),
-                  'role': p.role.name,
-                })
+            .map((p) => {'user': p.user.toJson(), 'role': p.role.name})
             .toList(),
-      if (media.isNotEmpty)
-        'media': media.map((m) => m.toJson()).toList(),
+      if (media.isNotEmpty) 'media': media.map((m) => m.toJson()).toList(),
       if (comments.isNotEmpty)
         'comments': comments.map((c) => c.toJson()).toList(),
       if (reactions.isNotEmpty)
         'reactions': reactions.map((r) => r.toJson()).toList(),
     };
+  }
+}
+
+class MapMemory {
+  final String id;
+  final String title;
+  final GeoPoint? location;
+
+  MapMemory({required this.id, required this.title, this.location});
+
+  factory MapMemory.fromJson(Map<String, dynamic> json) {
+    return MapMemory(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      location: json['location'] != null
+          ? GeoPoint.fromJson(json['location'] as Map<String, dynamic>)
+          : null,
+    );
   }
 }
 
