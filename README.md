@@ -1,7 +1,7 @@
-# mydearmap
+# MyDearMap
 
 MyDearApp es un proyecto combinado entre etsinf y bellas artes de la Universitat Politècnica de València.
-Sus autores son Cristian, Oscar, Nacho (programadores), Silvia e Ivonne (diseñadoras)
+Sus autores son Cristian, Oscar, Nacho (programadores), Silvia e Ivonne (diseñadoras).
 
 ## Descripción
 
@@ -15,6 +15,40 @@ MyDearMap permite a los usuarios:
 - Añadir ubicaciones a la "wishlist".
 
 La app busca ser cálida, íntima, nostalgica, cercana, y servir como diario virtual colaborativo.
+
+## Prerrequisitos
+
+Necesitarás tener instalado:
+
+* **Flutter SDK 3.35.4** o superior.
+* **Git** para clonar el repositorio.
+
+## Instalación y uso
+
+### 1. Clonar repositorio
+
+```bash
+git clone https://github.com/HyCrisXXI/mydearmap.git
+cd mydearmap
+```
+
+### 2. Configurar variables de entorno
+
+1. Obtener las claves API necesarias.
+2. Duplicar el archivo .env.example y llamarlo .env.
+3. Añadir las claves a cada variable de entorno del .env.
+
+### 3. Instalar dependencias de Flutter
+
+```bash
+flutter pub get
+```
+
+### 4. Ejecutar la aplicación
+
+```bash
+flutter run
+```
 
 ## Principales características
 
@@ -40,13 +74,15 @@ La app busca ser cálida, íntima, nostalgica, cercana, y servir como diario vir
 
 ## Estructura
 
+La estructura principal del proyecto sigue un diseño modular:
+```text
 lib/
 ├── main.dart               # Entry point de la app
 ├── app.dart                # Configuración de rutas, themes, providers
 ├── core/                   # Funciones y utilidades comunes
-│   ├── constants/          # Colores, tamaños, strings
+│   ├── constants/          # Colores, tamaños, strings, apis
 │   ├── utils/              # Helpers generales (fechas, mapas, imágenes, excepciones)
-│   ├── providers/
+│   ├── providers/          # Proveedores de estado global
 │   ├── widgets/            # Widgets reutilizables de toda la app
 │   └── errors/             # Distintos tipos de errores
 ├── data/                   # Acceso a datos, API, local storage
@@ -63,12 +99,9 @@ lib/
 │   ├── memories/
 │   └── timeline/
 └── routes/                 # Rutas/navegación
+```
 
 ## Recursos de interés
 
 - [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
 - [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
