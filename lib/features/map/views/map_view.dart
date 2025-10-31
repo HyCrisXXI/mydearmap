@@ -3,11 +3,11 @@ import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_side_menu.dart';
 import 'package:mydearmap/data/models/memory.dart';
-import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:mydearmap/features/map/models/map_view_model.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -268,10 +268,20 @@ class _MapViewState extends ConsumerState<MapView> {
                     options: MapOptions(
                       initialCenter: LatLng(39.4699, -0.3763), // Valencia
                       initialZoom: 13,
+                      minZoom: 3,
+                      maxZoom: 19,
+                      cameraConstraint: CameraConstraint.contain(
+                        bounds: LatLngBounds(
+                          LatLng(-90, -180),
+                          LatLng(90, 180),
+                        ),
+                      ),
                       interactionOptions: InteractionOptions(
                         flags:
+                            InteractiveFlag.doubleTapZoom |
                             InteractiveFlag.pinchZoom |
                             InteractiveFlag.drag |
+                            InteractiveFlag.flingAnimation |
                             InteractiveFlag.scrollWheelZoom,
                       ),
                       onTap: (_, _) {
@@ -284,6 +294,7 @@ class _MapViewState extends ConsumerState<MapView> {
                             'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
                         userAgentPackageName: 'com.mydearmap.app',
                         tileProvider: kIsWeb ? NetworkTileProvider() : null,
+                        maxNativeZoom: 19,
                       ),
                       mapState.memories.when(
                         data: (memories) =>
@@ -329,6 +340,7 @@ class _MapViewState extends ConsumerState<MapView> {
     );
   }
 
+  // Pin del recuerdo en el mapa
   PopupMarkerLayer _buildMemoriesPopupLayer(
     List<MapMemory> memories,
     MapViewState mapState,
@@ -400,6 +412,7 @@ class _MapViewState extends ConsumerState<MapView> {
                     ),
                   ],
                 ),
+                // Nombre del recuerdo
                 child: Text(
                   marker.memory.title,
                   style: const TextStyle(fontSize: 12),
