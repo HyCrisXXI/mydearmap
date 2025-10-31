@@ -9,20 +9,17 @@ final userRelationsProvider =
 
   // Lanzamos la consulta (según versión de supabase esto puede devolver
   // PostgrestResponse, List o Map). No usamos .execute() para ser compatibles.
-  final dynamic raw = await client
-      .from('user_relations')
-      .select('*, related_user:users(*)')
-      .eq('user_id', userId);
+  final dynamic raw = await client.from('user_relations').select(
+      '*, user:users!user_relations_user_id_fkey(*), related_user:users!user_relations_related_user_id_fkey(*)')
+    .eq('user_id', userId);
 
   // Normalizamos la respuesta intentando leer .error/.data (PostgrestResponse-like)
   dynamic data;
   try {
-    // si raw tiene .error/.data esto funcionará; si no, lanzará NoSuchMethodError
     final maybeError = raw.error;
     if (maybeError != null) throw maybeError;
     data = raw.data;
   } catch (_) {
-    // fallback: puede ser List o Map {'data': [...] } u otra forma
     if (raw is List) {
       data = raw;
     } else if (raw is Map && raw.containsKey('data')) {
