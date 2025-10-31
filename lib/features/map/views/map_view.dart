@@ -3,6 +3,7 @@ import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_side_menu.dart';
 import 'package:mydearmap/data/models/memory.dart';
+import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:mydearmap/features/map/controllers/map_controller.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/constants/constants.dart';
@@ -22,7 +23,15 @@ class MapView extends ConsumerStatefulWidget {
 class _MapViewState extends ConsumerState<MapView> {
   final mapController = MapController();
   final searchController = TextEditingController();
-  String? _activeSnackBarMemoryId;
+  final _popupController = PopupController();
+
+  @override
+  void dispose() {
+    mapController.dispose();
+    searchController.dispose();
+    _popupController.dispose();
+    super.dispose();
+  }
 
   void _searchAndMove(String query) async {
     if (query.trim().isEmpty) {
@@ -61,11 +70,10 @@ class _MapViewState extends ConsumerState<MapView> {
           matchingMemory.location!.longitude,
         );
         mapController.move(location, 15.0);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Recuerdo encontrado: ${matchingMemory.title}'),
-          ),
-        );
+        final markerToFind = _findMarkerForMemory(matchingMemory.id);
+        if (markerToFind != null) {
+          _popupController.showPopupsOnlyFor([markerToFind]);
+        }
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -82,6 +90,28 @@ class _MapViewState extends ConsumerState<MapView> {
           SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
         );
       }
+    }
+  }
+
+  Marker? _findMarkerForMemory(String memoryId) {
+    final memoriesAsync = ref.read(mapMemoriesProvider);
+    if (memoriesAsync is! AsyncData<List<MapMemory>>) return null;
+
+    final markers = memoriesAsync.value
+        .where((mem) => mem.location != null)
+        .map((mem) {
+          return MemoryMarker(
+            memory: mem,
+            point: LatLng(mem.location!.latitude, mem.location!.longitude),
+            child: const SizedBox.shrink(),
+          );
+        })
+        .toList();
+
+    try {
+      return markers.firstWhere((m) => (m).memory.id == memoryId);
+    } catch (e) {
+      return null;
     }
   }
 
@@ -232,7 +262,7 @@ class _MapViewState extends ConsumerState<MapView> {
                         Container(
                           constraints: const BoxConstraints(maxHeight: 200),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.primaryColor,
                             borderRadius: const BorderRadius.only(
                               bottomLeft: Radius.circular(
                                 AppSizes.borderRadius,
@@ -243,9 +273,7 @@ class _MapViewState extends ConsumerState<MapView> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withAlpha(
-                                  (255 * 0.2).round(),
-                                ),
+                                color: Colors.grey.withValues(alpha: .2),
                                 spreadRadius: 2,
                                 blurRadius: 5,
                                 offset: const Offset(0, 3),
@@ -280,7 +308,7 @@ class _MapViewState extends ConsumerState<MapView> {
                 Expanded(
                   child: FlutterMap(
                     mapController: mapController,
-                    options: const MapOptions(
+                    options: MapOptions(
                       initialCenter: LatLng(39.4699, -0.3763), // Valencia
                       initialZoom: 13,
                       interactionOptions: InteractionOptions(
@@ -289,6 +317,9 @@ class _MapViewState extends ConsumerState<MapView> {
                             InteractiveFlag.drag |
                             InteractiveFlag.scrollWheelZoom,
                       ),
+                      onTap: (_, _) {
+                        _popupController.hideAllPopups();
+                      },
                     ),
                     children: [
                       TileLayer(
@@ -298,7 +329,7 @@ class _MapViewState extends ConsumerState<MapView> {
                         tileProvider: kIsWeb ? NetworkTileProvider() : null,
                       ),
                       mapMemoriesAsync.when(
-                        data: (memories) => _buildMemoriesMarkerLayer(memories),
+                        data: (memories) => _buildMemoriesPopupLayer(memories),
                         loading: () => const Center(
                           child: CircularProgressIndicator(
                             color: Colors.transparent,
@@ -340,44 +371,25 @@ class _MapViewState extends ConsumerState<MapView> {
     );
   }
 
-  MarkerLayer _buildMemoriesMarkerLayer(List<MapMemory> memories) {
+  PopupMarkerLayer _buildMemoriesPopupLayer(List<MapMemory> memories) {
     final markers = memories.where((memory) => memory.location != null).map((
       memory,
     ) {
-      return Marker(
+      return MemoryMarker(
+        memory: memory,
         point: LatLng(memory.location!.latitude, memory.location!.longitude),
-        width: 40,
-        height: 40,
         child: GestureDetector(
-          onTap: () {
-            if (_activeSnackBarMemoryId == memory.id) {
-              return;
-            }
-            _activeSnackBarMemoryId = memory.id;
-
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context)
-                .showSnackBar(
-                  SnackBar(content: Text('Recuerdo: ${memory.title}')),
-                )
-                .closed
-                .then((_) {
-                  if (_activeSnackBarMemoryId == memory.id) {
-                    _activeSnackBarMemoryId = null;
-                  }
-                });
-          },
           onLongPress: () {
             // TODO: Placeholder para navegar a la pantalla de detalle del recuerdo.
             // Se pasa el ID del recuerdo para que la siguiente pantalla
             // pueda cargar los detalles completos desde la base de datos.
             /*
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => MemoryDetailView(memoryId: memory.id),
-              ),
-            );
-            */
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => MemoryDetailView(memoryId: memory.id),
+            ),
+          );
+          */
           },
           child: Icon(
             Icons.location_on,
@@ -390,6 +402,52 @@ class _MapViewState extends ConsumerState<MapView> {
       );
     }).toList();
 
-    return MarkerLayer(markers: markers);
+    return PopupMarkerLayer(
+      options: PopupMarkerLayerOptions(
+        popupController: _popupController,
+        markers: markers,
+        popupDisplayOptions: PopupDisplayOptions(
+          builder: (BuildContext context, Marker marker) {
+            if (marker is MemoryMarker) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: .3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  marker.memory.title,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+          snap: PopupSnap.markerTop,
+        ),
+      ),
+    );
   }
+}
+
+class MemoryMarker extends Marker {
+  final MapMemory memory;
+
+  const MemoryMarker({
+    required this.memory,
+    required super.point,
+    required super.child,
+    super.width = 40.0,
+    super.height = 40.0,
+  });
 }
