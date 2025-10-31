@@ -4,8 +4,7 @@ import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_side_menu.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
-import 'package:mydearmap/features/map/controllers/map_controller.dart';
-import 'package:mydearmap/core/providers/memories_provider.dart';
+import 'package:mydearmap/features/map/models/map_view_model.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,35 +33,22 @@ class _MapViewState extends ConsumerState<MapView> {
   }
 
   void _searchAndMove(String query) async {
-    if (query.trim().isEmpty) {
-      ref.read(mapStateControllerProvider.notifier).updateMemorySuggestions('');
+    final trimmedQuery = query.trim();
+    final viewModel = ref.read(mapViewModelProvider.notifier);
+
+    if (trimmedQuery.isEmpty) {
+      viewModel.clearMemorySuggestions();
       return;
     }
 
     FocusManager.instance.primaryFocus?.unfocus();
 
-    final searchType = ref.read(mapStateControllerProvider).searchType;
+    final searchType = ref.read(mapViewModelProvider).searchType;
 
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     if (searchType == SearchType.memory) {
-      final memoriesAsync = ref.read(mapMemoriesProvider);
-      List<MapMemory> memories = [];
-      if (memoriesAsync is AsyncData<List<MapMemory>>) {
-        memories = memoriesAsync.value;
-      }
-
-      MapMemory? matchingMemory;
-      try {
-        matchingMemory = memories.firstWhere(
-          (mem) => mem.title.toLowerCase() == query.toLowerCase(),
-          orElse: () => memories.firstWhere(
-            (mem) => mem.title.toLowerCase().contains(query.toLowerCase()),
-          ),
-        );
-      } catch (e) {
-        matchingMemory = null;
-      }
+      final matchingMemory = viewModel.findMemoryByQuery(trimmedQuery);
 
       if (matchingMemory != null && matchingMemory.location != null) {
         final location = LatLng(
@@ -70,10 +56,7 @@ class _MapViewState extends ConsumerState<MapView> {
           matchingMemory.location!.longitude,
         );
         mapController.move(location, 15.0);
-        final markerToFind = _findMarkerForMemory(matchingMemory.id);
-        if (markerToFind != null) {
-          _popupController.showPopupsOnlyFor([markerToFind]);
-        }
+        viewModel.highlightMemory(matchingMemory.id);
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -81,55 +64,29 @@ class _MapViewState extends ConsumerState<MapView> {
         );
       }
     } else {
-      final searchNotifier = ref.read(mapStateControllerProvider.notifier);
       try {
-        await searchNotifier.searchLocation(query);
+        await viewModel.searchLocation(trimmedQuery);
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-        );
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
-    }
-  }
-
-  Marker? _findMarkerForMemory(String memoryId) {
-    final memoriesAsync = ref.read(mapMemoriesProvider);
-    if (memoriesAsync is! AsyncData<List<MapMemory>>) return null;
-
-    final markers = memoriesAsync.value
-        .where((mem) => mem.location != null)
-        .map((mem) {
-          return MemoryMarker(
-            memory: mem,
-            point: LatLng(mem.location!.latitude, mem.location!.longitude),
-            child: const SizedBox.shrink(),
-          );
-        })
-        .toList();
-
-    try {
-      return markers.firstWhere((m) => (m).memory.id == memoryId);
-    } catch (e) {
-      return null;
     }
   }
 
   // Lógica para el autocompletado de recuerdos
   void _onSearchQueryChanged(String query) {
-    if (ref.read(mapStateControllerProvider).searchType == SearchType.memory) {
-      ref
-          .read(mapStateControllerProvider.notifier)
-          .updateMemorySuggestions(query);
+    if (ref.read(mapViewModelProvider).searchType == SearchType.memory) {
+      ref.read(mapViewModelProvider.notifier).updateMemorySuggestions(query);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final userAsync = ref.watch(currentUserProvider);
-    final mapMemoriesAsync = ref.watch(mapMemoriesProvider);
-
-    final mapState = ref.watch(mapStateControllerProvider);
+    final mapState = ref.watch(mapViewModelProvider);
     final memorySuggestions = mapState.memorySuggestions;
     final currentSearchType = mapState.searchType;
     final searchedLocation = mapState.searchedLocation;
@@ -231,7 +188,7 @@ class _MapViewState extends ConsumerState<MapView> {
                                 onSelected: (SearchType result) {
                                   searchController.clear();
                                   ref
-                                      .read(mapStateControllerProvider.notifier)
+                                      .read(mapViewModelProvider.notifier)
                                       .setSearchType(result);
                                 },
                                 itemBuilder: (BuildContext context) =>
@@ -289,7 +246,7 @@ class _MapViewState extends ConsumerState<MapView> {
                                 leading: Icon(
                                   Icons.location_on,
                                   color: ref
-                                      .read(mapStateControllerProvider.notifier)
+                                      .read(mapViewModelProvider.notifier)
                                       .getStableMemoryPinColor(suggestion.id),
                                 ),
                                 title: Text(suggestion.title),
@@ -328,8 +285,9 @@ class _MapViewState extends ConsumerState<MapView> {
                         userAgentPackageName: 'com.mydearmap.app',
                         tileProvider: kIsWeb ? NetworkTileProvider() : null,
                       ),
-                      mapMemoriesAsync.when(
-                        data: (memories) => _buildMemoriesPopupLayer(memories),
+                      mapState.memories.when(
+                        data: (memories) =>
+                            _buildMemoriesPopupLayer(memories, mapState),
                         loading: () => const Center(
                           child: CircularProgressIndicator(
                             color: Colors.transparent,
@@ -371,11 +329,17 @@ class _MapViewState extends ConsumerState<MapView> {
     );
   }
 
-  PopupMarkerLayer _buildMemoriesPopupLayer(List<MapMemory> memories) {
+  PopupMarkerLayer _buildMemoriesPopupLayer(
+    List<MapMemory> memories,
+    MapViewState mapState,
+  ) {
+    final viewModel = ref.read(mapViewModelProvider.notifier);
+    MemoryMarker? highlightedMarker;
+
     final markers = memories.where((memory) => memory.location != null).map((
       memory,
     ) {
-      return MemoryMarker(
+      final marker = MemoryMarker(
         memory: memory,
         point: LatLng(memory.location!.latitude, memory.location!.longitude),
         child: GestureDetector(
@@ -393,14 +357,25 @@ class _MapViewState extends ConsumerState<MapView> {
           },
           child: Icon(
             Icons.location_on,
-            color: ref
-                .read(mapStateControllerProvider.notifier)
-                .getStableMemoryPinColor(memory.id),
+            color: viewModel.getStableMemoryPinColor(memory.id),
             size: 35,
           ),
         ),
       );
+
+      if (memory.id == mapState.highlightedMemoryId) {
+        highlightedMarker = marker;
+      }
+
+      return marker;
     }).toList();
+
+    if (highlightedMarker != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _popupController.showPopupsOnlyFor([highlightedMarker!]);
+        viewModel.highlightMemory(null);
+      });
+    }
 
     return PopupMarkerLayer(
       options: PopupMarkerLayerOptions(
