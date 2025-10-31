@@ -16,21 +16,25 @@ class SignupFormState {
     this.gender,
   });
 
+  static const Object _useExisting = Object();
+
   SignupFormState copyWith({
     String? email,
     String? password,
     String? name,
-    String? number,
-    String? birthDate,
-    String? gender,
+    Object? number = _useExisting,
+    Object? birthDate = _useExisting,
+    Object? gender = _useExisting,
   }) {
     return SignupFormState(
       email: email ?? this.email,
       password: password ?? this.password,
       name: name ?? this.name,
-      number: number ?? this.number,
-      birthDate: birthDate ?? this.birthDate,
-      gender: gender ?? this.gender,
+      number: number == _useExisting ? this.number : number as String?,
+      birthDate: birthDate == _useExisting
+          ? this.birthDate
+          : birthDate as String?,
+      gender: gender == _useExisting ? this.gender : gender as String?,
     );
   }
 }

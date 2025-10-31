@@ -1,9 +1,11 @@
 // lib/features/auth/controllers/auth_controller.dart
-import 'package:mydearmap/features/auth/models/signup_form_state.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
+
+import 'package:mydearmap/data/repositories/auth_repository.dart';
 import 'package:mydearmap/core/errors/auth_errors.dart';
 import 'package:mydearmap/core/utils/validators.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mydearmap/features/auth/models/signup_form_state.dart';
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, void>(() {
   return AuthController();
@@ -15,7 +17,7 @@ class AuthController extends AsyncNotifier<void> {
     return;
   }
 
-  SupabaseClient get _supabaseClient => Supabase.instance.client;
+  AuthRepository get _authRepository => ref.read(authRepositoryProvider);
 
   void _validateBeforeSend(String email, String password) {
     final emailError = Validators.emailValidator(email);
@@ -33,27 +35,26 @@ class AuthController extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
 
     try {
-      _validateBeforeSend(form.email, form.password);
+      final trimmedEmail = form.email.trim();
+      final trimmedPassword = form.password.trim();
 
-      final AuthResponse response = await _supabaseClient.auth.signUp(
-        email: form.email.trim(),
-        password: form.password.trim(),
+      _validateBeforeSend(trimmedEmail, trimmedPassword);
+
+      final userId = await _authRepository.signUpWithPassword(
+        email: trimmedEmail,
+        password: trimmedPassword,
       );
 
-      if (response.user == null) {
-        throw AppAuthException("Error al crear la cuenta");
-      }
-
       final profileData = {
-        'id': response.user!.id,
+        'id': userId,
         'name': form.name.trim(),
-        'email': form.email.trim(),
+        'email': trimmedEmail,
         'number': form.number,
         'birth_date': form.birthDate,
         'gender': form.gender ?? 'other',
       };
 
-      await _supabaseClient.from('users').insert(profileData);
+      await _authRepository.createUserProfile(profileData);
       state = const AsyncValue.data(null);
     } on AuthException catch (e) {
       final appAuthException = AppAuthException.fromSupabase(e);
@@ -81,10 +82,13 @@ class AuthController extends AsyncNotifier<void> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      _validateBeforeSend(email, password);
-      await _supabaseClient.auth.signInWithPassword(
-        email: email.trim(),
-        password: password.trim(),
+      final trimmedEmail = email.trim();
+      final trimmedPassword = password.trim();
+
+      _validateBeforeSend(trimmedEmail, trimmedPassword);
+      await _authRepository.signInWithPassword(
+        email: trimmedEmail,
+        password: trimmedPassword,
       );
       state = const AsyncValue.data(null);
     } on AuthException catch (e) {
@@ -108,7 +112,7 @@ class AuthController extends AsyncNotifier<void> {
   }
 
   Future<void> signOut() async {
-    await _supabaseClient.auth.signOut();
+    await _authRepository.signOut();
     state = const AsyncValue.data(null);
   }
 }
