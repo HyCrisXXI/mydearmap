@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
+import 'package:mydearmap/data/repositories/user_relation_repository.dart';
 
 final relationControllerProvider =
     AsyncNotifierProvider<RelationController, void>(() {
@@ -100,6 +101,34 @@ class RelationController extends AsyncNotifier<void> {
     } catch (_) {
       if (raw is Map && raw.containsKey('data')) return raw['data'];
       return raw;
+    }
+  }
+  Future<void> deleteRelation({
+    required String currentUserId,
+    required String relatedUserId,
+    required String relationType,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // Evitar .execute(); usar .select() y normalizar con _normalizeRaw
+      final raw = await _client
+          .from('user_relations')
+          .delete()
+          .match({
+            'user_id': currentUserId,
+            'related_user_id': relatedUserId,
+            'relation_type': relationType,
+          })
+          .select();
+
+      final data = _normalizeRaw(raw);
+      if (data == null) throw Exception('No se pudo eliminar la relación');
+
+      ref.invalidate(userRelationsProvider(currentUserId));
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 }
