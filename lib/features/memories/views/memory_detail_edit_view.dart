@@ -281,7 +281,6 @@ class _MemoryDetailEditViewState extends ConsumerState<MemoryDetailEditView> {
                     child: FlutterMap(
                       mapController: _mapController,
                       options: MapOptions(
-                        // 🟢 CORRECTO: _currentLocation ya tiene un valor por defecto
                         initialCenter: _currentLocation,
                         initialZoom: 17,
                         minZoom: 2.0,
@@ -304,7 +303,7 @@ class _MemoryDetailEditViewState extends ConsumerState<MemoryDetailEditView> {
                         MarkerLayer(
                           markers: [
                             Marker(
-                              point: _currentLocation, // 🟢 CORRECTO: _currentLocation ya no es nulo
+                              point: _currentLocation, 
                               width: 40,
                               height: 40,
                               child: const Icon(

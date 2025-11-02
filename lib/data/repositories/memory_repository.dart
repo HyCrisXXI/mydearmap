@@ -72,7 +72,7 @@ Future<List<UserRole>> getParticipants(String memoryId) async {
     return memory;
   }
 
-  // Esto devuelve los recuerdos del usuario solo con nombre, id y localización, para mostrarlos en el mapa
+
   Future<List<Memory>> getMemoriesByUser(String userId) async {
     final response = await _client.rpc(
       'get_memories_for_user',
