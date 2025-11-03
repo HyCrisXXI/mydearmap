@@ -8,8 +8,8 @@ import 'package:mydearmap/features/relations/controllers/relation_controller.dar
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/features/relations/views/relation_view.dart';
-import 'package:mydearmap/core/providers/current_user_provider.dart' show currentUserProvider;
-import 'package:mydearmap/data/repositories/user_relation_repository.dart';
+import 'package:mydearmap/core/providers/current_user_provider.dart'
+    show currentUserProvider;
 
 class AllRelationView extends ConsumerWidget {
   const AllRelationView({super.key});
@@ -19,19 +19,30 @@ class AllRelationView extends ConsumerWidget {
     final userAsync = ref.watch(currentUserProvider);
 
     return userAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, st) => Scaffold(body: Center(child: Text('Error cargando usuario: $e'))),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, st) =>
+          Scaffold(body: Center(child: Text('Error cargando usuario: $e'))),
       data: (user) {
         if (user == null) {
-          return const Scaffold(body: Center(child: Text('No hay usuario autenticado')));
+          return const Scaffold(
+            body: Center(child: Text('No hay usuario autenticado')),
+          );
         }
 
         final relationsAsync = ref.watch(userRelationsProvider(user.id));
 
         return relationsAsync.when(
-          loading: () => Scaffold(appBar: AppBar(title: Text('Relaciones de ${user.name}')), body: const Center(child: CircularProgressIndicator())),
-          error: (e, st) => Scaffold(appBar: AppBar(title: Text('Relaciones de ${user.name}')), body: Center(child: Text('Error cargando relaciones: $e'))),
-          data: (relations) => UserRelationGraph(currentUser: user, relations: relations),
+          loading: () => Scaffold(
+            appBar: AppBar(title: Text('Relaciones de ${user.name}')),
+            body: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, st) => Scaffold(
+            appBar: AppBar(title: Text('Relaciones de ${user.name}')),
+            body: Center(child: Text('Error cargando relaciones: $e')),
+          ),
+          data: (relations) =>
+              UserRelationGraph(currentUser: user, relations: relations),
         );
       },
     );
@@ -73,15 +84,20 @@ class UserRelationGraph extends ConsumerWidget {
       final dx = center.dx + radius * cos(angle);
       final dy = center.dy + radius * sin(angle);
       final related = relations[i].relatedUser;
-      nodePositions.add(_NodePos(
-        user: related,
-        relationType: relations[i].relationType,
-        position: Offset(dx, dy),
-      ));
+      nodePositions.add(
+        _NodePos(
+          user: related,
+          relationType: relations[i].relationType,
+          position: Offset(dx, dy),
+        ),
+      );
     }
 
     // central node position
-    final centralPos = Offset(center.dx - centralSize / 2, center.dy - centralSize / 2);
+    final centralPos = Offset(
+      center.dx - centralSize / 2,
+      center.dy - centralSize / 2,
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text('Red de ${currentUser.name}')),
@@ -140,41 +156,64 @@ class UserRelationGraph extends ConsumerWidget {
         tooltip: 'Añadir relación',
         child: const Icon(Icons.add),
         onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RelationCreateView()));
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const RelationCreateView()));
         },
       ),
     );
   }
 
-  Widget _buildUserNode(BuildContext context, WidgetRef ref, User user, {required double size, bool isCentral = false, String relationLabel = ''}) {
+  Widget _buildUserNode(
+    BuildContext context,
+    WidgetRef ref,
+    User user, {
+    required double size,
+    bool isCentral = false,
+    String relationLabel = '',
+  }) {
     final color = isCentral ? Colors.green[400] : Colors.blue[400];
-    final displayName = (user.name.isNotEmpty) ? user.name : (user.email.isNotEmpty ? user.email : user.id);
+    final displayName = (user.name.isNotEmpty)
+        ? user.name
+        : (user.email.isNotEmpty ? user.email : user.id);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
           onTap: () => debugPrint('Tapped user: ${user.name}'),
-          onLongPress: isCentral ? null : () => _onNodeLongPress(context, ref, user, relationLabel),
+          onLongPress: isCentral
+              ? null
+              : () => _onNodeLongPress(context, ref, user, relationLabel),
           child: Container(
             width: size,
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: color,
-              boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black26)],
+              boxShadow: const [
+                BoxShadow(blurRadius: 6, color: Colors.black26),
+              ],
             ),
             child: ClipOval(
               child: user.profileUrl != null && user.profileUrl!.isNotEmpty
                   ? Image.network(
                       user.profileUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Center(child: Text(displayName.isNotEmpty ? displayName[0] : '?')),
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Text(
+                          displayName.isNotEmpty ? displayName[0] : '?',
+                        ),
+                      ),
                     )
                   : Center(
                       child: Text(
                         displayName.isNotEmpty ? displayName[0] : '?',
-                        style: TextStyle(color: Colors.white, fontSize: size / 3, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: size / 3,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
             ),
@@ -197,7 +236,12 @@ class UserRelationGraph extends ConsumerWidget {
     );
   }
 
-  Future<void> _onNodeLongPress(BuildContext context, WidgetRef ref, User related, String currentRelationLabel) async {
+  Future<void> _onNodeLongPress(
+    BuildContext context,
+    WidgetRef ref,
+    User related,
+    String currentRelationLabel,
+  ) async {
     final choice = await showModalBottomSheet<String?>(
       context: context,
       builder: (_) => SafeArea(
@@ -211,7 +255,10 @@ class UserRelationGraph extends ConsumerWidget {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Eliminar relación', style: TextStyle(color: Colors.red)),
+              title: const Text(
+                'Eliminar relación',
+                style: TextStyle(color: Colors.red),
+              ),
               onTap: () => Navigator.of(context).pop('delete'),
             ),
             ListTile(
@@ -229,29 +276,49 @@ class UserRelationGraph extends ConsumerWidget {
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('Eliminar relación'),
-          content: Text('¿Eliminar relación con ${related.name.isNotEmpty ? related.name : related.email}?'),
+          content: Text(
+            '¿Eliminar relación con ${related.name.isNotEmpty ? related.name : related.email}?',
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-            TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Eliminar')),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Eliminar'),
+            ),
           ],
         ),
       );
-      if (confirm != true) return;
+      if (!context.mounted || confirm != true) return;
 
       try {
         // Usar relatedUserIdentifier extraído del nodo
-        await ref.read(relationControllerProvider.notifier).deleteRelation(
+        await ref
+            .read(relationControllerProvider.notifier)
+            .deleteRelation(
               currentUserId: currentUser.id,
               relatedUserId: related.id,
               relationType: currentRelationLabel,
             );
         ref.invalidate(userRelationsProvider(currentUser.id));
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relación eliminada')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Relación eliminada')));
+        }
       } catch (e) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error eliminando relación: $e')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error eliminando relación: $e')),
+          );
+        }
       }
     } else if (choice == 'edit') {
-      final TextEditingController controller = TextEditingController(text: currentRelationLabel);
+      final TextEditingController controller = TextEditingController(
+        text: currentRelationLabel,
+      );
       final newLabel = await showDialog<String?>(
         context: context,
         builder: (_) => AlertDialog(
@@ -261,30 +328,49 @@ class UserRelationGraph extends ConsumerWidget {
             decoration: const InputDecoration(labelText: 'Tipo de relación'),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text('Cancelar')),
-            TextButton(onPressed: () => Navigator.of(context).pop(controller.text.trim()), child: const Text('Guardar')),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.text.trim()),
+              child: const Text('Guardar'),
+            ),
           ],
         ),
       );
 
-      if (newLabel == null || newLabel.isEmpty) return;
+      if (!context.mounted || newLabel == null || newLabel.isEmpty) return;
 
       try {
         // actualizar usando relatedUserIdentifier extraído del nodo
-        await ref.read(relationControllerProvider.notifier).deleteRelation(
+        await ref
+            .read(relationControllerProvider.notifier)
+            .deleteRelation(
               currentUserId: currentUser.id,
               relatedUserId: related.id,
               relationType: currentRelationLabel,
             );
-        await ref.read(relationControllerProvider.notifier).createRelation(
+        await ref
+            .read(relationControllerProvider.notifier)
+            .createRelation(
               currentUserId: currentUser.id,
               relatedUserIdentifier: related.id,
               relationType: newLabel,
             );
         ref.invalidate(userRelationsProvider(currentUser.id));
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relación actualizada')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Relación actualizada')));
+        }
       } catch (e) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error editando relación: $e')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error editando relación: $e')),
+          );
+        }
       }
     }
   }
@@ -294,7 +380,11 @@ class _NodePos {
   final User user;
   final String relationType;
   final Offset position;
-  _NodePos({required this.user, required this.relationType, required this.position});
+  _NodePos({
+    required this.user,
+    required this.relationType,
+    required this.position,
+  });
 }
 
 class _EdgesPainter extends CustomPainter {
@@ -317,7 +407,9 @@ class _EdgesPainter extends CustomPainter {
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round;
 
-    final TextPainter textPainter = TextPainter(textDirection: TextDirection.ltr);
+    final TextPainter textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+    );
 
     final Offset centralCenter = Offset(center.dx, center.dy);
 
@@ -341,17 +433,26 @@ class _EdgesPainter extends CustomPainter {
       canvas.drawLine(fromOffset, toOffset, linePaint);
 
       // dibujar etiqueta en el punto medio, ligeramente desplazada perpendicularmente
-      final mid = Offset((fromOffset.dx + toOffset.dx) / 2, (fromOffset.dy + toOffset.dy) / 2);
+      final mid = Offset(
+        (fromOffset.dx + toOffset.dx) / 2,
+        (fromOffset.dy + toOffset.dy) / 2,
+      );
 
-      final perp = Offset(-unit.dy, unit.dx) * 12; // desplazamiento perpendicular
+      final perp =
+          Offset(-unit.dy, unit.dx) * 12; // desplazamiento perpendicular
       final labelPos = mid + perp;
 
       textPainter.text = TextSpan(
         text: np.relationType,
-        style: const TextStyle(color: Colors.black87, fontSize: 12, backgroundColor: Colors.white70),
+        style: const TextStyle(
+          color: Colors.black87,
+          fontSize: 12,
+          backgroundColor: Colors.white70,
+        ),
       );
       textPainter.layout();
-      final lp = labelPos - Offset(textPainter.width / 2, textPainter.height / 2);
+      final lp =
+          labelPos - Offset(textPainter.width / 2, textPainter.height / 2);
       textPainter.paint(canvas, lp);
     }
   }

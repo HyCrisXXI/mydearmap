@@ -4,21 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:mydearmap/core/constants/env_constants.dart'; 
+import 'package:mydearmap/core/constants/env_constants.dart';
+import 'package:mydearmap/core/widgets/app_form_buttons.dart';
 import '../../../core/constants/constants.dart';
 import '../controllers/memory_controller.dart';
 import '../../../data/models/memory.dart';
 import '../widgets/memory_form.dart';
-import '../widgets/memory_action_buttons.dart';
 import '../../../core/providers/current_user_provider.dart';
 
 class MemoryCreateView extends ConsumerStatefulWidget {
   final LatLng initialLocation;
 
-  const MemoryCreateView({
-    super.key,
-    required this.initialLocation,
-  });
+  const MemoryCreateView({super.key, required this.initialLocation});
 
   @override
   ConsumerState<MemoryCreateView> createState() => _MemoryCreateViewState();
@@ -164,22 +161,21 @@ class _MemoryCreateViewState extends ConsumerState<MemoryCreateView> {
                     : null,
               ),
               const SizedBox(height: AppSizes.paddingLarge),
-              MemoryActionButtons(
-                editing: true,
-                isLoading: state.isLoading,
-                onCancel: () => Navigator.of(context).pop(),
-                onSave: _handleSubmit,
+              AppFormButtons(
                 primaryLabel: 'Guardar recuerdo',
-                cancelLabel: 'Cancelar',
+                onPrimaryPressed: _handleSubmit,
+                secondaryLabel: 'Cancelar',
+                onSecondaryPressed: () => Navigator.of(context).pop(),
+                isProcessing: state.isLoading,
               ),
 
               const SizedBox(height: 24),
 
               Text(
                 'Ubicación del recuerdo',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
 
@@ -195,7 +191,6 @@ class _MemoryCreateViewState extends ConsumerState<MemoryCreateView> {
                     onLongPress: (tapPosition, latLng) {
                       setState(() {
                         location = latLng;
-                        
                       });
                     },
                   ),
@@ -226,10 +221,9 @@ class _MemoryCreateViewState extends ConsumerState<MemoryCreateView> {
               const SizedBox(height: 16),
               Text(
                 'Mantén pulsado sobre el mapa para cambiar la ubicación.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.grey[600]),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
               ),
             ],
           ),

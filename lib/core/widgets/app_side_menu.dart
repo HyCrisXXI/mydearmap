@@ -1,12 +1,9 @@
-import 'package:graphview/GraphView.dart';
-import 'package:mydearmap/core/providers/current_user_provider.dart';
-import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:mydearmap/features/relations/views/all_relation_view.dart';
 import 'package:mydearmap/features/relations/views/relation_view.dart';
-import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
-import 'package:mydearmap/data/models/user.dart';
+import 'package:mydearmap/features/memories/views/all_memories_view.dart';
 
 class AppSideMenu extends ConsumerWidget {
   const AppSideMenu({super.key});
@@ -18,8 +15,14 @@ class AppSideMenu extends ConsumerWidget {
         title: const Text('Cerrar sesión'),
         content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Sí, cerrar sesión')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sí, cerrar sesión'),
+          ),
         ],
       ),
     );
@@ -30,7 +33,12 @@ class AppSideMenu extends ConsumerWidget {
         await ref.read(authControllerProvider.notifier).signOut();
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al cerrar sesión: $e'), backgroundColor: Colors.red));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al cerrar sesión: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
     }
@@ -39,7 +47,9 @@ class AppSideMenu extends ConsumerWidget {
   void _handleNavigation(BuildContext context, Widget targetView) {
     if (context.mounted) {
       Navigator.of(context).pop(); // cerrar drawer
-      Navigator.of(context).push(MaterialPageRoute(builder: (context) => targetView));
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => targetView));
     }
   }
 
@@ -54,9 +64,19 @@ class AppSideMenu extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text('MyDearMap', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                Text(
+                  'MyDearMap',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 SizedBox(height: 4),
-                Text('Menú Principal', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                Text(
+                  'Menú Principal',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
               ],
             ),
           ),
@@ -71,6 +91,12 @@ class AppSideMenu extends ConsumerWidget {
             leading: const Icon(Icons.group),
             title: const Text('Ver Relaciones'),
             onTap: () => _handleNavigation(context, const AllRelationView()),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library),
+            title: const Text('Mis Recuerdos'),
+            onTap: () =>
+                _handleNavigation(context, const MemoriesOverviewView()),
           ),
           const Spacer(),
           // Cerrar sesión

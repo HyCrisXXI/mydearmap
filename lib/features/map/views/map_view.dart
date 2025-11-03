@@ -11,11 +11,8 @@ import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:mydearmap/features/memories/views/memory_detail_edit_view.dart';
-import 'dart:convert';
-import 'package:mydearmap/features/relations/views/relation_view.dart';
 import 'package:mydearmap/features/memories/views/memory_create_view.dart';
-
+import 'package:mydearmap/features/memories/views/memory_view.dart';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -273,13 +270,14 @@ class _MapViewState extends ConsumerState<MapView> {
                     options: MapOptions(
                       initialCenter: LatLng(39.4699, -0.3763), // Valencia
                       initialZoom: 13,
-                      onLongPress: (TapPosition tapPosition, LatLng latLng) {                            
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>  MemoryCreateView(initialLocation: latLng),
-                            ),
-                            );
-                          },
+                      onLongPress: (TapPosition tapPosition, LatLng latLng) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                MemoryCreateView(initialLocation: latLng),
+                          ),
+                        );
+                      },
                       minZoom: 3,
                       maxZoom: 19,
                       cameraConstraint: CameraConstraint.contain(
@@ -345,12 +343,12 @@ class _MapViewState extends ConsumerState<MapView> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-              Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>  MemoryCreateView(initialLocation: LatLng(39.4699, -0.3763)),
-                            ),
-                          );
-          // TODO: Navigate to add memory screen
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  MemoryCreateView(initialLocation: LatLng(39.4699, -0.3763)),
+            ),
+          );
         },
         child: const Icon(Icons.add),
       ),
@@ -373,26 +371,9 @@ class _MapViewState extends ConsumerState<MapView> {
         point: LatLng(memory.location!.latitude, memory.location!.longitude),
         child: GestureDetector(
           onLongPress: () {
-            // TODO: Placeholder para navegar a la pantalla de detalle del recuerdo.
-            // Se pasa el ID del recuerdo para que la siguiente pantalla
-            // pueda cargar los detalles completos desde la base de datos.
-            /*
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => MemoryDetailView(memoryId: memory.id),
-            ),
-          );
-          */
-          },
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Recuerdo: ${memory.title}')),
-            );
-          },
-          onDoubleTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => MemoryDetailEditView(memoryId: memory.id),
+                builder: (context) => MemoryDetailView(memoryId: memory.id),
               ),
             );
           },

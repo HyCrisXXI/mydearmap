@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/models/memory.dart';
 import '../../../data/repositories/memory_repository.dart';
 import '../../../core/errors/memory_errors.dart';
+import '../../../core/providers/memories_provider.dart';
 
 /// Provider del controlador
 final memoryControllerProvider = AsyncNotifierProvider<MemoryController, void>(
@@ -27,8 +28,9 @@ class MemoryController extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
     try {
       final createdM = await _repository.createMemory(memory, userId);
-        // ref.invalidate(mapMemoriesProvider);
       if (createdM == null) throw Exception('No se pudo crear el recuerdo');
+      ref.read(mapMemoriesCacheProvider.notifier).reset();
+      ref.invalidate(mapMemoriesProvider);
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -74,6 +76,8 @@ class MemoryController extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
     try {
       await _repository.deleteMemory(id);
+      ref.read(mapMemoriesCacheProvider.notifier).reset();
+      ref.invalidate(mapMemoriesProvider);
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -87,6 +91,8 @@ class MemoryController extends AsyncNotifier<void> {
     try {
       final updated = await _repository.updateMemory(memory);
       if (updated == null) throw Exception('No se pudo actualizar el recuerdo');
+      ref.read(mapMemoriesCacheProvider.notifier).reset();
+      ref.invalidate(mapMemoriesProvider);
       state = const AsyncValue.data(null);
       return updated;
     } catch (e) {
