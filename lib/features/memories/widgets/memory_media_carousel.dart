@@ -5,19 +5,19 @@ import 'package:mydearmap/core/providers/memory_media_provider.dart';
 
 class MemoryMediaCarousel extends StatefulWidget {
   const MemoryMediaCarousel({
-    required this.media,
-    this.emptyState,
-    this.height = 220,
-    this.prioritizeImages = true,
-    this.enableFullScreenPreview = true,
     super.key,
+    required this.media,
+    this.height = 180,
+    this.enableFullScreenPreview = true,
+    this.prioritizeImages = false,
+    this.viewportFraction = 0.78,
   });
 
   final List<MemoryMedia> media;
-  final Widget? emptyState;
   final double height;
-  final bool prioritizeImages;
   final bool enableFullScreenPreview;
+  final bool prioritizeImages;
+  final double viewportFraction;
 
   @override
   State<MemoryMediaCarousel> createState() => _MemoryMediaCarouselState();
@@ -25,45 +25,19 @@ class MemoryMediaCarousel extends StatefulWidget {
 
 class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
   late final PageController _controller;
-  int _page = 0;
+
+  static const Map<MemoryMediaKind, int> _priority = {
+    MemoryMediaKind.image: 0,
+    MemoryMediaKind.video: 1,
+    MemoryMediaKind.audio: 2,
+    MemoryMediaKind.note: 3,
+    MemoryMediaKind.unknown: 4,
+  };
 
   @override
   void initState() {
     super.initState();
-    _controller = PageController();
-  }
-
-  List<MemoryMedia> get _items {
-    if (!widget.prioritizeImages) return widget.media;
-    final ordered = [...widget.media]
-      ..sort((a, b) => _priority(a).compareTo(_priority(b)));
-    return ordered;
-  }
-
-  int _priority(MemoryMedia asset) {
-    switch (asset.kind) {
-      case MemoryMediaKind.image:
-        return 0;
-      case MemoryMediaKind.video:
-        return 1;
-      case MemoryMediaKind.audio:
-        return 2;
-      case MemoryMediaKind.note:
-        return 3;
-      case MemoryMediaKind.unknown:
-        return 4;
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant MemoryMediaCarousel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_page >= widget.media.length) {
-      _page = 0;
-      if (_controller.hasClients) {
-        _controller.jumpToPage(0);
-      }
-    }
+    _controller = PageController(viewportFraction: widget.viewportFraction);
   }
 
   @override
@@ -72,77 +46,54 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
     super.dispose();
   }
 
-  Future<void> _copyToClipboard(String value) async {
-    await Clipboard.setData(ClipboardData(text: value));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Enlace copiado al portapapeles')),
-    );
+  List<MemoryMedia> _sortedItems() {
+    final items = [...widget.media];
+    items.sort((a, b) => _priority[a.kind]!.compareTo(_priority[b.kind]!));
+    if (items.length >= 3) return items;
+    if (items.isEmpty) return items;
+    while (items.length < 3) {
+      items.add(items[items.length % widget.media.length]);
+    }
+    return items;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.media.isEmpty) {
-      return widget.emptyState ??
-          Container(
-            height: widget.height,
-            decoration: BoxDecoration(
-              color: AppColors.primaryColor.withValues(alpha: .06),
-              borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              'Añade fotos, videos, audios o notas a este recuerdo.',
+    final items = _sortedItems();
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: widget.height,
+      child: PageView.builder(
+        controller: _controller,
+        itemCount: items.length,
+        padEnds: items.length < 2,
+        itemBuilder: (context, index) {
+          final asset = items[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: _MediaCard(
+              asset: asset,
+              enableFullScreenPreview: widget.enableFullScreenPreview,
             ),
           );
-    }
-
-    final items = _items;
-
-    return Column(
-      children: [
-        SizedBox(
-          height: widget.height,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-            child: PageView.builder(
-              controller: _controller,
-              itemCount: items.length,
-              onPageChanged: (index) => setState(() => _page = index),
-              itemBuilder: (context, index) {
-                final asset = items[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: _buildAssetCard(asset),
-                );
-              },
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            items.length,
-            (index) => AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: _page == index ? 16 : 8,
-              height: 8,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: _page == index
-                    ? AppColors.primaryColor
-                    : AppColors.primaryColor.withValues(alpha: .3),
-              ),
-            ),
-          ),
-        ),
-      ],
+        },
+      ),
     );
   }
+}
 
-  Widget _buildAssetCard(MemoryMedia asset) {
+class _MediaCard extends StatelessWidget {
+  const _MediaCard({
+    required this.asset,
+    required this.enableFullScreenPreview,
+  });
+
+  final MemoryMedia asset;
+  final bool enableFullScreenPreview;
+
+  @override
+  Widget build(BuildContext context) {
     switch (asset.kind) {
       case MemoryMediaKind.image:
         if (asset.publicUrl == null) {
@@ -151,10 +102,12 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
           );
         }
         return GestureDetector(
-          onTap: widget.enableFullScreenPreview
-              ? () => _showFullScreenImage(asset.publicUrl!)
+          onTap: enableFullScreenPreview
+              ? () => _showFullScreenImage(context, asset.publicUrl!)
               : null,
-          onLongPress: () => _copyToClipboard(asset.publicUrl!),
+          onLongPress: asset.publicUrl == null
+              ? null
+              : () => _copyToClipboard(context, asset.publicUrl!),
           child: Container(
             color: Colors.black12,
             child: Image.network(
@@ -179,7 +132,7 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
           hint: 'Pulsa para copiar el enlace y reproducirlo.',
           onCopy: asset.publicUrl == null
               ? null
-              : () => _copyToClipboard(asset.publicUrl!),
+              : () => _copyToClipboard(context, asset.publicUrl!),
         );
       case MemoryMediaKind.audio:
         return _MediaActionCard(
@@ -189,13 +142,13 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
           hint: 'Pulsa para copiar el enlace y escucharlo.',
           onCopy: asset.publicUrl == null
               ? null
-              : () => _copyToClipboard(asset.publicUrl!),
+              : () => _copyToClipboard(context, asset.publicUrl!),
         );
       case MemoryMediaKind.note:
         return Container(
           padding: const EdgeInsets.all(AppSizes.paddingLarge),
           decoration: BoxDecoration(
-            color: AppColors.accentColor.withValues(alpha: .1),
+            color: AppColors.accentColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(AppSizes.borderRadius),
           ),
           child: SingleChildScrollView(
@@ -214,16 +167,23 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
     }
   }
 
-  void _showFullScreenImage(String url) {
-    if (!widget.enableFullScreenPreview) return;
+  void _showFullScreenImage(BuildContext context, String url) {
+    if (!enableFullScreenPreview) return;
     showDialog<void>(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         insetPadding: const EdgeInsets.all(AppSizes.paddingLarge),
         child: InteractiveViewer(
           child: Image.network(url, fit: BoxFit.contain),
         ),
       ),
+    );
+  }
+
+  Future<void> _copyToClipboard(BuildContext context, String value) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Enlace copiado al portapapeles')),
     );
   }
 }
@@ -248,7 +208,7 @@ class _MediaActionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizes.paddingLarge),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(AppSizes.borderRadius),
       ),
       child: Column(
@@ -269,7 +229,7 @@ class _MediaActionCard extends StatelessWidget {
             hint,
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: color.withValues(alpha: .9)),
+            ).textTheme.bodySmall?.copyWith(color: color.withOpacity(0.9)),
             textAlign: TextAlign.center,
           ),
           if (onCopy != null) ...[
@@ -300,7 +260,7 @@ class _MediaError extends StatelessWidget {
     return Container(
       height: 180,
       decoration: BoxDecoration(
-        color: Colors.redAccent.withValues(alpha: .12),
+        color: Colors.redAccent.withOpacity(0.12),
         borderRadius: BorderRadius.circular(AppSizes.borderRadius),
       ),
       alignment: Alignment.center,

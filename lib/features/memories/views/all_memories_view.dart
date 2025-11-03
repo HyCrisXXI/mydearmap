@@ -71,7 +71,7 @@ class MemoriesOverviewView extends ConsumerWidget {
                         AppSizes.borderRadius,
                       ),
                     ),
-                    color: AppColors.cian,
+                    color: Colors.white,
                     child: Padding(
                       padding: const EdgeInsets.all(AppSizes.paddingLarge),
                       child: Column(

@@ -11,8 +11,8 @@ import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:mydearmap/features/memories/views/memory_create_view.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
+import 'package:mydearmap/features/memories/views/memory_edit_view.dart';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -273,8 +273,9 @@ class _MapViewState extends ConsumerState<MapView> {
                       onLongPress: (TapPosition tapPosition, LatLng latLng) {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) =>
-                                MemoryCreateView(initialLocation: latLng),
+                            builder: (context) => MemoryUpsertView.create(
+                              initialLocation: latLng,
+                            ),
                           ),
                         );
                       },
@@ -345,8 +346,9 @@ class _MapViewState extends ConsumerState<MapView> {
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) =>
-                  MemoryCreateView(initialLocation: LatLng(39.4699, -0.3763)),
+              builder: (context) => MemoryUpsertView.create(
+                initialLocation: LatLng(39.4699, -0.3763),
+              ),
             ),
           );
         },

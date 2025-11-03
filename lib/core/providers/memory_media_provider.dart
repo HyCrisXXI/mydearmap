@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-export 'package:mydearmap/features/memories/providers/memory_media_provider.dart';
 
 enum MemoryMediaKind { image, video, audio, note, unknown }
 

@@ -70,7 +70,7 @@ class MemoryDetailView extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  memory.title ?? 'Recuerdo',
+                  memory.title,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
