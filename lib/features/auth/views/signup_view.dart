@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/features/auth/controllers/signup_view_model.dart';
+import 'package:mydearmap/core/widgets/app_form_buttons.dart';
 
 class SignupView extends ConsumerStatefulWidget {
   const SignupView({super.key});
@@ -231,14 +232,10 @@ class _SignupViewState extends ConsumerState<SignupView> {
               onChanged: signupNotifier.onGenderChanged,
             ),
             const SizedBox(height: 30),
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: signupState.canSubmit ? _signUp : null,
-                child: signupState.isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Registrarse'),
-              ),
+            AppFormButtons(
+              primaryLabel: 'Registrarse',
+              onPrimaryPressed: signupState.canSubmit ? _signUp : null,
+              isProcessing: signupState.isSubmitting,
             ),
             const SizedBox(height: 20),
             Row(

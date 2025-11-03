@@ -9,23 +9,44 @@ final memoryRepositoryProvider = Provider<MemoryRepository>((ref) {
   return MemoryRepository(Supabase.instance.client);
 });
 
+final mapMemoriesCacheProvider =
+    NotifierProvider<MapMemoriesCacheNotifier, List<MapMemory>>(
+      MapMemoriesCacheNotifier.new,
+    );
+
+class MapMemoriesCacheNotifier extends Notifier<List<MapMemory>> {
+  @override
+  List<MapMemory> build() => const <MapMemory>[];
+
+  void reset() => state = const <MapMemory>[];
+
+  void setAll(List<MapMemory> items) =>
+      state = List<MapMemory>.unmodifiable(items);
+}
+
 final mapMemoriesProvider = FutureProvider<List<MapMemory>>((ref) async {
-  final userAsync = ref.watch(currentUserProvider);
+  final userValue = ref.watch(currentUserProvider);
 
-  return userAsync.when(
-    data: (user) {
-      if (user == null) {
-        return [];
-      }
+  if (userValue.isLoading) {
+    return ref.read(mapMemoriesCacheProvider);
+  }
 
-      final memoryRepository = ref.read(memoryRepositoryProvider);
-      return memoryRepository.getMemoriesForMap(user.id);
-    },
-    loading: () {
-      return []; // Mientras el usuario carga, no mostramos recuerdos
-    },
-    error: (e, s) {
-      return []; // Si hay un error al cargar el usuario, no mostramos recuerdos
-    },
-  );
+  if (userValue.hasError) {
+    ref.read(mapMemoriesCacheProvider.notifier).reset();
+    return const <MapMemory>[];
+  }
+
+  final user = userValue.value;
+  if (user == null) {
+    ref.read(mapMemoriesCacheProvider.notifier).reset();
+    return const <MapMemory>[];
+  }
+
+  final cached = ref.read(mapMemoriesCacheProvider);
+  if (cached.isNotEmpty) return cached;
+
+  final memoryRepository = ref.read(memoryRepositoryProvider);
+  final fetched = await memoryRepository.getMemoriesForMap(user.id);
+  ref.read(mapMemoriesCacheProvider.notifier).setAll(fetched);
+  return fetched;
 });

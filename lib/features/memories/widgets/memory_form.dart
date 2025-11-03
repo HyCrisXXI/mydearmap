@@ -1,6 +1,6 @@
 // lib/features/memories/widgets/memory_form.dart
 import 'package:flutter/material.dart';
-import '../../../core/constants/constants.dart';
+import 'package:mydearmap/core/constants/constants.dart';
 
 class MemoryForm extends StatelessWidget {
   final TextEditingController titleController;

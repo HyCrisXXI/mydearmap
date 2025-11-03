@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
-import 'package:mydearmap/data/repositories/user_relation_repository.dart';
 
 final relationControllerProvider =
     AsyncNotifierProvider<RelationController, void>(() {

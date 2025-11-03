@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/features/auth/controllers/autosuggestion_controller.dart';
 import 'package:mydearmap/features/auth/controllers/login_view_model.dart';
+import 'package:mydearmap/core/widgets/app_form_buttons.dart';
 
 import 'signup_view.dart';
 
@@ -142,15 +143,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
               onSubmitted: (_) => _signIn(),
             ),
             const SizedBox(height: 30),
-            SizedBox(
-              height: 50,
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: loginState.canSubmit ? _signIn : null,
-                child: loginState.isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Iniciar Sesión'),
-              ),
+            AppFormButtons(
+              primaryLabel: 'Iniciar Sesión',
+              onPrimaryPressed: loginState.canSubmit ? _signIn : null,
+              isProcessing: loginState.isSubmitting,
             ),
             const SizedBox(height: 20),
             Row(
