@@ -50,3 +50,14 @@ final mapMemoriesProvider = FutureProvider<List<MapMemory>>((ref) async {
   ref.read(mapMemoriesCacheProvider.notifier).setAll(fetched);
   return fetched;
 });
+final memoriesProvider =
+    FutureProvider.family<List<Memory>, String>((ref, userId) async {
+  final memoryRepository = ref.read(memoryRepositoryProvider);
+
+  // Ajusta el nombre del método si tu MemoryRepository usa otro (ej. getMemories, getAllForUser, etc.)
+  // Aquí intento llamar a `getMemoriesForUser`. Si tu repo tiene distinto nombre cámbialo.
+  final fetched = await memoryRepository.getMemoriesByUser(userId);
+
+  // Asegura que devuelva una lista no nula
+  return fetched ?? <Memory>[];
+});
