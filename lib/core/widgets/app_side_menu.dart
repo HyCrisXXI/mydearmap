@@ -4,6 +4,7 @@ import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:mydearmap/features/relations/views/all_relation_view.dart';
 import 'package:mydearmap/features/relations/views/relation_view.dart';
 import 'package:mydearmap/features/memories/views/all_memories_view.dart';
+import 'package:mydearmap/features/timeline/view/timeline_view.dart';
 
 class AppSideMenu extends ConsumerWidget {
   const AppSideMenu({super.key});
@@ -105,7 +106,12 @@ class AppSideMenu extends ConsumerWidget {
             title: const Text('Cerrar sesión'),
             onTap: () => _handleLogout(context, ref),
           ),
-
+          ListTile(
+            leading: const Icon(Icons.timelapse),
+            title: const Text('Línea de Tiempo'),
+            onTap: () => _handleNavigation(context, const MemoriesTimelineView())
+            ,)
+          ,
           const SizedBox(height: 10),
         ],
       ),
