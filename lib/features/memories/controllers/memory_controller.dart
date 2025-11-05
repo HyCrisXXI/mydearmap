@@ -1,10 +1,10 @@
 // lib/features/memories/controllers/memory_controller.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../data/models/memory.dart';
-import '../../../data/repositories/memory_repository.dart';
-import '../../../core/errors/memory_errors.dart';
-import '../../../core/providers/memories_provider.dart';
+import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/data/repositories/memory_repository.dart';
+import 'package:mydearmap/core/errors/memory_errors.dart';
+import 'package:mydearmap/core/providers/memories_provider.dart';
 
 /// Provider del controlador
 final memoryControllerProvider = AsyncNotifierProvider<MemoryController, void>(

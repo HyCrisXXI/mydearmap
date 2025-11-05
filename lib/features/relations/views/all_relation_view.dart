@@ -200,7 +200,7 @@ class UserRelationGraph extends ConsumerWidget {
                   ? Image.network(
                       user.profileUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Center(
+                      errorBuilder: (_, _, _) => Center(
                         child: Text(
                           displayName.isNotEmpty ? displayName[0] : '?',
                         ),
@@ -272,6 +272,7 @@ class UserRelationGraph extends ConsumerWidget {
     );
 
     if (choice == 'delete') {
+      if (!context.mounted) return;
       final confirm = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
@@ -319,6 +320,7 @@ class UserRelationGraph extends ConsumerWidget {
       final TextEditingController controller = TextEditingController(
         text: currentRelationLabel,
       );
+      if (!context.mounted) return;
       final newLabel = await showDialog<String?>(
         context: context,
         builder: (_) => AlertDialog(

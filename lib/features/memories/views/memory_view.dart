@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/constants/env_constants.dart';
+import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
@@ -31,6 +32,7 @@ class MemoryDetailView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final memoryAsync = ref.watch(memoryDetailProvider(memoryId));
+    final mapMemoriesAsync = ref.watch(mapMemoriesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -60,7 +62,7 @@ class MemoryDetailView extends ConsumerWidget {
             Center(child: Text('No se pudo cargar el recuerdo: $error')),
         data: (memory) {
           final happenedAt = memory.happenedAt;
-          final latLng = _memoryLatLng(memory);
+          final latLng = _resolveMemoryLocation(memory, mapMemoriesAsync);
           final description = _readDescription(memory);
           final mediaAsync = ref.watch(memoryMediaProvider(memoryId));
 
@@ -80,17 +82,6 @@ class MemoryDetailView extends ConsumerWidget {
                   _formatDate(happenedAt),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                if (latLng != null) ...[
-                  const SizedBox(height: AppSizes.paddingLarge),
-                  Text(
-                    'Ubicación del recuerdo',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.paddingMedium),
-                  _MemoryLocationMap(point: latLng),
-                ],
                 mediaAsync.when(
                   loading: () => const SizedBox(
                     height: 220,
@@ -139,6 +130,17 @@ class MemoryDetailView extends ConsumerWidget {
                     ).textTheme.bodyMedium?.copyWith(height: 1.4),
                   ),
                 ],
+                if (latLng != null) ...[
+                  const SizedBox(height: AppSizes.paddingLarge),
+                  Text(
+                    'Ubicación del recuerdo',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.paddingMedium),
+                  _MemoryLocationMap(point: latLng),
+                ],
               ],
             ),
           );
@@ -150,10 +152,28 @@ class MemoryDetailView extends ConsumerWidget {
 
 String _readDescription(Memory memory) => memory.description?.trim() ?? '';
 
-LatLng? _memoryLatLng(Memory memory) {
-  final point = memory.location;
-  if (point == null) return null;
-  return LatLng(point.latitude, point.longitude);
+LatLng? _resolveMemoryLocation(
+  Memory memory,
+  AsyncValue<List<MapMemory>> mapMemories,
+) {
+  final direct = memory.location;
+  if (direct != null) {
+    return LatLng(direct.latitude, direct.longitude);
+  }
+
+  return mapMemories.when(
+    data: (memories) {
+      for (final candidate in memories) {
+        if (candidate.id == memory.id && candidate.location != null) {
+          final geo = candidate.location!;
+          return LatLng(geo.latitude, geo.longitude);
+        }
+      }
+      return null;
+    },
+    loading: () => null,
+    error: (_, _) => null,
+  );
 }
 
 String _formatDate(DateTime date) {
@@ -170,17 +190,11 @@ class _MemoryLocationMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 220,
+      height: 400,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSizes.borderRadius),
         child: FlutterMap(
-          options: MapOptions(
-            initialCenter: point,
-            initialZoom: 15,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.none,
-            ),
-          ),
+          options: MapOptions(initialCenter: point, initialZoom: 12),
           children: [
             TileLayer(
               urlTemplate:

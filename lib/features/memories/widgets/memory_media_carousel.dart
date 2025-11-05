@@ -148,7 +148,7 @@ class _MediaCard extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.all(AppSizes.paddingLarge),
           decoration: BoxDecoration(
-            color: AppColors.accentColor.withOpacity(0.1),
+            color: AppColors.accentColor.withValues(alpha: .1),
             borderRadius: BorderRadius.circular(AppSizes.borderRadius),
           ),
           child: SingleChildScrollView(
@@ -182,6 +182,7 @@ class _MediaCard extends StatelessWidget {
 
   Future<void> _copyToClipboard(BuildContext context, String value) async {
     await Clipboard.setData(ClipboardData(text: value));
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Enlace copiado al portapapeles')),
     );
@@ -208,7 +209,7 @@ class _MediaActionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizes.paddingLarge),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(AppSizes.borderRadius),
       ),
       child: Column(
@@ -227,9 +228,9 @@ class _MediaActionCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             hint,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: color.withOpacity(0.9)),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: color.withValues(alpha: 0.9),
+            ),
             textAlign: TextAlign.center,
           ),
           if (onCopy != null) ...[
@@ -260,7 +261,7 @@ class _MediaError extends StatelessWidget {
     return Container(
       height: 180,
       decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.12),
+        color: Colors.redAccent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppSizes.borderRadius),
       ),
       alignment: Alignment.center,

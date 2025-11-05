@@ -68,10 +68,10 @@ class Memory {
     }
 
     final memory = Memory(
-      id: json['id'] as String?, 
+      id: json['id'] as String?,
       title: json['title'] as String,
       description: json['description'] as String?,
-      location: parsedLocation, 
+      location: parsedLocation,
       happenedAt: DateTime.parse(json['happened_at'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -79,29 +79,27 @@ class Memory {
 
     if (json['participants'] != null) {
       memory.participants = (json['participants'] as List)
-          .map(
-            (p) {
-
-              final userData = p['user'];
-              if (userData == null || userData is! Map<String, dynamic>) return null; 
-
-              return UserRole(
-                user: User.fromJson(userData),
-                role: MemoryRole.values.firstWhere(
-                  (r) => r.name == (p['role'] as String),
-                  orElse: () => MemoryRole.guest,
-                ),
-              );
-            },
-          )
-          .whereType<UserRole>() 
+          .map((p) {
+            final userData = p['user'];
+            if (userData == null || userData is! Map<String, dynamic>) {
+              return null;
+            }
+            return UserRole(
+              user: User.fromJson(userData),
+              role: MemoryRole.values.firstWhere(
+                (r) => r.name == (p['role'] as String),
+                orElse: () => MemoryRole.guest,
+              ),
+            );
+          })
+          .whereType<UserRole>()
           .toList();
     }
 
     if (json['media'] != null) {
       memory.media = (json['media'] as List)
           .map((m) {
-            if (m is! Map<String, dynamic>) return null; 
+            if (m is! Map<String, dynamic>) return null;
             return Media.fromJson(m);
           })
           .whereType<Media>()
@@ -136,8 +134,8 @@ class Memory {
       'title': title,
       'description': description,
       'location': location != null
-      ? 'POINT(${location!.longitude} ${location!.latitude})'
-      : null,
+          ? 'POINT(${location!.longitude} ${location!.latitude})'
+          : null,
       'happened_at': happenedAt.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -178,19 +176,23 @@ class GeoPoint {
 
   factory GeoPoint.fromJson(Map<String, dynamic> json) {
     final dynamic coordinatesData = json['coordinates'];
-    
 
     if (coordinatesData == null || coordinatesData is! List) {
-
-      throw FormatException('GeoPoint JSON is missing or invalid coordinates field.');
+      throw FormatException(
+        'GeoPoint JSON is missing or invalid coordinates field.',
+      );
     }
-    
+
     final coordinates = coordinatesData;
 
-    if (coordinates.length < 2 || coordinates[0] is! num || coordinates[1] is! num) {
-    throw FormatException('GeoPoint coordinates must contain at least two numbers.');
+    if (coordinates.length < 2 ||
+        coordinates[0] is! num ||
+        coordinates[1] is! num) {
+      throw FormatException(
+        'GeoPoint coordinates must contain at least two numbers.',
+      );
     }
-    
+
     return GeoPoint(coordinates[1].toDouble(), coordinates[0].toDouble());
   }
 }
