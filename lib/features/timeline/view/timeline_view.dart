@@ -12,18 +12,30 @@ class MemoriesTimelineView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
     return userAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (user) {
-        if (user == null) return const Scaffold(body: Center(child: Text('No autenticado')));
+        if (user == null) {
+          return const Scaffold(body: Center(child: Text('No autenticado')));
+        }
         final memoriesAsync = ref.watch(memoriesProvider(user.id));
         return memoriesAsync.when(
-          loading: () => Scaffold(appBar: AppBar(title: const Text('Timeline')), body: const Center(child: CircularProgressIndicator())),
-          error: (e, st) => Scaffold(appBar: AppBar(title: const Text('Timeline')), body: Center(child: Text('Error: $e'))),
-          data: (memories) => _TimelineBody(memories: memories, onDelete: (m) {
-            // invalidar o llamar al controller según tu arquitectura
-            ref.invalidate(memoriesProvider(user.id));
-          }),
+          loading: () => Scaffold(
+            appBar: AppBar(title: const Text('Timeline')),
+            body: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, st) => Scaffold(
+            appBar: AppBar(title: const Text('Timeline')),
+            body: Center(child: Text('Error: $e')),
+          ),
+          data: (memories) => _TimelineBody(
+            memories: memories,
+            onDelete: (m) {
+              // invalidar o llamar al controller según tu arquitectura
+              ref.invalidate(memoriesProvider(user.id));
+            },
+          ),
         );
       },
     );
@@ -62,8 +74,15 @@ class _TimelineBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(dayLabel, style: Theme.of(context).textTheme.titleMedium)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Text(
+                  dayLabel,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
               ...List.generate(dayEvents.length, (i) {
                 final mem = dayEvents[i];
                 final isFirst = i == 0;
@@ -77,10 +96,18 @@ class _TimelineBody extends StatelessWidget {
                       context: context,
                       builder: (_) => AlertDialog(
                         title: const Text('Eliminar recuerdo'),
-                        content: const Text('¿Seguro que quieres eliminar este recuerdo?'),
+                        content: const Text(
+                          '¿Seguro que quieres eliminar este recuerdo?',
+                        ),
                         actions: [
-                          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
-                          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Eliminar')),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text('Cancelar'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text('Eliminar'),
+                          ),
                         ],
                       ),
                     );
@@ -88,10 +115,18 @@ class _TimelineBody extends StatelessWidget {
                   },
                   onEdit: () {
                     // abrir editor: reemplaza por tu vista de edición
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MemoryViewWrapper(memory: mem)));
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MemoryViewWrapper(memory: mem),
+                      ),
+                    );
                   },
                   onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MemoryViewWrapper(memory: mem)));
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MemoryViewWrapper(memory: mem),
+                      ),
+                    );
                   },
                 );
               }),
@@ -171,7 +206,9 @@ String? _thumbOf(Memory m) {
       if (url != null && url.toString().isNotEmpty) return url.toString();
     }
     final single = dyn.image ?? dyn.photo ?? dyn.picture;
-    if (single != null && single.toString().isNotEmpty) return single.toString();
+    if (single != null && single.toString().isNotEmpty) {
+      return single.toString();
+    }
   } catch (_) {}
   return null;
 }
@@ -227,7 +264,9 @@ class _TimelineRow extends StatelessWidget {
                     Expanded(
                       child: Container(
                         width: 2,
-                        color: isFirst ? Colors.transparent : Colors.grey.shade300,
+                        color: isFirst
+                            ? Colors.transparent
+                            : Colors.grey.shade300,
                       ),
                     ),
                     Container(
@@ -237,13 +276,17 @@ class _TimelineRow extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.blueAccent,
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 3)],
+                        boxShadow: [
+                          BoxShadow(color: Colors.black12, blurRadius: 3),
+                        ],
                       ),
                     ),
                     Expanded(
                       child: Container(
                         width: 2,
-                        color: isLast ? Colors.transparent : Colors.grey.shade300,
+                        color: isLast
+                            ? Colors.transparent
+                            : Colors.grey.shade300,
                       ),
                     ),
                   ],
@@ -261,18 +304,41 @@ class _TimelineRow extends StatelessWidget {
                           height: 72,
                           color: Colors.grey.shade200,
                           child: (thumb != null && thumb.isNotEmpty)
-                              ? Image.network(thumb, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image))
+                              ? Image.network(
+                                  thumb,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) =>
+                                      const Icon(Icons.broken_image),
+                                )
                               : const Icon(Icons.photo),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 6),
-                            Text(desc, maxLines: 2, overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 8),
-                            Text(time, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                          ]),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                desc,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                time,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -290,17 +356,32 @@ class _TimelineRow extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.edit), title: const Text('Editar'), onTap: () {
-            Navigator.of(context).pop();
-            onEdit();
-          }),
-          ListTile(leading: const Icon(Icons.delete), title: const Text('Eliminar'), onTap: () {
-            Navigator.of(context).pop();
-            onDelete();
-          }),
-          ListTile(leading: const Icon(Icons.close), title: const Text('Cancelar'), onTap: () => Navigator.of(context).pop()),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Editar'),
+              onTap: () {
+                Navigator.of(context).pop();
+                onEdit();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: const Text('Eliminar'),
+              onTap: () {
+                Navigator.of(context).pop();
+                onDelete();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Cancelar'),
+              onTap: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -337,12 +418,15 @@ class _TimelineRow extends StatelessWidget {
       if (media is List && media.isNotEmpty) {
         final first = media.first;
         if (first == null) return null;
-        final url = (first.url ?? first.thumbnailUrl ?? first.path ?? first.src);
+        final url =
+            (first.url ?? first.thumbnailUrl ?? first.path ?? first.src);
         if (url != null && url.toString().isNotEmpty) return url.toString();
       }
       // fallback single-field image
       final single = dyn.image ?? dyn.photo ?? dyn.picture;
-      if (single != null && single.toString().isNotEmpty) return single.toString();
+      if (single != null && single.toString().isNotEmpty) {
+        return single.toString();
+      }
     } catch (_) {}
     return null;
   }
@@ -366,9 +450,8 @@ class MemoryViewWrapper extends StatelessWidget {
 
   static String? _titleOf(Memory m) {
     try {
-      if ((m.title ?? '').isNotEmpty) return m.title;
+      if ((m.title).isNotEmpty) return m.title;
     } catch (_) {}
     return null;
   }
-  
 }

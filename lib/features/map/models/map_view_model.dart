@@ -1,4 +1,5 @@
 // lib/features/map/models/map_view_model.dart
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -77,10 +78,12 @@ class MapViewModel extends Notifier<MapViewState> {
       final prevId = _userIdFromAsync(previous);
       final nextId = _userIdFromAsync(next);
       if (prevId != nextId) {
-        _memoryPinColorCache.clear();
-        _colorIndex = 0;
-        state = const MapViewState();
-        ref.invalidate(mapMemoriesProvider);
+        Future.microtask(() {
+          _memoryPinColorCache.clear();
+          _colorIndex = 0;
+          state = const MapViewState();
+          ref.invalidate(mapMemoriesProvider);
+        });
       }
     });
 
@@ -88,14 +91,16 @@ class MapViewModel extends Notifier<MapViewState> {
       previous,
       next,
     ) {
-      final nextMemories = next.asData?.value ?? const <MapMemory>[];
-      state = state.copyWith(
-        memories: next,
-        memorySuggestions: _recomputeSuggestions(
-          query: state.memoryQuery,
-          memories: nextMemories,
-        ),
-      );
+      Future.microtask(() {
+        final nextMemories = next.asData?.value ?? const <MapMemory>[];
+        state = state.copyWith(
+          memories: next,
+          memorySuggestions: _recomputeSuggestions(
+            query: state.memoryQuery,
+            memories: nextMemories,
+          ),
+        );
+      });
     });
 
     return MapViewState(memories: initialMemories);

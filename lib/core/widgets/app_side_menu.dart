@@ -82,11 +82,17 @@ class AppSideMenu extends ConsumerWidget {
             ),
           ),
 
-          // Navegar a la vista para crear una relación (lee currentUserProvider dentro)
           ListTile(
-            leading: const Icon(Icons.favorite),
-            title: const Text('Añadir Relación'),
-            onTap: () => _handleNavigation(context, const RelationCreateView()),
+            leading: const Icon(Icons.timelapse),
+            title: const Text('Línea de Tiempo'),
+            onTap: () =>
+                _handleNavigation(context, const MemoriesTimelineView()),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library),
+            title: const Text('Mis Recuerdos'),
+            onTap: () =>
+                _handleNavigation(context, const MemoriesOverviewView()),
           ),
           ListTile(
             leading: const Icon(Icons.group),
@@ -94,10 +100,9 @@ class AppSideMenu extends ConsumerWidget {
             onTap: () => _handleNavigation(context, const AllRelationView()),
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library),
-            title: const Text('Mis Recuerdos'),
-            onTap: () =>
-                _handleNavigation(context, const MemoriesOverviewView()),
+            leading: const Icon(Icons.favorite),
+            title: const Text('Añadir Relación'),
+            onTap: () => _handleNavigation(context, const RelationCreateView()),
           ),
           const Spacer(),
           // Cerrar sesión
@@ -106,12 +111,6 @@ class AppSideMenu extends ConsumerWidget {
             title: const Text('Cerrar sesión'),
             onTap: () => _handleLogout(context, ref),
           ),
-          ListTile(
-            leading: const Icon(Icons.timelapse),
-            title: const Text('Línea de Tiempo'),
-            onTap: () => _handleNavigation(context, const MemoriesTimelineView())
-            ,)
-          ,
           const SizedBox(height: 10),
         ],
       ),

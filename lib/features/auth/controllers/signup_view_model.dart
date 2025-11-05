@@ -1,6 +1,7 @@
 // lib/features/auth/controllers/signup_view_model.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/errors/auth_errors.dart';
+import 'package:mydearmap/core/utils/form_validation_mixin.dart';
 import 'package:mydearmap/core/utils/validators.dart';
 import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:mydearmap/features/auth/controllers/signup_controller.dart';
@@ -101,55 +102,38 @@ class SignupViewState {
   }
 }
 
-class SignupViewModel extends Notifier<SignupViewState> {
+class SignupViewModel extends Notifier<SignupViewState>
+    with FormValidationMixin {
   @override
   SignupViewState build() {
-    final form = ref.read(signupFormProvider);
-    final birthDate = _parseBirthDate(form.birthDate);
-
-    ref.listen<SignupFormState>(signupFormProvider, (previous, next) {
-      state = state.copyWith(
-        form: next,
-        birthDate: _parseBirthDate(next.birthDate),
-      );
-    });
-
-    return SignupViewState(form: form, birthDate: birthDate);
+    return const SignupViewState();
   }
 
   void onNameChanged(String value) {
-    ref.read(signupFormProvider.notifier).updateName(value);
     state = state.copyWith(
       form: state.form.copyWith(name: value),
-      nameError: Validators.nameValidator(value),
+      nameError: validateName(value),
     );
   }
 
   void onEmailChanged(String value) {
-    ref.read(signupFormProvider.notifier).updateEmail(value);
-    final error = value.isEmpty ? null : Validators.emailValidator(value);
     state = state.copyWith(
       form: state.form.copyWith(email: value),
-      emailError: error,
+      emailError: validateEmail(value),
     );
   }
 
   void onPasswordChanged(String value) {
-    ref.read(signupFormProvider.notifier).updatePassword(value);
-    final error = value.isEmpty ? null : Validators.passwordValidator(value);
     state = state.copyWith(
       form: state.form.copyWith(password: value),
-      passwordError: error,
+      passwordError: validatePassword(value),
     );
   }
 
   void onNumberChanged(String value) {
-    final numberValue = value.isEmpty ? null : value;
-    ref.read(signupFormProvider.notifier).updateNumber(numberValue);
-    final error = Validators.numberValidator(numberValue);
     state = state.copyWith(
-      form: state.form.copyWith(number: numberValue),
-      numberError: error,
+      form: state.form.copyWith(number: value.isEmpty ? null : value),
+      numberError: validatePhoneNumber(value),
     );
   }
 
@@ -256,17 +240,6 @@ class SignupViewModel extends Notifier<SignupViewState> {
       snackbarMessage: snackbarMessage,
       snackbarKey: state.snackbarKey + 1,
     );
-  }
-
-  DateTime? _parseBirthDate(String? isoDate) {
-    if (isoDate == null || isoDate.isEmpty) {
-      return null;
-    }
-    try {
-      return DateTime.parse(isoDate);
-    } catch (_) {
-      return null;
-    }
   }
 
   String _formatIsoDate(DateTime date) {

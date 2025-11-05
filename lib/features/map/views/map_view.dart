@@ -13,6 +13,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/memories/views/memory_edit_view.dart';
+import 'package:mydearmap/features/profile/views/profile_view.dart';
+import 'package:mydearmap/core/utils/avatar_url.dart';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -107,22 +109,34 @@ class _MapViewState extends ConsumerState<MapView> {
 
             final name = user?.name ?? 'Usuario';
             const avatarRadius = 25.0;
-            Widget avatar;
-            if (user != null &&
-                user.profileUrl != null &&
-                user.profileUrl!.isNotEmpty) {
-              avatar = CircleAvatar(
+
+            final avatarUrl = buildAvatarUrl(user?.profileUrl);
+
+            // Avatar con letra mayúscula si no hay imagen
+            final avatar = GestureDetector(
+              onTap: () {
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const ProfileView()));
+              },
+              child: CircleAvatar(
                 radius: avatarRadius,
-                backgroundImage: NetworkImage(
-                  "https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/${user.profileUrl!}",
-                ),
-              );
-            } else {
-              avatar = const CircleAvatar(
-                radius: avatarRadius,
-                child: Icon(Icons.person, size: avatarRadius),
-              );
-            }
+                backgroundColor: AppColors.primaryColor,
+                backgroundImage: avatarUrl != null
+                    ? NetworkImage(avatarUrl)
+                    : null,
+                child: avatarUrl == null
+                    ? Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          color: Color.fromARGB(255, 17, 17, 17),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
+              ),
+            );
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

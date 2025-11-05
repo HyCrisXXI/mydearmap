@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/features/relations/controllers/relation_controller.dart';
+import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/features/relations/views/relation_view.dart';
@@ -176,6 +177,7 @@ class UserRelationGraph extends ConsumerWidget {
     final displayName = (user.name.isNotEmpty)
         ? user.name
         : (user.email.isNotEmpty ? user.email : user.id);
+    final avatarUrl = buildAvatarUrl(user.profileUrl);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -196,9 +198,9 @@ class UserRelationGraph extends ConsumerWidget {
               ],
             ),
             child: ClipOval(
-              child: user.profileUrl != null && user.profileUrl!.isNotEmpty
+              child: avatarUrl != null
                   ? Image.network(
-                      user.profileUrl!,
+                      avatarUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, _, _) => Center(
                         child: Text(

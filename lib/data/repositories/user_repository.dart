@@ -27,6 +27,57 @@ class UserRepository {
       rethrow;
     }
   }
+
+  Future<User> updateUserProfile({
+    required String userId,
+    String? name,
+    String? email,
+    String? number,
+    DateTime? birthDate,
+    String? gender,
+    String? profileUrl,
+  }) async {
+    try {
+      if (email != null) {
+        try {
+          await _supabase.auth.updateUser(UserAttributes(email: email));
+        } on AuthException catch (e) {
+          // Manejar el error específico de rate limit
+          if (e.message.contains('security purposes') ||
+              e.message.contains('10 seconds')) {
+            throw Exception(
+              'Por seguridad, solo puedes cambiar el email cada 10 segundos.',
+            );
+          }
+          throw Exception('Error al actualizar el email: ${e.message}');
+        }
+      }
+
+      final updateData = <String, dynamic>{};
+      if (name != null) updateData['name'] = name;
+      if (email != null) updateData['email'] = email;
+
+      updateData['number'] = number;
+
+      if (birthDate != null) {
+        updateData['birth_date'] = birthDate.toIso8601String();
+      }
+      if (gender != null) updateData['gender'] = gender;
+      if (profileUrl != null) updateData['profile_url'] = profileUrl;
+
+      final response = await _supabase
+          .from('users')
+          .update(updateData)
+          .eq('id', userId)
+          .select()
+          .single();
+
+      return User.fromJson(response);
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Error al actualizar el perfil: $e');
+    }
+  }
 }
 
 final userRepositoryProvider = Provider((ref) {
