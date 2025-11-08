@@ -134,12 +134,6 @@ class _TimelineBody extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () {
-          // navegar a crear recuerdo (sustituye por tu view)
-        },
-      ),
     );
   }
 }
@@ -260,13 +254,13 @@ class _TimelineRow extends StatelessWidget {
               SizedBox(
                 width: 72,
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
+                    Flexible(
+                      fit: FlexFit.loose,
                       child: Container(
                         width: 2,
-                        color: isFirst
-                            ? Colors.transparent
-                            : Colors.grey.shade300,
+                        color: isFirst ? Colors.transparent : Colors.grey.shade300,
                       ),
                     ),
                     Container(
@@ -281,12 +275,11 @@ class _TimelineRow extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Expanded(
+                    Flexible(
+                      fit: FlexFit.loose,
                       child: Container(
                         width: 2,
-                        color: isLast
-                            ? Colors.transparent
-                            : Colors.grey.shade300,
+                        color: isLast ? Colors.transparent : Colors.grey.shade300,
                       ),
                     ),
                   ],
