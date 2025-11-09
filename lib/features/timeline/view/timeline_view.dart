@@ -4,6 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/core/utils/supabase_setup.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:math' as math;
+import 'package:mydearmap/features/memories/views/memory_view.dart';
 
 class MemoriesTimelineView extends ConsumerWidget {
   const MemoriesTimelineView({super.key});
@@ -114,17 +118,30 @@ class _TimelineBody extends StatelessWidget {
                     if (confirm == true) onDelete(mem);
                   },
                   onEdit: () {
-                    // abrir editor: reemplaza por tu vista de edición
+                    final id = mem.id;
+                    if (id == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Recuerdo sin id')),
+                      );
+                      return;
+                    }
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => MemoryViewWrapper(memory: mem),
+                        builder: (_) => MemoryDetailView(memoryId: id.toString()),
                       ),
                     );
                   },
                   onTap: () {
+                    final id = mem.id;
+                    if (id == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Recuerdo sin id')),
+                      );
+                      return;
+                    }
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => MemoryViewWrapper(memory: mem),
+                        builder: (_) => MemoryDetailView(memoryId: id.toString()),
                       ),
                     );
                   },
@@ -140,30 +157,105 @@ class _TimelineBody extends StatelessWidget {
 
 // Helpers top-level reutilizables para el timeline (uso dinámico para evitar errores de tipo)
 DateTime _dateOf(Memory m) {
-  try {
-    final dyn = m as dynamic;
-    final candidates = [
-      dyn.happenedAt,
-      dyn.createdAt,
-      dyn.date,
-      dyn.timestamp,
-      dyn.time,
-    ];
-    for (final c in candidates) {
-      if (c == null) continue;
-      if (c is DateTime) return c;
-      if (c is String) {
-        try {
-          return DateTime.parse(c);
-        } catch (_) {}
-      }
-      if (c is int) {
-        // heurística: distinguir segundos / milisegundos
-        if (c > 1000000000000) return DateTime.fromMillisecondsSinceEpoch(c);
-        return DateTime.fromMillisecondsSinceEpoch(c * 1000);
+  DateTime? tryParse(dynamic v) {
+    if (v == null) return null;
+    if (v is DateTime) return v;
+    if (v is int) {
+      // > 1e12 => ms, si no => s
+      if (v.abs() > 1000000000000) return DateTime.fromMillisecondsSinceEpoch(v);
+      return DateTime.fromMillisecondsSinceEpoch(v * 1000);
+    }
+    if (v is double) {
+      final iv = v.toInt();
+      if (iv.abs() > 1000000000000) return DateTime.fromMillisecondsSinceEpoch(iv);
+      return DateTime.fromMillisecondsSinceEpoch(iv * 1000);
+    }
+    if (v is String) {
+      // intento ISO
+      try {
+        return DateTime.parse(v);
+      } catch (_) {}
+      // número en string
+      final n = int.tryParse(v);
+      if (n != null) {
+        if (n.abs() > 1000000000000) return DateTime.fromMillisecondsSinceEpoch(n);
+        return DateTime.fromMillisecondsSinceEpoch(n * 1000);
       }
     }
-  } catch (_) {}
+    return null;
+  }
+
+  try {
+    final dyn = m as dynamic;
+
+    // Si el objeto puede serializarse a Map -> revisar primero (priorizar happened_at)
+    Map? asMap;
+    if (dyn is Map) {
+      asMap = dyn as Map;
+    } else {
+      try {
+        final json = dyn.toJson();
+        if (json is Map) asMap = json as Map;
+      } catch (_) {}
+    }
+
+    if (asMap != null) {
+      // priorizar claves que suelen contener la fecha, happened_at primero
+      final keys = [
+        'happened_at',
+        'happenedAt',
+        'occurred_at',
+        'occurredAt',
+        'date',
+        'datetime',
+        'dateTime',
+        'created_at',
+        'createdAt',
+        'updated_at',
+        'timestamp',
+        'time',
+        'time_ms',
+        'timeMs',
+        'millisecondsSinceEpoch',
+        'secondsSinceEpoch',
+      ];
+      for (final k in keys) {
+        if (!asMap.containsKey(k)) continue;
+        final dt = tryParse(asMap[k]);
+        if (dt != null) return dt;
+      }
+    }
+
+    // fallback: intentar acceder dinámicamente a propiedades (por si no hay toJson)
+    final candidates = [
+      dyn.happened_at,
+      dyn.happenedAt,
+      dyn.occurred_at,
+      dyn.ocurridoAt,
+      dyn.date,
+      dyn.datetime,
+      dyn.dateTime,
+      dyn.created_at,
+      dyn.createdAt,
+      dyn.updated_at,
+      dyn.timestamp,
+      dyn.time,
+      dyn.time_ms,
+      dyn.timeMs,
+      dyn.millisecondsSinceEpoch,
+      dyn.secondsSinceEpoch,
+    ];
+
+    for (final c in candidates) {
+      final dt = tryParse(c);
+      if (dt != null) return dt;
+    }
+  } catch (_) {
+    // ignore y fallback abajo
+  }
+
+  // Si nada se parsea correctamente, devuelve ahora para evitar ocultar errores
+  // (si sigue ocurriendo, añade un print(memory.toString()) para depurar)
   return DateTime.now();
 }
 
@@ -227,40 +319,35 @@ class _TimelineRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = _titleOf(memory) ?? 'Recuerdo';
     final desc = _descriptionOf(memory) ?? '';
-    final time = DateFormat.Hm().format(_timeOf(memory));
     final thumb = _thumbOf(memory);
 
-    return Dismissible(
-      key: ValueKey(memory.id ?? memory.hashCode),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        color: Colors.redAccent,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: const Icon(Icons.delete, color: Colors.white),
-      ),
-      confirmDismiss: (_) async {
-        // confirm inside onDelete callback
-        onDelete();
-        return false; // prevent automatic removal; let onDelete refresh the provider/state
-      },
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: () => _showActions(context),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 72,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+    // Quitado Dismissible para desactivar swipe-to-delete
+    return InkWell(
+      onTap: onTap,
+      // onLongPress eliminado anteriormente
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 72,
+              child: SizedBox(
+                // uses the row's height; Stack + CustomPaint dibuja la línea discontinua
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: Container(
-                        width: 2,
-                        color: isFirst ? Colors.transparent : Colors.grey.shade300,
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _DashedLinePainter(
+                          color: Colors.grey.shade300,
+                          strokeWidth: 2,
+                          dashHeight: 6,
+                          dashGap: 6,
+                          drawTop: !isFirst,
+                          drawBottom: !isLast,
+                          circleDiameter: 14,
+                          circleVerticalGap: 6,
+                        ),
                       ),
                     ),
                     Container(
@@ -275,71 +362,78 @@ class _TimelineRow extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: Container(
-                        width: 2,
-                        color: isLast ? Colors.transparent : Colors.grey.shade300,
-                      ),
-                    ),
                   ],
                 ),
               ),
-              Expanded(
-                child: Card(
-                  margin: const EdgeInsets.only(left: 8, right: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 72,
-                          height: 72,
-                          color: Colors.grey.shade200,
-                          child: (thumb != null && thumb.isNotEmpty)
-                              ? Image.network(
-                                  thumb,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) =>
-                                      const Icon(Icons.broken_image),
-                                )
-                              : const Icon(Icons.photo),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                desc,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                time,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
+            ),
+            Expanded(
+              child: Card(
+                margin: const EdgeInsets.only(left: 8, right: 8),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        color: Colors.grey.shade200,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: FutureBuilder<String?>(
+                            future: (thumb != null && thumb.isNotEmpty)
+                                ? Future.value(thumb)
+                                : _fetchFirstMediaUrl(memory),
+                            builder: (context, snap) {
+                              if (snap.connectionState == ConnectionState.waiting) {
+                                return const Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                );
+                              }
+                              if (snap.hasError) return const Icon(Icons.broken_image);
+                              final url = snap.data;
+                              if (url == null || url.isEmpty) return const Icon(Icons.photo);
+                              return Image.network(
+                                url,
+                                fit: BoxFit.cover,
+                                width: 72,
+                                height: 72,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+                              );
+                            },
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              desc,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            // ya no mostramos la hora; el agrupado por día ya muestra la fecha
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -425,26 +519,190 @@ class _TimelineRow extends StatelessWidget {
   }
 }
 
-/// Simple detail wrapper — reemplaza por tu MemoryView real si quieres.
+// Painter para línea discontinua vertical alrededor del nodo
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double dashHeight;
+  final double dashGap;
+  final bool drawTop;
+  final bool drawBottom;
+  final double circleDiameter;
+  final double circleVerticalGap;
+
+  _DashedLinePainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.dashHeight,
+    required this.dashGap,
+    required this.drawTop,
+    required this.drawBottom,
+    required this.circleDiameter,
+    required this.circleVerticalGap,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+    final gap = circleVerticalGap;
+    final r = circleDiameter / 2;
+
+    void drawDashed(double startY, double endY) {
+      double y = startY;
+      while (y < endY) {
+        final next = math.min(y + dashHeight, endY);
+        canvas.drawLine(Offset(centerX, y), Offset(centerX, next), paint);
+        y = next + dashGap;
+      }
+    }
+
+    if (drawTop) {
+      drawDashed(0, centerY - r - gap);
+    }
+    if (drawBottom) {
+      drawDashed(centerY + r + gap, size.height);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedLinePainter old) {
+    return old.color != color ||
+        old.strokeWidth != strokeWidth ||
+        old.dashHeight != dashHeight ||
+        old.dashGap != dashGap ||
+        old.drawTop != drawTop ||
+        old.drawBottom != drawBottom ||
+        old.circleDiameter != circleDiameter ||
+        old.circleVerticalGap != circleVerticalGap;
+  }
+}
+
 class MemoryViewWrapper extends StatelessWidget {
   final Memory memory;
   const MemoryViewWrapper({super.key, required this.memory});
 
   @override
   Widget build(BuildContext context) {
+    final title = _titleOf(memory) ?? 'Recuerdo';
+    final desc = _descriptionOf(memory) ?? '—';
+    final thumb = _thumbOf(memory);
+    final date = DateFormat.yMMMMd().format(_dateOf(memory));
+
     return Scaffold(
-      appBar: AppBar(title: Text(_titleOf(memory) ?? 'Detalle')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(child: Text(memory.toString())),
+      appBar: AppBar(title: Text(title)),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (thumb != null && thumb.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    thumb,
+                    width: double.infinity,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 200,
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.broken_image, size: 64),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(child: Icon(Icons.photo, size: 64)),
+                ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                date,
+                style: TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                desc,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
       ),
     );
   }
+}
 
-  static String? _titleOf(Memory m) {
+// Consulta la tabla 'media' para obtener la primera fila asociada al memory.id
+Future<String?> _fetchFirstMediaUrl(Memory m) async {
+  try {
+    final dyn = m as dynamic;
+    final id = dyn.id ?? (dyn is Map ? dyn['id'] : null);
+    if (id == null) return null;
+
+    final client = Supabase.instance.client;
+
+    // Pedimos solo el campo 'url' de la tabla media
+    final record = await client
+        .from('media')
+        .select('url')
+        .eq('memory_id', id)
+        .order('id', ascending: true)
+        .limit(1)
+        .maybeSingle();
+
+    if (record == null) return null;
+
+    // Normalizar respuesta
+    dynamic data = record;
+    if (data is Map && data.containsKey('data')) data = data['data'];
+    if (data is List) data = data.isNotEmpty ? data.first : null;
+    if (data == null) return null;
+
+    final rawUrl = data['url'] ?? data['Url'] ?? data['URL'];
+    if (rawUrl == null) return null;
+    final s = rawUrl.toString();
+    if (s.isEmpty) return null;
+
+    // Si ya es una URL pública la devolvemos
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+
+    // Tu bucket se llama 'media' — usamos el path tal cual dentro del bucket
+    const bucket = 'media';
+    final pathInBucket = s;
+
     try {
-      if ((m.title).isNotEmpty) return m.title;
-    } catch (_) {}
+      final pub = client.storage.from(bucket).getPublicUrl(pathInBucket);
+      if (pub.isNotEmpty) return pub;
+    } catch (_) {
+      // getPublicUrl falló; fallback abajo
+    }
+
+    // fallback: devuelve el path tal cual (si no funciona, activa un print para depurar)
+    return s;
+  } catch (e) {
+    // opcional: print('fetchFirstMediaUrl error: $e');
     return null;
   }
 }
+
