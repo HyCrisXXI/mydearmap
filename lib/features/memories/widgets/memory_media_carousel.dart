@@ -1,7 +1,13 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
+import 'package:mydearmap/data/models/media.dart'
+    show MediaType, mediaOrderStride, mediaTypeOrderBase;
 
 class MemoryMediaCarousel extends StatefulWidget {
   const MemoryMediaCarousel({
@@ -24,7 +30,7 @@ class MemoryMediaCarousel extends StatefulWidget {
 }
 
 class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
-  late final PageController _controller;
+  late PageController _controller;
 
   static const Map<MemoryMediaKind, int> _priority = {
     MemoryMediaKind.image: 0,
@@ -38,6 +44,28 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
   void initState() {
     super.initState();
     _controller = PageController(viewportFraction: widget.viewportFraction);
+  }
+
+  @override
+  void didUpdateWidget(covariant MemoryMediaCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.viewportFraction != oldWidget.viewportFraction) {
+      final currentPage = _controller.hasClients
+          ? _controller.page?.round() ?? _controller.initialPage
+          : _controller.initialPage;
+      final maxPageIndex = widget.media.isNotEmpty
+          ? widget.media.length - 1
+          : 0;
+      final safeInitialPage = currentPage
+          .clamp(0, math.max(0, maxPageIndex))
+          .toInt();
+      _controller.dispose();
+      _controller = PageController(
+        viewportFraction: widget.viewportFraction,
+        initialPage: safeInitialPage,
+      );
+      setState(() {});
+    }
   }
 
   @override
@@ -66,22 +94,40 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
   int _effectiveOrder(MemoryMedia asset) {
     final base = _orderBaseForKind(asset.kind);
     final order = asset.order;
-    if (order == null) return base + 99999;
-    return order;
+    if (order == null) return base + mediaOrderStride - 1;
+    return _normalizeOrderForKind(order, base);
   }
 
   int _orderBaseForKind(MemoryMediaKind kind) {
+    final mapped = _mediaTypeForKind(kind);
+    if (mapped != null) return mediaTypeOrderBase(mapped);
+    return mediaTypeOrderBase(MediaType.note) + mediaOrderStride;
+  }
+
+  int _normalizeOrderForKind(int order, int base) {
+    if (order < base) {
+      final relative = order >= 0 ? order : 0;
+      return base + relative;
+    }
+    if (order >= base + mediaOrderStride) {
+      final relative = (order - base) % mediaOrderStride;
+      return base + relative;
+    }
+    return order;
+  }
+
+  MediaType? _mediaTypeForKind(MemoryMediaKind kind) {
     switch (kind) {
       case MemoryMediaKind.image:
-        return 0;
+        return MediaType.image;
       case MemoryMediaKind.video:
-        return 100000;
+        return MediaType.video;
       case MemoryMediaKind.audio:
-        return 200000;
+        return MediaType.audio;
       case MemoryMediaKind.note:
-        return 300000;
+        return MediaType.note;
       case MemoryMediaKind.unknown:
-        return 400000;
+        return null;
     }
   }
 
@@ -92,23 +138,41 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
 
     return SizedBox(
       height: widget.height,
-      child: PageView.builder(
-        controller: _controller,
-        itemCount: items.length,
-        padEnds: items.length < 2,
-        itemBuilder: (context, index) {
-          final asset = items[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: _MediaCard(
-              asset: asset,
-              enableFullScreenPreview: widget.enableFullScreenPreview,
-            ),
-          );
-        },
+      child: ScrollConfiguration(
+        behavior: const _CarouselScrollBehavior(),
+        child: PageView.builder(
+          controller: _controller,
+          physics: const PageScrollPhysics(),
+          clipBehavior: Clip.none,
+          itemCount: items.length,
+          padEnds: kIsWeb ? true : items.length < 2,
+          itemBuilder: (context, index) {
+            final asset = items[index];
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: _MediaCard(
+                asset: asset,
+                enableFullScreenPreview: widget.enableFullScreenPreview,
+              ),
+            );
+          },
+        ),
       ),
     );
   }
+}
+
+class _CarouselScrollBehavior extends MaterialScrollBehavior {
+  const _CarouselScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.invertedStylus,
+    PointerDeviceKind.unknown,
+  };
 }
 
 class _MediaCard extends StatelessWidget {

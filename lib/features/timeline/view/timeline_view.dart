@@ -159,21 +159,22 @@ class _TimelineBody extends StatelessWidget {
   }
 }
 
-// Helpers top-level reutilizables para el timeline (uso dinámico para evitar errores de tipo)
 DateTime _dateOf(Memory m) {
   DateTime? tryParse(dynamic v) {
     if (v == null) return null;
     if (v is DateTime) return v;
     if (v is int) {
       // > 1e12 => ms, si no => s
-      if (v.abs() > 1000000000000)
+      if (v.abs() > 1000000000000) {
         return DateTime.fromMillisecondsSinceEpoch(v);
+      }
       return DateTime.fromMillisecondsSinceEpoch(v * 1000);
     }
     if (v is double) {
       final iv = v.toInt();
-      if (iv.abs() > 1000000000000)
+      if (iv.abs() > 1000000000000) {
         return DateTime.fromMillisecondsSinceEpoch(iv);
+      }
       return DateTime.fromMillisecondsSinceEpoch(iv * 1000);
     }
     if (v is String) {
@@ -184,8 +185,9 @@ DateTime _dateOf(Memory m) {
       // número en string
       final n = int.tryParse(v);
       if (n != null) {
-        if (n.abs() > 1000000000000)
+        if (n.abs() > 1000000000000) {
           return DateTime.fromMillisecondsSinceEpoch(n);
+        }
         return DateTime.fromMillisecondsSinceEpoch(n * 1000);
       }
     }
@@ -326,10 +328,8 @@ class _TimelineRow extends StatelessWidget {
     final desc = _descriptionOf(memory) ?? '';
     final thumb = _thumbOf(memory);
 
-    // Quitado Dismissible para desactivar swipe-to-delete
     return InkWell(
       onTap: onTap,
-      // onLongPress eliminado anteriormente
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
         child: Row(
@@ -401,17 +401,19 @@ class _TimelineRow extends StatelessWidget {
                                   ),
                                 );
                               }
-                              if (snap.hasError)
+                              if (snap.hasError) {
                                 return const Icon(Icons.broken_image);
+                              }
                               final url = snap.data;
-                              if (url == null || url.isEmpty)
+                              if (url == null || url.isEmpty) {
                                 return const Icon(Icons.photo);
+                              }
                               return Image.network(
                                 url,
                                 fit: BoxFit.cover,
                                 width: 72,
                                 height: 72,
-                                errorBuilder: (_, __, ___) =>
+                                errorBuilder: (_, _, _) =>
                                     const Icon(Icons.broken_image),
                               );
                             },
@@ -435,7 +437,6 @@ class _TimelineRow extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            // ya no mostramos la hora; el agrupado por día ya muestra la fecha
                           ],
                         ),
                       ),
@@ -451,7 +452,6 @@ class _TimelineRow extends StatelessWidget {
   }
 }
 
-// Painter para línea discontinua vertical alrededor del nodo
 class _DashedLinePainter extends CustomPainter {
   final Color color;
   final double strokeWidth;
@@ -515,71 +515,6 @@ class _DashedLinePainter extends CustomPainter {
   }
 }
 
-class MemoryViewWrapper extends StatelessWidget {
-  final Memory memory;
-  const MemoryViewWrapper({super.key, required this.memory});
-
-  @override
-  Widget build(BuildContext context) {
-    final title = _titleOf(memory) ?? 'Recuerdo';
-    final desc = _descriptionOf(memory) ?? '—';
-    final thumb = _thumbOf(memory);
-    final date = DateFormat.yMMMMd().format(_dateOf(memory));
-
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (thumb != null && thumb.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    thumb,
-                    width: double.infinity,
-                    height: 200,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 200,
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.broken_image, size: 64),
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(child: Icon(Icons.photo, size: 64)),
-                ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(date, style: TextStyle(color: Colors.black54)),
-              const SizedBox(height: 12),
-              Text(desc, style: Theme.of(context).textTheme.bodyLarge),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Consulta la tabla 'media' para obtener la primera fila asociada al memory.id
 Future<String?> _fetchFirstMediaUrl(Memory m) async {
   try {
     final client = Supabase.instance.client;
