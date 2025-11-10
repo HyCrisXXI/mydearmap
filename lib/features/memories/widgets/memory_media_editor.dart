@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
+import 'package:mydearmap/core/providers/memories_provider.dart';
+import 'package:mydearmap/data/models/media.dart'
+    show MediaType, mediaOrderStride, mediaTypeOrderBase;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PendingMemoryMediaDraft {
@@ -158,7 +161,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     }
 
     final client = Supabase.instance.client;
-    final sanitizedName = file.name.replaceAll(RegExp(r'\s+'), '_');
+    final sanitizedName = _buildSanitizedFileName(file);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final folder = kindToStorageSegment(kind);
     final storagePath =
@@ -166,6 +169,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
 
     try {
       setState(() => _isUploading = true);
+      final nextOrder = await _nextOrderValue(memoryId, kind);
 
       await client.storage
           .from('media')
@@ -180,6 +184,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
           'memory_id': memoryId,
           'media_type': kindToDatabaseValue(kind),
           'url': storagePath,
+          'order': nextOrder,
         });
       } on PostgrestException {
         await client.storage.from('media').remove([storagePath]);
@@ -187,6 +192,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
       }
 
       ref.invalidate(memoryMediaProvider(memoryId));
+      ref.invalidate(userMemoriesProvider);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,17 +213,61 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     }
   }
 
+  String _buildSanitizedFileName(PlatformFile file) {
+    final original = file.name.trim();
+    final ext = file.extension ?? '';
+    String namePart;
+    if (original.isEmpty) {
+      namePart = 'file';
+    } else {
+      final dotIndex = original.lastIndexOf('.');
+      if (dotIndex > 0 && dotIndex < original.length - 1) {
+        namePart = original.substring(0, dotIndex);
+      } else {
+        namePart = original;
+      }
+    }
+
+    final safeName = _sanitizePathSegment(namePart);
+    final safeExt = _sanitizePathSegment(ext, allowEmpty: true);
+
+    if (safeExt.isNotEmpty) {
+      return '$safeName.$safeExt';
+    }
+    return safeName;
+  }
+
+  String _sanitizePathSegment(String input, {bool allowEmpty = false}) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) {
+      return allowEmpty ? '' : 'file';
+    }
+
+    final asciiOnly = trimmed.replaceAll(RegExp(r'[^\x00-\x7F]'), '_');
+    final allowed = asciiOnly.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');
+    final collapsed = allowed.replaceAll(RegExp(r'_+'), '_');
+    final trimmedUnderscore = collapsed.replaceAll(RegExp(r'^_+|_+$'), '');
+    final result = trimmedUnderscore.isEmpty
+        ? (allowEmpty ? '' : 'file')
+        : trimmedUnderscore;
+    if (result.isEmpty) return result;
+    return result.length > 96 ? result.substring(0, 96) : result;
+  }
+
   Future<void> _uploadNote(String note, String memoryId) async {
     final client = Supabase.instance.client;
 
     try {
       setState(() => _isUploading = true);
+      final nextOrder = await _nextOrderValue(memoryId, MemoryMediaKind.note);
       await client.from('media').insert({
         'memory_id': memoryId,
         'media_type': kindToDatabaseValue(MemoryMediaKind.note),
         'content': note,
+        'order': nextOrder,
       });
       ref.invalidate(memoryMediaProvider(memoryId));
+      ref.invalidate(userMemoriesProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Nota añadida correctamente')),
@@ -235,6 +285,64 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
+  }
+
+  Future<int> _nextOrderValue(String memoryId, MemoryMediaKind kind) async {
+    final client = Supabase.instance.client;
+    final base = _orderBaseForKind(kind);
+    try {
+      final response = await client
+          .from('media')
+          .select('order')
+          .eq('memory_id', memoryId)
+          .eq('media_type', kindToDatabaseValue(kind))
+          .order('order', ascending: false)
+          .limit(1);
+
+      final rows = response as List<dynamic>;
+      if (rows.isEmpty) return base;
+
+      final map = rows.first as Map<String, dynamic>;
+      final value = map['order'];
+      final parsed = value is int ? value : int.tryParse('$value');
+      if (parsed == null) return base;
+      final normalized = _normalizeOrderForKind(parsed, base);
+      final relative = normalized - base;
+      final nextRelative = relative >= 0 ? relative + 1 : 0;
+      if (nextRelative >= mediaOrderStride) {
+        return base + mediaOrderStride - 1;
+      }
+      return base + nextRelative;
+    } catch (_) {
+      return base;
+    }
+  }
+
+  int _orderBaseForKind(MemoryMediaKind kind) {
+    switch (kind) {
+      case MemoryMediaKind.image:
+        return mediaTypeOrderBase(MediaType.image);
+      case MemoryMediaKind.video:
+        return mediaTypeOrderBase(MediaType.video);
+      case MemoryMediaKind.audio:
+        return mediaTypeOrderBase(MediaType.audio);
+      case MemoryMediaKind.note:
+        return mediaTypeOrderBase(MediaType.note);
+      case MemoryMediaKind.unknown:
+        return mediaTypeOrderBase(MediaType.note) + mediaOrderStride;
+    }
+  }
+
+  int _normalizeOrderForKind(int order, int base) {
+    if (order < base) {
+      final relative = order >= 0 ? order : 0;
+      return base + relative;
+    }
+    if (order >= base + mediaOrderStride) {
+      final relative = (order - base) % mediaOrderStride;
+      return base + relative;
+    }
+    return order;
   }
 
   String _friendlyPostgrestMessage(PostgrestException error) {

@@ -16,9 +16,9 @@ import 'package:mydearmap/data/models/user.dart';
 enum SearchType { place, memory }
 
 class MapViewState {
-  final AsyncValue<List<MapMemory>> memories;
+  final AsyncValue<List<Memory>> memories;
   final SearchType searchType;
-  final List<MapMemory> memorySuggestions;
+  final List<Memory> memorySuggestions;
   final String memoryQuery;
   final LatLng? searchedLocation;
   final String? highlightedMemoryId;
@@ -33,9 +33,9 @@ class MapViewState {
   });
 
   MapViewState copyWith({
-    AsyncValue<List<MapMemory>>? memories,
+    AsyncValue<List<Memory>>? memories,
     SearchType? searchType,
-    List<MapMemory>? memorySuggestions,
+    List<Memory>? memorySuggestions,
     String? memoryQuery,
     LatLng? searchedLocation,
     String? highlightedMemoryId,
@@ -67,7 +67,7 @@ class MapViewModel extends Notifier<MapViewState> {
 
   @override
   MapViewState build() {
-    final initialMemories = ref.read(mapMemoriesProvider);
+    final initialMemories = ref.read(userMemoriesProvider);
 
     ref.onDispose(() {
       _memoryPinColorCache.clear();
@@ -82,17 +82,17 @@ class MapViewModel extends Notifier<MapViewState> {
           _memoryPinColorCache.clear();
           _colorIndex = 0;
           state = const MapViewState();
-          ref.invalidate(mapMemoriesProvider);
+          ref.invalidate(userMemoriesProvider);
         });
       }
     });
 
-    ref.listen<AsyncValue<List<MapMemory>>>(mapMemoriesProvider, (
+    ref.listen<AsyncValue<List<Memory>>>(userMemoriesProvider, (
       previous,
       next,
     ) {
       Future.microtask(() {
-        final nextMemories = next.asData?.value ?? const <MapMemory>[];
+        final nextMemories = next.asData?.value ?? const <Memory>[];
         state = state.copyWith(
           memories: next,
           memorySuggestions: _recomputeSuggestions(
@@ -143,14 +143,14 @@ class MapViewModel extends Notifier<MapViewState> {
       return;
     }
 
-    final memories = state.memories.asData?.value ?? const <MapMemory>[];
+    final memories = state.memories.asData?.value ?? const <Memory>[];
     final filtered = _recomputeSuggestions(query: query, memories: memories);
     state = state.copyWith(memorySuggestions: filtered, memoryQuery: query);
   }
 
-  List<MapMemory> _recomputeSuggestions({
+  List<Memory> _recomputeSuggestions({
     required String query,
-    required List<MapMemory> memories,
+    required List<Memory> memories,
   }) {
     if (query.trim().isEmpty) {
       return const [];
@@ -163,7 +163,7 @@ class MapViewModel extends Notifier<MapViewState> {
         .toList();
   }
 
-  MapMemory? findMemoryByQuery(String query) {
+  Memory? findMemoryByQuery(String query) {
     if (query.trim().isEmpty) return null;
     final memories = state.memories.asData?.value;
     if (memories == null || memories.isEmpty) {

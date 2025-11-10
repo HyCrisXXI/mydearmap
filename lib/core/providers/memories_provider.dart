@@ -9,57 +9,81 @@ final memoryRepositoryProvider = Provider<MemoryRepository>((ref) {
   return MemoryRepository(Supabase.instance.client);
 });
 
-final mapMemoriesCacheProvider =
-    NotifierProvider<MapMemoriesCacheNotifier, List<MapMemory>>(
-      MapMemoriesCacheNotifier.new,
+final userMemoriesCacheProvider =
+    NotifierProvider<UserMemoriesCacheNotifier, List<Memory>>(
+      UserMemoriesCacheNotifier.new,
     );
 
-class MapMemoriesCacheNotifier extends Notifier<List<MapMemory>> {
+class UserMemoriesCacheNotifier extends Notifier<List<Memory>> {
   @override
-  List<MapMemory> build() => const <MapMemory>[];
+  List<Memory> build() {
+    ref.listen(currentUserProvider, (previous, next) {
+      final prevId = previous?.asData?.value?.id;
+      final nextId = next.asData?.value?.id;
+      if (prevId != nextId) {
+        reset();
+      }
+    });
+    return const <Memory>[];
+  }
 
-  void reset() => state = const <MapMemory>[];
+  void reset() => state = const <Memory>[];
 
-  void setAll(List<MapMemory> items) =>
-      state = List<MapMemory>.unmodifiable(items);
+  void setAll(List<Memory> items) {
+    final copy = List<Memory>.of(items)
+      ..sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
+    state = List<Memory>.unmodifiable(copy);
+  }
+
+  void upsert(Memory memory) {
+    final updated = List<Memory>.of(state);
+    final index = updated.indexWhere((element) => element.id == memory.id);
+    if (index == -1) {
+      updated.add(memory);
+    } else {
+      updated[index] = memory;
+    }
+    updated.sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
+    state = List<Memory>.unmodifiable(updated);
+  }
+
+  void removeById(String? id) {
+    if (id == null) return;
+    state = List<Memory>.unmodifiable(
+      state.where((memory) => memory.id != id).toList(),
+    );
+  }
 }
 
-final mapMemoriesProvider = FutureProvider<List<MapMemory>>((ref) async {
+final userMemoriesProvider = FutureProvider<List<Memory>>((ref) async {
   final userValue = ref.watch(currentUserProvider);
+  final cacheNotifier = ref.read(userMemoriesCacheProvider.notifier);
+  final cached = ref.read(userMemoriesCacheProvider);
 
   if (userValue.isLoading) {
-    return ref.read(mapMemoriesCacheProvider);
+    return cached;
   }
 
   if (userValue.hasError) {
-    ref.read(mapMemoriesCacheProvider.notifier).reset();
-    return const <MapMemory>[];
+    cacheNotifier.reset();
+    throw userValue.error ?? Exception('No se pudo obtener el usuario actual');
   }
 
   final user = userValue.value;
   if (user == null) {
-    ref.read(mapMemoriesCacheProvider.notifier).reset();
-    return const <MapMemory>[];
+    cacheNotifier.reset();
+    return const <Memory>[];
   }
 
-  final cached = ref.read(mapMemoriesCacheProvider);
   if (cached.isNotEmpty) return cached;
 
   final memoryRepository = ref.read(memoryRepositoryProvider);
-  final fetched = await memoryRepository.getMemoriesForMap(user.id);
-  ref.read(mapMemoriesCacheProvider.notifier).setAll(fetched);
-  return fetched;
-});
-final memoriesProvider = FutureProvider.family<List<Memory>, String>((
-  ref,
-  userId,
-) async {
-  final memoryRepository = ref.read(memoryRepositoryProvider);
-
-  // Ajusta el nombre del método si tu MemoryRepository usa otro (ej. getMemories, getAllForUser, etc.)
-  // Aquí intento llamar a `getMemoriesForUser`. Si tu repo tiene distinto nombre cámbialo.
-  final fetched = await memoryRepository.getMemoriesByUser(userId);
-
-  // Asegura que devuelva una lista no nula
-  return fetched;
+  try {
+    final fetched = await memoryRepository.getMemoriesByUser(user.id);
+    cacheNotifier.setAll(fetched);
+    return fetched;
+  } catch (error, stack) {
+    cacheNotifier.reset();
+    Error.throwWithStackTrace(error, stack);
+  }
 });

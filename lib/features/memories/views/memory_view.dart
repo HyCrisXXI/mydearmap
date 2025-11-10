@@ -32,7 +32,7 @@ class MemoryDetailView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final memoryAsync = ref.watch(memoryDetailProvider(memoryId));
-    final mapMemoriesAsync = ref.watch(mapMemoriesProvider);
+    final mapMemoriesAsync = ref.watch(userMemoriesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -154,7 +154,7 @@ String _readDescription(Memory memory) => memory.description?.trim() ?? '';
 
 LatLng? _resolveMemoryLocation(
   Memory memory,
-  AsyncValue<List<MapMemory>> mapMemories,
+  AsyncValue<List<Memory>> mapMemories,
 ) {
   final direct = memory.location;
   if (direct != null) {

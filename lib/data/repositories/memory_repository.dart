@@ -1,5 +1,6 @@
 // lib/data/repositories/memory_repository.dart
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../models/media.dart';
 import '../models/memory.dart';
 import '../models/user.dart';
 
@@ -7,18 +8,6 @@ class MemoryRepository {
   final SupabaseClient _client;
 
   MemoryRepository(this._client);
-
-  Future<List<MapMemory>> getMemoriesForMap(String userId) async {
-    final response = await _client.rpc(
-      'get_map_memories_for_user',
-      params: {'user_id_param': userId},
-    );
-
-    if (response == null) return <MapMemory>[];
-
-    final items = (response as List).whereType<Map<String, dynamic>>();
-    return items.map((item) => MapMemory.fromJson(item)).toList();
-  }
 
   Future<Memory?> createMemory(Memory memory, String userId) async {
     final response = await _client
@@ -75,47 +64,81 @@ class MemoryRepository {
 
     final memory = Memory.fromJson(response);
     memory.participants = await getParticipants(id);
+    if (memory.media.isNotEmpty) {
+      memory.media.sort((a, b) {
+        final orderCompare = effectiveMediaOrder(
+          a,
+        ).compareTo(effectiveMediaOrder(b));
+        if (orderCompare != 0) return orderCompare;
+        final priorityCompare = mediaTypePriority(
+          a.type,
+        ).compareTo(mediaTypePriority(b.type));
+        if (priorityCompare != 0) return priorityCompare;
+        return a.createdAt.compareTo(b.createdAt);
+      });
+    }
     return memory;
   }
 
   Future<List<Memory>> getMemoriesByUser(String userId) async {
-    // Primero intenta la RPC (mantener compatibilidad con implementaciones que usan función en la BD)
-    try {
-      final response = await _client.rpc(
-        'get_memories_for_user',
-        params: {'user_id_param': userId},
-      );
+    final response = await _client
+        .from('memory_users')
+        .select('''
+          role,
+          memory:memories(
+            *,
+            media(*),
+            participants:memory_users(*, user:users(*))
+          )
+          ''')
+        .eq('user_id', userId);
+    final rows = (response as List).whereType<Map<String, dynamic>>();
+    final List<Memory> memories = [];
 
-      if (response != null) {
-        final items = (response as List).whereType<Map<String, dynamic>>().toList();
-        if (items.isNotEmpty) {
-          return items.map((item) => Memory.fromJson(item)).toList();
+    for (final row in rows) {
+      final memoryData = row['memory'];
+      if (memoryData is! Map<String, dynamic>) continue;
+
+      final memory = Memory.fromJson(memoryData);
+
+      final roleValue = row['role'] as String?;
+      if (roleValue != null) {
+        memory.currentUserRole = MemoryRole.values.firstWhere(
+          (r) => r.name == roleValue,
+          orElse: () => MemoryRole.guest,
+        );
+      } else {
+        UserRole? currentUserParticipant;
+        for (final participant in memory.participants) {
+          if (participant.user.id == userId) {
+            currentUserParticipant = participant;
+            break;
+          }
+        }
+        if (currentUserParticipant != null) {
+          memory.currentUserRole = currentUserParticipant.role;
         }
       }
-    } catch (e) {
-      // no hacemos fallar la app por la RPC; seguiremos con fallback a consulta directa
-      // Puedes registrar el error en logs si quieres.
-      // print('RPC get_memories_for_user failed: $e');
+
+      if (memory.media.isNotEmpty) {
+        memory.media.sort((a, b) {
+          final orderCompare = effectiveMediaOrder(
+            a,
+          ).compareTo(effectiveMediaOrder(b));
+          if (orderCompare != 0) return orderCompare;
+          final priorityCompare = mediaTypePriority(
+            a.type,
+          ).compareTo(mediaTypePriority(b.type));
+          if (priorityCompare != 0) return priorityCompare;
+          return a.createdAt.compareTo(b.createdAt);
+        });
+      }
+
+      memories.add(memory);
     }
 
-    // Fallback: obtener recuerdos mediante la tabla de unión `memory_users`
-    final resp = await _client
-        .from('memory_users')
-        .select('memory:memories(*)')
-        .eq('user_id', userId);
-
-  final list = (resp as List)
-        .map((it) => it['memory'])
-        .whereType<Map<String, dynamic>>()
-        .map((m) => Memory.fromJson(m))
-        .toList();
-
-    // Opcional: poblar participantes si se necesita (esto puede generar N queries)
-    for (final mem in list) {
-      if (mem.id != null) mem.participants = await getParticipants(mem.id!);
-    }
-
-    return list;
+    memories.sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
+    return memories;
   }
 
   Future<bool> existsByTitle(String title) async {

@@ -258,12 +258,16 @@ class _MapViewState extends ConsumerState<MapView> {
                             itemCount: memorySuggestions.length,
                             itemBuilder: (context, index) {
                               final suggestion = memorySuggestions[index];
+                              final suggestionId = suggestion.id;
+                              final suggestionColor = suggestionId != null
+                                  ? ref
+                                        .read(mapViewModelProvider.notifier)
+                                        .getStableMemoryPinColor(suggestionId)
+                                  : AppColors.primaryColor;
                               return ListTile(
                                 leading: Icon(
                                   Icons.location_on,
-                                  color: ref
-                                      .read(mapViewModelProvider.notifier)
-                                      .getStableMemoryPinColor(suggestion.id),
+                                  color: suggestionColor,
                                 ),
                                 title: Text(suggestion.title),
                                 onTap: () {
@@ -373,40 +377,45 @@ class _MapViewState extends ConsumerState<MapView> {
 
   // Pin del recuerdo en el mapa
   PopupMarkerLayer _buildMemoriesPopupLayer(
-    List<MapMemory> memories,
+    List<Memory> memories,
     MapViewState mapState,
   ) {
     final viewModel = ref.read(mapViewModelProvider.notifier);
     MemoryMarker? highlightedMarker;
 
-    final markers = memories.where((memory) => memory.location != null).map((
-      memory,
-    ) {
-      final marker = MemoryMarker(
-        memory: memory,
-        point: LatLng(memory.location!.latitude, memory.location!.longitude),
-        child: GestureDetector(
-          onLongPress: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => MemoryDetailView(memoryId: memory.id),
+    final markers = memories
+        .where((memory) => memory.location != null && memory.id != null)
+        .map((memory) {
+          final memoryId = memory.id!;
+          final marker = MemoryMarker(
+            memory: memory,
+            point: LatLng(
+              memory.location!.latitude,
+              memory.location!.longitude,
+            ),
+            child: GestureDetector(
+              onLongPress: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => MemoryDetailView(memoryId: memoryId),
+                  ),
+                );
+              },
+              child: Icon(
+                Icons.location_on,
+                color: viewModel.getStableMemoryPinColor(memoryId),
+                size: 35,
               ),
-            );
-          },
-          child: Icon(
-            Icons.location_on,
-            color: viewModel.getStableMemoryPinColor(memory.id),
-            size: 35,
-          ),
-        ),
-      );
+            ),
+          );
 
-      if (memory.id == mapState.highlightedMemoryId) {
-        highlightedMarker = marker;
-      }
+          if (memoryId == mapState.highlightedMemoryId) {
+            highlightedMarker = marker;
+          }
 
-      return marker;
-    }).toList();
+          return marker;
+        })
+        .toList();
 
     if (highlightedMarker != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -455,7 +464,7 @@ class _MapViewState extends ConsumerState<MapView> {
 }
 
 class MemoryMarker extends Marker {
-  final MapMemory memory;
+  final Memory memory;
 
   const MemoryMarker({
     required this.memory,

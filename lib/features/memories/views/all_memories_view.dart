@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
+import 'package:mydearmap/data/models/media.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MemoriesOverviewView extends ConsumerWidget {
   const MemoriesOverviewView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final memoriesAsync = ref.watch(mapMemoriesProvider);
+    final memoriesAsync = ref.watch(userMemoriesProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mis recuerdos')),
@@ -30,11 +32,7 @@ class MemoriesOverviewView extends ConsumerWidget {
             }
 
             final sorted = [...memories]
-              ..sort((a, b) {
-                final aDate = _readHappenedAt(a) ?? DateTime(1970);
-                final bDate = _readHappenedAt(b) ?? DateTime(1970);
-                return bDate.compareTo(aDate);
-              });
+              ..sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
 
             return ListView.separated(
               itemCount: sorted.length,
@@ -42,7 +40,7 @@ class MemoriesOverviewView extends ConsumerWidget {
                   const SizedBox(height: AppSizes.paddingLarge),
               itemBuilder: (context, index) {
                 final memory = sorted[index];
-                final memoryId = (memory as dynamic).id?.toString() ?? '';
+                final memoryId = memory.id ?? '';
 
                 if (memoryId.isEmpty) {
                   return const _MemoryCardError(
@@ -50,12 +48,8 @@ class MemoriesOverviewView extends ConsumerWidget {
                   );
                 }
 
-                final isShared = _isSharedMemory(memory);
-                final description = _readDescription(memory);
-                final happenedAt = _readHappenedAt(memory);
-                final locationLabel = _locationLabel(memory);
-
-                return InkWell(
+                return _MemoryListItem(
+                  memory: memory,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -63,116 +57,6 @@ class MemoriesOverviewView extends ConsumerWidget {
                       ),
                     );
                   },
-                  borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                  child: Card(
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.borderRadius,
-                      ),
-                    ),
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSizes.paddingLarge),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      (memory as dynamic).title?.toString() ??
-                                          'Recuerdo sin título',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                    if (happenedAt != null) ...[
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        _formatDate(happenedAt),
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodySmall,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              Chip(
-                                avatar: Icon(
-                                  isShared ? Icons.group : Icons.person,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                                label: Text(
-                                  isShared ? 'Compartido' : 'Solo tú',
-                                ),
-                                backgroundColor: isShared
-                                    ? AppColors.primaryColor
-                                    : AppColors.accentColor,
-                                labelStyle: const TextStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (locationLabel != null) ...[
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on,
-                                  size: 18,
-                                  color: AppColors.primaryColor,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  locationLabel,
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: AppSizes.paddingLarge),
-                          if (description.isNotEmpty) ...[
-                            const SizedBox(height: AppSizes.paddingLarge),
-                            Text(
-                              description,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(height: 1.4),
-                            ),
-                          ],
-                          const SizedBox(height: AppSizes.paddingLarge),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        MemoryDetailView(memoryId: memoryId),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.open_in_new),
-                              label: const Text('Ver detalle'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 );
               },
             );
@@ -206,65 +90,185 @@ class _MemoryCardError extends StatelessWidget {
   }
 }
 
-bool _isSharedMemory(MapMemory memory) {
-  try {
-    final participants = (memory as dynamic).participants;
-    if (participants is Iterable && participants.length > 1) {
-      return true;
+String _readDescription(Memory memory) => memory.description?.trim() ?? '';
+
+class _MemoryListItem extends StatelessWidget {
+  const _MemoryListItem({required this.memory, required this.onTap});
+
+  final Memory memory;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final description = _readDescription(memory);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+        ),
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSizes.paddingMedium),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _PrimaryMediaPreview(memory: memory),
+              const SizedBox(width: AppSizes.paddingMedium),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      memory.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(height: 1.4),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrimaryMediaPreview extends StatelessWidget {
+  const _PrimaryMediaPreview({required this.memory});
+
+  final Memory memory;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 96,
+      height: 96,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: FutureBuilder<String?>(
+          future: _primaryMediaUrl(memory),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return const Icon(Icons.broken_image);
+            }
+
+            final url = snapshot.data;
+            if (url == null || url.isEmpty) {
+              return const Icon(Icons.photo, size: 32);
+            }
+
+            return Image.network(
+              url,
+              fit: BoxFit.cover,
+              width: 96,
+              height: 96,
+              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+Future<String?> _primaryMediaUrl(Memory memory) async {
+  final client = Supabase.instance.client;
+
+  String? toPublicUrl(String raw) {
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return raw;
     }
-  } catch (_) {}
-  return false;
-}
+    try {
+      final public = client.storage.from('media').getPublicUrl(raw);
+      if (public.isNotEmpty) return public;
+    } catch (_) {}
+    return raw.isNotEmpty ? raw : null;
+  }
 
-String _readDescription(MapMemory memory) {
-  try {
-    final value = (memory as dynamic).description;
-    if (value is String) return value;
-  } catch (_) {}
-  return '';
-}
+  for (final media in memory.media) {
+    if (media.type == MediaType.image) {
+      final rawUrl = media.url;
+      if (rawUrl == null || rawUrl.isEmpty) continue;
+      final resolved = toPublicUrl(rawUrl);
+      if (resolved != null) return resolved;
+    }
+  }
 
-DateTime? _readHappenedAt(MapMemory memory) {
-  try {
-    final raw = (memory as dynamic).happenedAt;
-    if (raw is DateTime) return raw;
-    if (raw is String) return DateTime.tryParse(raw);
-  } catch (_) {}
-  try {
-    final createdAt = (memory as dynamic).createdAt;
-    if (createdAt is DateTime) return createdAt;
-    if (createdAt is String) return DateTime.tryParse(createdAt);
-  } catch (_) {}
-  return null;
-}
+  for (final media in memory.media) {
+    final rawUrl = media.url;
+    if (rawUrl == null || rawUrl.isEmpty) continue;
+    final resolved = toPublicUrl(rawUrl);
+    if (resolved != null) return resolved;
+  }
 
-String? _locationLabel(MapMemory memory) {
-  dynamic location;
+  final id = memory.id;
+  if (id == null || id.isEmpty) return null;
+
   try {
-    location = (memory as dynamic).location;
+    final record = await client
+        .from('media')
+        .select('url, media_type')
+        .eq('memory_id', id)
+        .order('order', ascending: true, nullsFirst: true)
+        .order('created_at', ascending: true)
+        .limit(1)
+        .maybeSingle();
+
+    if (record == null) return null;
+
+    dynamic payload = record;
+    if (payload is Map && payload.containsKey('data')) {
+      payload = payload['data'];
+    }
+    if (payload is List && payload.isNotEmpty) {
+      payload = payload.first;
+    }
+    if (payload == null) return null;
+
+    String? extractUrl(dynamic value) {
+      if (value is Map) {
+        final urlValue = value['url'] ?? value['Url'] ?? value['URL'];
+        if (urlValue is String) return urlValue;
+      }
+      if (value is String) return value;
+      return null;
+    }
+
+    final url = extractUrl(payload);
+    if (url == null || url.isEmpty) return null;
+    return toPublicUrl(url);
   } catch (_) {
     return null;
   }
-  if (location == null) return null;
-
-  double? lat;
-  double? lng;
-  try {
-    if (location.latitude is num) {
-      lat = (location.latitude as num).toDouble();
-    }
-    if (location.longitude is num) {
-      lng = (location.longitude as num).toDouble();
-    }
-  } catch (_) {
-    return null;
-  }
-  if (lat == null || lng == null) return null;
-  return '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
-}
-
-String _formatDate(DateTime date) {
-  final day = date.day.toString().padLeft(2, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  return '$day/$month/${date.year}';
 }

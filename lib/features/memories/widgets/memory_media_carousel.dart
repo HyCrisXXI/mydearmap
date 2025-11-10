@@ -47,14 +47,42 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
   }
 
   List<MemoryMedia> _sortedItems() {
-    final items = [...widget.media];
-    items.sort((a, b) => _priority[a.kind]!.compareTo(_priority[b.kind]!));
-    if (items.length >= 3) return items;
-    if (items.isEmpty) return items;
-    while (items.length < 3) {
-      items.add(items[items.length % widget.media.length]);
+    if (widget.media.isEmpty) return const <MemoryMedia>[];
+
+    final items = [...widget.media]
+      ..sort((a, b) {
+        final orderCompare = _effectiveOrder(a).compareTo(_effectiveOrder(b));
+        if (orderCompare != 0) return orderCompare;
+        final priorityCompare = _priority[a.kind]!.compareTo(
+          _priority[b.kind]!,
+        );
+        if (priorityCompare != 0) return priorityCompare;
+        return a.createdAt.compareTo(b.createdAt);
+      });
+
+    return items.take(3).toList(growable: false);
+  }
+
+  int _effectiveOrder(MemoryMedia asset) {
+    final base = _orderBaseForKind(asset.kind);
+    final order = asset.order;
+    if (order == null) return base + 99999;
+    return order;
+  }
+
+  int _orderBaseForKind(MemoryMediaKind kind) {
+    switch (kind) {
+      case MemoryMediaKind.image:
+        return 0;
+      case MemoryMediaKind.video:
+        return 100000;
+      case MemoryMediaKind.audio:
+        return 200000;
+      case MemoryMediaKind.note:
+        return 300000;
+      case MemoryMediaKind.unknown:
+        return 400000;
     }
-    return items;
   }
 
   @override

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
+import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_form_buttons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -89,7 +90,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   List<PendingMemoryMediaDraft> _pendingMediaDrafts =
       const <PendingMemoryMediaDraft>[];
   bool _committingMedia = false;
+  bool _reorderingMedia = false;
   bool _isInitialized = false;
+  bool _locationDirty = false;
   String? _resolvedMemoryId;
 
   @override
@@ -98,6 +101,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     if (widget.mode == MemoryUpsertMode.create) {
       _currentLocation = widget.initialLocation ?? _defaultLocation;
       _isInitialized = true;
+      _locationDirty = true;
     } else {
       _resolvedMemoryId = widget.memoryId;
     }
@@ -120,6 +124,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     _currentLocation = memory.location != null
         ? LatLng(memory.location!.latitude, memory.location!.longitude)
         : _defaultLocation;
+    _locationDirty = false;
     _dateController.text =
         '${memory.happenedAt.day.toString().padLeft(2, '0')}/'
         '${memory.happenedAt.month.toString().padLeft(2, '0')}/'
@@ -249,13 +254,16 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
       happenedAt: _selectedDate!,
-      location: GeoPoint(_currentLocation.latitude, _currentLocation.longitude),
+      location: _resolveUpdatedLocation(originalMemory),
       updatedAt: DateTime.now(),
     );
 
     try {
       await memoryController.updateMemory(updatedMemory);
       await _commitPendingMediaChanges(memoryId: widget.memoryId!);
+      if (mounted) {
+        setState(() => _locationDirty = false);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -336,6 +344,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       await client.from('media').delete().eq('id', asset.id);
 
       ref.invalidate(memoryMediaProvider(widget.memoryId!));
+      ref.invalidate(userMemoriesProvider);
 
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -454,7 +463,10 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                     minZoom: 2.0,
                     maxZoom: 18.0,
                     onLongPress: (tapPosition, latLng) {
-                      setState(() => _currentLocation = latLng);
+                      setState(() {
+                        _currentLocation = latLng;
+                        _locationDirty = true;
+                      });
                     },
                   ),
                   children: [
@@ -536,16 +548,28 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                           );
                         }
 
+                        final orderedAssets = List<MemoryMedia>.from(assets);
+
                         return Column(
                           children: [
                             MemoryMediaCarousel(
-                              media: assets,
+                              media: orderedAssets,
                               height: 180,
                               prioritizeImages: true,
                               enableFullScreenPreview: true,
                             ),
                             const SizedBox(height: AppSizes.paddingMedium),
-                            ...assets.map(_buildMediaTile),
+                            if (_reorderingMedia)
+                              const Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: AppSizes.paddingMedium,
+                                ),
+                                child: LinearProgressIndicator(),
+                              ),
+                            ...List.generate(
+                              orderedAssets.length,
+                              (index) => _buildMediaTile(orderedAssets, index),
+                            ),
                           ],
                         );
                       },
@@ -586,7 +610,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 onSecondaryPressed: _handleCancel,
                 isProcessing:
                     memoryControllerState.isLoading ||
-                    (isEdit ? _committingMedia : false),
+                    (isEdit ? (_committingMedia || _reorderingMedia) : false),
               ),
             ],
           ),
@@ -595,8 +619,21 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     );
   }
 
-  Widget _buildMediaTile(MemoryMedia asset) {
+  GeoPoint _resolveUpdatedLocation(Memory original) {
+    if (!_locationDirty && original.location != null) {
+      return original.location!;
+    }
+    return GeoPoint(_currentLocation.latitude, _currentLocation.longitude);
+  }
+
+  Widget _buildMediaTile(List<MemoryMedia> assets, int index) {
+    final asset = assets[index];
     final deleting = _deletingMediaIds.contains(asset.id);
+    final isFirst = index == 0;
+    final isLast = index == assets.length - 1;
+    final canMoveUp = !isFirst && assets[index - 1].kind == asset.kind;
+    final canMoveDown = !isLast && assets[index + 1].kind == asset.kind;
+    final relativeOrder = _indexWithinKind(assets, asset);
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
@@ -626,28 +663,173 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                         context,
                       ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                     ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: AppSizes.paddingSmall,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Chip(
+                          label: Text(
+                            'Orden ${relativeOrder >= 0 ? relativeOrder : '?'}',
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        Text(
+                          _kindPriorityLabel(asset.kind),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              deleting
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-                    )
-                  : IconButton(
-                      tooltip: 'Eliminar archivo',
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.redAccent,
-                      ),
-                      onPressed: () => _deleteMediaAsset(asset),
-                    ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Mover arriba',
+                    icon: const Icon(Icons.arrow_upward),
+                    onPressed: (!_reorderingMedia && canMoveUp)
+                        ? () => _reorderMediaAsset(assets, index, index - 1)
+                        : null,
+                  ),
+                  IconButton(
+                    tooltip: 'Mover abajo',
+                    icon: const Icon(Icons.arrow_downward),
+                    onPressed: (!_reorderingMedia && canMoveDown)
+                        ? () => _reorderMediaAsset(assets, index, index + 1)
+                        : null,
+                  ),
+                  deleting
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator.adaptive(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : IconButton(
+                          tooltip: 'Eliminar archivo',
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                          ),
+                          onPressed: () => _deleteMediaAsset(asset),
+                        ),
+                ],
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _reorderMediaAsset(
+    List<MemoryMedia> assets,
+    int fromIndex,
+    int toIndex,
+  ) async {
+    if (widget.memoryId == null) return;
+    if (fromIndex == toIndex) return;
+    if (toIndex < 0 || toIndex >= assets.length) return;
+    final source = assets[fromIndex];
+    final target = assets[toIndex];
+    if (source.kind != target.kind) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Solo puedes cambiar el orden dentro del mismo tipo.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    final sameTypeAssets = assets
+        .where((asset) => asset.kind == source.kind)
+        .toList();
+    final fromTypeIndex = sameTypeAssets.indexWhere(
+      (element) => element.id == source.id,
+    );
+    final toTypeIndex = sameTypeAssets.indexWhere(
+      (element) => element.id == target.id,
+    );
+    if (fromTypeIndex == -1 || toTypeIndex == -1) return;
+    if (fromTypeIndex == toTypeIndex) return;
+
+    final reordered = List<MemoryMedia>.from(sameTypeAssets);
+    final moved = reordered.removeAt(fromTypeIndex);
+    reordered.insert(toTypeIndex, moved);
+
+    setState(() => _reorderingMedia = true);
+
+    try {
+      final client = Supabase.instance.client;
+      final base = _orderBaseForKind(source.kind);
+      for (var i = 0; i < reordered.length; i++) {
+        final asset = reordered[i];
+        final newOrder = base + i;
+        await client
+            .from('media')
+            .update({'order': newOrder})
+            .eq('id', asset.id);
+      }
+      ref.invalidate(memoryMediaProvider(widget.memoryId!));
+      ref.invalidate(userMemoriesProvider);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo actualizar el orden: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _reorderingMedia = false);
+      }
+    }
+  }
+
+  String _kindPriorityLabel(MemoryMediaKind kind) {
+    switch (kind) {
+      case MemoryMediaKind.image:
+        return 'Prioridad: Imagen';
+      case MemoryMediaKind.video:
+        return 'Prioridad: Video';
+      case MemoryMediaKind.audio:
+        return 'Prioridad: Audio';
+      case MemoryMediaKind.note:
+        return 'Prioridad: Nota';
+      case MemoryMediaKind.unknown:
+        return 'Prioridad: Archivo';
+    }
+  }
+
+  int _orderBaseForKind(MemoryMediaKind kind) {
+    switch (kind) {
+      case MemoryMediaKind.image:
+        return 0;
+      case MemoryMediaKind.video:
+        return 100000;
+      case MemoryMediaKind.audio:
+        return 200000;
+      case MemoryMediaKind.note:
+        return 300000;
+      case MemoryMediaKind.unknown:
+        return 400000;
+    }
+  }
+
+  int _indexWithinKind(List<MemoryMedia> assets, MemoryMedia target) {
+    var index = 0;
+    for (final item in assets) {
+      if (item.kind != target.kind) continue;
+      if (item.id == target.id) return index;
+      index++;
+    }
+    return -1;
   }
 
   void _openAssetPreview(MemoryMedia asset) {

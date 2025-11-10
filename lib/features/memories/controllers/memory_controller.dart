@@ -29,8 +29,8 @@ class MemoryController extends AsyncNotifier<void> {
     try {
       final createdM = await _repository.createMemory(memory, userId);
       if (createdM == null) throw Exception('No se pudo crear el recuerdo');
-      ref.read(mapMemoriesCacheProvider.notifier).reset();
-      ref.invalidate(mapMemoriesProvider);
+      ref.read(userMemoriesCacheProvider.notifier).reset();
+      ref.invalidate(userMemoriesProvider);
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -76,8 +76,9 @@ class MemoryController extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
     try {
       await _repository.deleteMemory(id);
-      ref.read(mapMemoriesCacheProvider.notifier).reset();
-      ref.invalidate(mapMemoriesProvider);
+      final cache = ref.read(userMemoriesCacheProvider.notifier);
+      cache.removeById(id);
+      ref.invalidate(userMemoriesProvider);
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -91,8 +92,10 @@ class MemoryController extends AsyncNotifier<void> {
     try {
       final updated = await _repository.updateMemory(memory);
       if (updated == null) throw Exception('No se pudo actualizar el recuerdo');
-      ref.read(mapMemoriesCacheProvider.notifier).reset();
-      ref.invalidate(mapMemoriesProvider);
+      if (updated.id != null) {
+        ref.read(userMemoriesCacheProvider.notifier).upsert(updated);
+      }
+      ref.invalidate(userMemoriesProvider);
       state = const AsyncValue.data(null);
       return updated;
     } catch (e) {

@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/data/models/memory.dart';
-import 'package:mydearmap/core/utils/supabase_setup.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:math' as math;
 import 'package:mydearmap/features/memories/views/memory_view.dart';
@@ -23,7 +22,7 @@ class MemoriesTimelineView extends ConsumerWidget {
         if (user == null) {
           return const Scaffold(body: Center(child: Text('No autenticado')));
         }
-        final memoriesAsync = ref.watch(memoriesProvider(user.id));
+        final memoriesAsync = ref.watch(userMemoriesProvider);
         return memoriesAsync.when(
           loading: () => Scaffold(
             appBar: AppBar(title: const Text('Timeline')),
@@ -36,8 +35,11 @@ class MemoriesTimelineView extends ConsumerWidget {
           data: (memories) => _TimelineBody(
             memories: memories,
             onDelete: (m) {
-              // invalidar o llamar al controller según tu arquitectura
-              ref.invalidate(memoriesProvider(user.id));
+              final id = m.id;
+              if (id != null) {
+                ref.read(userMemoriesCacheProvider.notifier).removeById(id);
+              }
+              ref.invalidate(userMemoriesProvider);
             },
           ),
         );
@@ -127,7 +129,8 @@ class _TimelineBody extends StatelessWidget {
                     }
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => MemoryDetailView(memoryId: id.toString()),
+                        builder: (_) =>
+                            MemoryDetailView(memoryId: id.toString()),
                       ),
                     );
                   },
@@ -141,7 +144,8 @@ class _TimelineBody extends StatelessWidget {
                     }
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => MemoryDetailView(memoryId: id.toString()),
+                        builder: (_) =>
+                            MemoryDetailView(memoryId: id.toString()),
                       ),
                     );
                   },
@@ -162,12 +166,14 @@ DateTime _dateOf(Memory m) {
     if (v is DateTime) return v;
     if (v is int) {
       // > 1e12 => ms, si no => s
-      if (v.abs() > 1000000000000) return DateTime.fromMillisecondsSinceEpoch(v);
+      if (v.abs() > 1000000000000)
+        return DateTime.fromMillisecondsSinceEpoch(v);
       return DateTime.fromMillisecondsSinceEpoch(v * 1000);
     }
     if (v is double) {
       final iv = v.toInt();
-      if (iv.abs() > 1000000000000) return DateTime.fromMillisecondsSinceEpoch(iv);
+      if (iv.abs() > 1000000000000)
+        return DateTime.fromMillisecondsSinceEpoch(iv);
       return DateTime.fromMillisecondsSinceEpoch(iv * 1000);
     }
     if (v is String) {
@@ -178,7 +184,8 @@ DateTime _dateOf(Memory m) {
       // número en string
       final n = int.tryParse(v);
       if (n != null) {
-        if (n.abs() > 1000000000000) return DateTime.fromMillisecondsSinceEpoch(n);
+        if (n.abs() > 1000000000000)
+          return DateTime.fromMillisecondsSinceEpoch(n);
         return DateTime.fromMillisecondsSinceEpoch(n * 1000);
       }
     }
@@ -191,11 +198,11 @@ DateTime _dateOf(Memory m) {
     // Si el objeto puede serializarse a Map -> revisar primero (priorizar happened_at)
     Map? asMap;
     if (dyn is Map) {
-      asMap = dyn as Map;
+      asMap = dyn;
     } else {
       try {
         final json = dyn.toJson();
-        if (json is Map) asMap = json as Map;
+        if (json is Map) asMap = json;
       } catch (_) {}
     }
 
@@ -259,8 +266,6 @@ DateTime _dateOf(Memory m) {
   return DateTime.now();
 }
 
-DateTime _timeOf(Memory m) => _dateOf(m);
-
 String? _titleOf(Memory m) {
   try {
     final dyn = m as dynamic;
@@ -282,15 +287,15 @@ String? _descriptionOf(Memory m) {
 }
 
 String? _thumbOf(Memory m) {
+  for (final media in m.media) {
+    final url = media.url;
+    if (url == null || url.isEmpty) continue;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+  }
   try {
     final dyn = m as dynamic;
-    final media = dyn.media;
-    if (media is List && media.isNotEmpty) {
-      final first = media.first;
-      if (first == null) return null;
-      final url = (first.url ?? first.thumbnailUrl ?? first.path ?? first.src);
-      if (url != null && url.toString().isNotEmpty) return url.toString();
-    }
     final single = dyn.image ?? dyn.photo ?? dyn.picture;
     if (single != null && single.toString().isNotEmpty) {
       return single.toString();
@@ -384,24 +389,30 @@ class _TimelineRow extends StatelessWidget {
                                 ? Future.value(thumb)
                                 : _fetchFirstMediaUrl(memory),
                             builder: (context, snap) {
-                              if (snap.connectionState == ConnectionState.waiting) {
+                              if (snap.connectionState ==
+                                  ConnectionState.waiting) {
                                 return const Center(
                                   child: SizedBox(
                                     width: 24,
                                     height: 24,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   ),
                                 );
                               }
-                              if (snap.hasError) return const Icon(Icons.broken_image);
+                              if (snap.hasError)
+                                return const Icon(Icons.broken_image);
                               final url = snap.data;
-                              if (url == null || url.isEmpty) return const Icon(Icons.photo);
+                              if (url == null || url.isEmpty)
+                                return const Icon(Icons.photo);
                               return Image.network(
                                 url,
                                 fit: BoxFit.cover,
                                 width: 72,
                                 height: 72,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.broken_image),
                               );
                             },
                           ),
@@ -437,85 +448,6 @@ class _TimelineRow extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _showActions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Editar'),
-              onTap: () {
-                Navigator.of(context).pop();
-                onEdit();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('Eliminar'),
-              onTap: () {
-                Navigator.of(context).pop();
-                onDelete();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.close),
-              title: const Text('Cancelar'),
-              onTap: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static DateTime _timeOf(Memory m) {
-    // reutiliza _dateOf para consistencia
-    return _dateOf(m);
-  }
-
-  static String? _titleOf(Memory m) {
-    try {
-      final dyn = m as dynamic;
-      final t = dyn.title ?? dyn.name ?? dyn.label ?? dyn.caption;
-      if (t == null) return null;
-      return t.toString();
-    } catch (_) {}
-    return null;
-  }
-
-  static String? _descriptionOf(Memory m) {
-    try {
-      final dyn = m as dynamic;
-      final d = dyn.description ?? dyn.summary ?? dyn.body ?? dyn.note;
-      if (d == null) return null;
-      return d.toString();
-    } catch (_) {}
-    return '';
-  }
-
-  static String? _thumbOf(Memory m) {
-    try {
-      final dyn = m as dynamic;
-      final media = dyn.media;
-      if (media is List && media.isNotEmpty) {
-        final first = media.first;
-        if (first == null) return null;
-        final url =
-            (first.url ?? first.thumbnailUrl ?? first.path ?? first.src);
-        if (url != null && url.toString().isNotEmpty) return url.toString();
-      }
-      // fallback single-field image
-      final single = dyn.image ?? dyn.photo ?? dyn.picture;
-      if (single != null && single.toString().isNotEmpty) {
-        return single.toString();
-      }
-    } catch (_) {}
-    return null;
   }
 }
 
@@ -631,19 +563,13 @@ class MemoryViewWrapper extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
-              Text(
-                date,
-                style: TextStyle(color: Colors.black54),
-              ),
+              Text(date, style: TextStyle(color: Colors.black54)),
               const SizedBox(height: 12),
-              Text(
-                desc,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
+              Text(desc, style: Theme.of(context).textTheme.bodyLarge),
               const SizedBox(height: 20),
             ],
           ),
@@ -656,18 +582,33 @@ class MemoryViewWrapper extends StatelessWidget {
 // Consulta la tabla 'media' para obtener la primera fila asociada al memory.id
 Future<String?> _fetchFirstMediaUrl(Memory m) async {
   try {
+    final client = Supabase.instance.client;
+
+    if (m.media.isNotEmpty) {
+      for (final media in m.media) {
+        final rawUrl = media.url;
+        if (rawUrl == null || rawUrl.isEmpty) continue;
+        if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+          return rawUrl;
+        }
+        try {
+          final public = client.storage.from('media').getPublicUrl(rawUrl);
+          if (public.isNotEmpty) return public;
+        } catch (_) {}
+      }
+    }
+
     final dyn = m as dynamic;
     final id = dyn.id ?? (dyn is Map ? dyn['id'] : null);
     if (id == null) return null;
-
-    final client = Supabase.instance.client;
 
     // Pedimos solo el campo 'url' de la tabla media
     final record = await client
         .from('media')
         .select('url')
         .eq('memory_id', id)
-        .order('id', ascending: true)
+        .order('order', ascending: true, nullsFirst: true)
+        .order('created_at', ascending: true)
         .limit(1)
         .maybeSingle();
 
@@ -705,4 +646,3 @@ Future<String?> _fetchFirstMediaUrl(Memory m) async {
     return null;
   }
 }
-
