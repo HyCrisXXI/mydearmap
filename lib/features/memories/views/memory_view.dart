@@ -130,6 +130,38 @@ class MemoryDetailView extends ConsumerWidget {
                     ).textTheme.bodyMedium?.copyWith(height: 1.4),
                   ),
                 ],
+                if (memory.participants.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.paddingLarge),
+                  Text(
+                    'Participantes',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.paddingSmall),
+                  Wrap(
+                    spacing: AppSizes.paddingSmall,
+                    runSpacing: AppSizes.paddingSmall,
+                    children: memory.participants.map((ur) {
+                      final isCreator = ur.role == MemoryRole.creator;
+                      return Chip(
+                        avatar: isCreator
+                            ? CircleAvatar(
+                                backgroundColor: Colors.amber,
+                                child: Icon(
+                                  Icons.star,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : null,
+                        label: Text(
+                          '${ur.user.name}${isCreator ? ' (creador)' : ' (${ur.role.name})'}',
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
                 if (latLng != null) ...[
                   const SizedBox(height: AppSizes.paddingLarge),
                   Text(

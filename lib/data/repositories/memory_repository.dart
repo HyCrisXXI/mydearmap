@@ -34,6 +34,14 @@ class MemoryRepository {
     });
   }
 
+  Future<void> removeParticipant(String memoryId, String userId) async {
+    await _client
+        .from('memory_users')
+        .delete()
+        .eq('memory_id', memoryId)
+        .eq('user_id', userId);
+  }
+
   Future<List<UserRole>> getParticipants(String memoryId) async {
     final response = await _client
         .from('memory_users')

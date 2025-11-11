@@ -22,6 +22,7 @@ class Memory {
   List<Media> media = [];
   List<Comment> comments = [];
   List<Reaction> reactions = [];
+  List<User> relatedPeople = [];
 
   Memory({
     this.id,
@@ -47,6 +48,7 @@ class Memory {
     List<Media>? media,
     List<Comment>? comments,
     List<Reaction>? reactions,
+    List<User>? relatedPeople,
     MemoryRole? currentUserRole,
     bool? isFavorite,
   }) {
@@ -66,6 +68,7 @@ class Memory {
     newMemory.media = media ?? this.media;
     newMemory.comments = comments ?? this.comments;
     newMemory.reactions = reactions ?? this.reactions;
+    newMemory.relatedPeople = relatedPeople ?? this.relatedPeople;
 
     return newMemory;
   }
@@ -147,6 +150,21 @@ class Memory {
           .toList();
     }
 
+    if (json['people'] != null) {
+      memory.relatedPeople = (json['people'] as List)
+          .map((p) {
+            if (p is! Map<String, dynamic>) return null;
+            try {
+              return User.fromJson(Map<String, dynamic>.from(p as Map));
+            } catch (_) {
+              // Fallback to fromMap if structure differs
+              return User.fromMap(Map<String, dynamic>.from(p as Map));
+            }
+          })
+          .whereType<User>()
+          .toList();
+    }
+
     return memory;
   }
 
@@ -161,6 +179,9 @@ class Memory {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'favorite': isFavorite,
+      // Note: do not include 'people' here because the DB may not have that column.
+      // Participants are stored in the `memory_users` table and are synchronized
+      // separately by the controller/repository.
     };
   }
 }

@@ -104,4 +104,31 @@ class MemoryController extends AsyncNotifier<void> {
       rethrow;
     }
   }
+
+  /// Añadir participante al recuerdo
+  Future<void> addParticipant(String memoryId, String userId, String role) async {
+    try {
+      await _repository.addParticipant(memoryId, userId, role);
+      // Invalidate caches / providers that depend on memory participants
+      ref.invalidate(userMemoriesProvider);
+      if (memoryId.isNotEmpty) {
+        ref.invalidate(memoryControllerProvider);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Remover participante del recuerdo
+  Future<void> removeParticipant(String memoryId, String userId) async {
+    try {
+      await _repository.removeParticipant(memoryId, userId);
+      ref.invalidate(userMemoriesProvider);
+      if (memoryId.isNotEmpty) {
+        ref.invalidate(memoryControllerProvider);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

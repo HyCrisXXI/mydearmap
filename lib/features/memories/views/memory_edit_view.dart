@@ -9,10 +9,13 @@ import 'package:mydearmap/core/providers/memory_media_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_form_buttons.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/data/models/user.dart';
+import 'package:mydearmap/data/models/user_relation.dart';
+import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/features/memories/widgets/memory_form.dart';
 import 'package:mydearmap/features/memories/widgets/memory_media_editor.dart'
     show
@@ -90,6 +93,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       MemoryMediaEditorController();
   List<PendingMemoryMediaDraft> _pendingMediaDrafts =
       const <PendingMemoryMediaDraft>[];
+  List<UserRole> _relatedPeople = [];
   bool _committingMedia = false;
   bool _reorderingMedia = false;
   bool _isInitialized = false;
@@ -130,6 +134,10 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         '${memory.happenedAt.day.toString().padLeft(2, '0')}/'
         '${memory.happenedAt.month.toString().padLeft(2, '0')}/'
         '${memory.happenedAt.year}';
+    // Initialize related people from memory participants (exclude creator)
+    _relatedPeople = memory.participants
+        .where((p) => p.role != MemoryRole.creator)
+        .toList();
     _isInitialized = true;
   }
 
@@ -183,6 +191,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         updatedAt: DateTime.now(),
       );
 
+      // participants will be synchronized separately via memory_users table
+
       final userAsync = ref.read(currentUserProvider);
       if (userAsync is AsyncLoading) {
         ScaffoldMessenger.of(
@@ -215,8 +225,50 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           user.id,
         );
         final createdId = createdMemory.id ?? _resolvedMemoryId;
+        // Add related participants (skip creator). Validate IDs and capture failures.
         if (createdId != null) {
           _resolvedMemoryId = createdId;
+          final toUpsert = _relatedPeople
+              .where((ur) => ur.user.id.isNotEmpty && ur.user.id != user.id)
+              .toList();
+
+          if (toUpsert.isNotEmpty) {
+            // Log what we'll attempt to upsert
+            try {
+              print(
+                'Will upsert participants for memory $createdId: ${toUpsert.map((u) => u.user.id).toList()}',
+              );
+            } catch (_) {}
+
+            final List<String> failed = [];
+            for (final ur in toUpsert) {
+              try {
+                await memoryController.addParticipant(
+                  createdId,
+                  ur.user.id,
+                  ur.role.name,
+                );
+              } catch (e) {
+                try {
+                  print('Failed adding participant ${ur.user.id} -> $e');
+                } catch (_) {}
+                failed.add(ur.user.id);
+              }
+            }
+
+            if (failed.isNotEmpty && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'No se pudieron añadir ${failed.length} participantes.',
+                  ),
+                  backgroundColor: Colors.orangeAccent,
+                ),
+              );
+            }
+          }
+
+          // Commit pending media after participants upsert
           await _mediaEditorController.commitPendingChanges(
             memoryId: createdId,
           );
@@ -280,6 +332,66 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           backgroundColor: AppColors.accentColor,
         ),
       );
+      // Sync participants: compute added, removed, changed roles
+      try {
+        // Fetch participants from server to get the most up-to-date 'orig' state
+        List<UserRole> serverParticipants = [];
+        try {
+          final serverMemory = await memoryController.getMemoryById(
+            widget.memoryId!,
+          );
+          serverParticipants =
+              serverMemory?.participants ?? originalMemory.participants;
+        } catch (_) {
+          serverParticipants = originalMemory.participants;
+        }
+
+        final orig = <String, MemoryRole>{};
+        for (final p in serverParticipants) {
+          if (p.role == MemoryRole.creator) continue;
+          orig[p.user.id] = p.role;
+        }
+
+        final current = <String, MemoryRole>{};
+        for (final p in _relatedPeople) {
+          if (p.user.id.isEmpty) continue;
+          current[p.user.id] = p.role;
+        }
+
+        final toAdd = current.keys.where((k) => !orig.containsKey(k));
+        final toRemove = orig.keys.where((k) => !current.containsKey(k));
+        final toMaybeUpdate = current.keys.where((k) => orig.containsKey(k));
+
+        for (final id in toAdd) {
+          final role = current[id]!;
+          await memoryController.addParticipant(
+            widget.memoryId!,
+            id,
+            role.name,
+          );
+        }
+
+        for (final id in toRemove) {
+          await memoryController.removeParticipant(widget.memoryId!, id);
+        }
+
+        for (final id in toMaybeUpdate) {
+          final newRole = current[id]!;
+          final oldRole = orig[id]!;
+          if (newRole != oldRole) {
+            await memoryController.addParticipant(
+              widget.memoryId!,
+              id,
+              newRole.name,
+            );
+          }
+        }
+      } catch (e) {
+        try {
+          print('Error syncing participants on update: $e');
+        } catch (_) {}
+      }
+
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -418,6 +530,19 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   }
 
   Scaffold _buildScaffold({Memory? memory}) {
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final List<User> availableUsers = currentUserAsync.maybeWhen(
+      data: (user) {
+        if (user == null) return <User>[];
+        final relationsAsync = ref.watch(userRelationsProvider(user.id));
+        return relationsAsync.maybeWhen(
+          data: (rels) => rels.map((r) => r.relatedUser).toList(),
+          orElse: () => <User>[],
+        );
+      },
+      orElse: () => <User>[],
+    );
+
     final isEdit = widget.mode == MemoryUpsertMode.edit;
     final memoryControllerState = ref.watch(memoryControllerProvider);
 
@@ -455,6 +580,18 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 dateValidator: (_) => _selectedDate == null
                     ? 'Selecciona la fecha del recuerdo'
                     : null,
+                relatedPeople: _relatedPeople,
+                availableUsers: availableUsers,
+                onAddUser: (p) => setState(() => _relatedPeople.add(p)),
+                onRemoveUser: (p) => setState(() {
+                  _relatedPeople.removeWhere((x) => x.user.id == p.user.id);
+                }),
+                onChangeRole: (p) => setState(() {
+                  final idx = _relatedPeople.indexWhere(
+                    (x) => x.user.id == p.user.id,
+                  );
+                  if (idx != -1) _relatedPeople[idx] = p;
+                }),
               ),
               const SizedBox(height: AppSizes.paddingLarge),
               Text(
