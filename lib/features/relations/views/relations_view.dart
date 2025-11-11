@@ -231,6 +231,12 @@ class UserRelationGraph extends ConsumerWidget {
             size,
           );
 
+          // Agrupar nodos por tipo de relación
+          final relationGroups = <String, List<_NodePos>>{};
+          for (final node in nodePositions) {
+            relationGroups.putIfAbsent(node.relationType, () => []).add(node);
+          }
+
           return InteractiveViewer(
             minScale: 0.75,
             maxScale: 2.5,
@@ -245,6 +251,7 @@ class UserRelationGraph extends ConsumerWidget {
                       centralSize: _centralNodeSize,
                       nodes: nodePositions,
                       nodeSize: _relatedNodeSize,
+                      relationGroups: relationGroups,
                     ),
                   ),
                   Positioned(
@@ -401,19 +408,21 @@ class UserRelationGraph extends ConsumerWidget {
             ),
           ),
         ),
-        if (relationLabel.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          SizedBox(
-            width: math.max(80, size),
-            child: Text(
-              relationLabel,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
-              overflow: TextOverflow.ellipsis,
+        const SizedBox(height: 6),
+        SizedBox(
+          width: math.max(80, size),
+          child: Text(
+            displayName,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
           ),
-        ],
-        if (relationLabel.isEmpty) const SizedBox(height: 4),
+        ),
       ],
     );
   }
@@ -574,12 +583,14 @@ class _EdgesPainter extends CustomPainter {
     required this.centralSize,
     required this.nodes,
     required this.nodeSize,
+    required this.relationGroups,
   });
 
   final Offset center;
   final double centralSize;
   final List<_NodePos> nodes;
   final double nodeSize;
+  final Map<String, List<_NodePos>> relationGroups;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -594,39 +605,73 @@ class _EdgesPainter extends CustomPainter {
 
     final Offset centralCenter = center;
 
-    for (final node in nodes) {
-      final from = centralCenter;
-      final to = node.position;
-      final dir = to - from;
-      final dist = dir.distance;
-      if (dist <= 0.001) continue;
-      final unit = dir / dist;
+    // Dibujar por grupos de tipo de relación
+    for (final entry in relationGroups.entries) {
+      final relationType = entry.key;
+      final groupNodes = entry.value;
 
-      final fromOffset = from + unit * (centralSize / 2);
-      final toOffset = to - unit * (nodeSize / 2);
+      if (groupNodes.isEmpty) continue;
 
-      linePaint.color = _relationColor(node.relationType);
-      canvas.drawLine(fromOffset, toOffset, linePaint);
+      // Calcular punto intermedio promedio para el grupo
+      final avgX =
+          groupNodes.map((n) => n.position.dx).reduce((a, b) => a + b) /
+          groupNodes.length;
+      final avgY =
+          groupNodes.map((n) => n.position.dy).reduce((a, b) => a + b) /
+          groupNodes.length;
+      final groupCenter = Offset(avgX, avgY);
 
-      final mid = Offset(
-        (fromOffset.dx + toOffset.dx) / 2,
-        (fromOffset.dy + toOffset.dy) / 2,
+      // Calcular punto de ramificación (entre el centro y el punto promedio del grupo)
+      final branchPoint = Offset(
+        centralCenter.dx + (groupCenter.dx - centralCenter.dx) * 0.4,
+        centralCenter.dy + (groupCenter.dy - centralCenter.dy) * 0.4,
       );
-      final perp = Offset(-unit.dy, unit.dx) * 12;
-      final labelPos = mid + perp;
 
-      textPainter.text = TextSpan(
-        text: node.relationType,
-        style: const TextStyle(
-          color: Colors.black87,
-          fontSize: 12,
-          backgroundColor: Colors.white70,
-        ),
-      );
-      textPainter.layout();
-      final offset =
-          labelPos - Offset(textPainter.width / 2, textPainter.height / 2);
-      textPainter.paint(canvas, offset);
+      // Dibujar línea principal desde el centro hasta el punto de ramificación
+      final dirToBranch = branchPoint - centralCenter;
+      final distToBranch = dirToBranch.distance;
+      if (distToBranch > 0.001) {
+        final unitToBranch = dirToBranch / distToBranch;
+        final fromCenter = centralCenter + unitToBranch * (centralSize / 2);
+
+        linePaint.color = _relationColor(relationType);
+        canvas.drawLine(fromCenter, branchPoint, linePaint);
+
+        // Dibujar etiqueta del tipo de relación en la línea principal
+        final mid = Offset(
+          (fromCenter.dx + branchPoint.dx) / 2,
+          (fromCenter.dy + branchPoint.dy) / 2,
+        );
+        final perp = Offset(-unitToBranch.dy, unitToBranch.dx) * 12;
+        final labelPos = mid + perp;
+
+        textPainter.text = TextSpan(
+          text: relationType,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            backgroundColor: Colors.white70,
+          ),
+        );
+        textPainter.layout();
+        final offset =
+            labelPos - Offset(textPainter.width / 2, textPainter.height / 2);
+        textPainter.paint(canvas, offset);
+      }
+
+      // Dibujar líneas desde el punto de ramificación a cada nodo del grupo
+      for (final node in groupNodes) {
+        final dirToNode = node.position - branchPoint;
+        final distToNode = dirToNode.distance;
+        if (distToNode <= 0.001) continue;
+
+        final unitToNode = dirToNode / distToNode;
+        final toNode = node.position - unitToNode * (nodeSize / 2);
+
+        linePaint.color = _relationColor(relationType).withOpacity(0.7);
+        canvas.drawLine(branchPoint, toNode, linePaint);
+      }
     }
   }
 
