@@ -4,6 +4,7 @@ import 'package:mydearmap/core/errors/auth_errors.dart';
 import 'package:mydearmap/core/utils/validators.dart';
 import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:mydearmap/features/auth/models/form_cache.dart';
+import 'package:mydearmap/core/providers/current_user_provider.dart';
 
 class LoginViewState {
   final String emailInput;
@@ -127,6 +128,7 @@ class LoginViewModel extends Notifier<LoginViewState> {
       await ref
           .read(authControllerProvider.notifier)
           .signInWithPassword(email: resolvedEmail, password: state.password);
+      ref.invalidate(currentUserProvider);
       FormErrorCache.clearCache();
       state = state.copyWith(isSubmitting: false);
     } on AppAuthException catch (e) {

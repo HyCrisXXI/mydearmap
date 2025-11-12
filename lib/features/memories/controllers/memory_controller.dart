@@ -24,7 +24,7 @@ class MemoryController extends AsyncNotifier<void> {
   }
 
   /// Crear un nuevo recuerdo
-  Future<void> createMemory(Memory memory, String userId) async {
+  Future<Memory> createMemory(Memory memory, String userId) async {
     state = const AsyncValue.loading();
     try {
       final createdM = await _repository.createMemory(memory, userId);
@@ -32,6 +32,7 @@ class MemoryController extends AsyncNotifier<void> {
       ref.read(userMemoriesCacheProvider.notifier).reset();
       ref.invalidate(userMemoriesProvider);
       state = const AsyncValue.data(null);
+      return createdM;
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
       rethrow;

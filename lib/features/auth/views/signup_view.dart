@@ -138,7 +138,8 @@ class _SignupViewState extends ConsumerState<SignupView> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: ListView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
               controller: _nameController,

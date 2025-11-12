@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,10 +14,14 @@ class PendingMemoryMediaDraft {
     required this.kind,
     required this.label,
     required Future<void> Function(String memoryId) uploader,
+    this.previewBytes,
+    this.noteContent,
   }) : _uploader = uploader;
 
   final MemoryMediaKind kind;
   final String label;
+  final Uint8List? previewBytes;
+  final String? noteContent;
   final Future<void> Function(String memoryId) _uploader;
 
   Future<void> upload(String memoryId) => _uploader(memoryId);
@@ -39,6 +44,11 @@ class MemoryMediaEditorController {
   void _detach(_MemoryMediaEditorState state) {
     if (_state == state) _state = null;
   }
+
+  void reorderDraft(int oldIndex, int newIndex) =>
+      _state?._reorderDraft(oldIndex, newIndex);
+
+  void removeDraftAt(int index) => _state?._removeDraftAt(index);
 }
 
 class MemoryMediaEditor extends ConsumerStatefulWidget {
@@ -97,6 +107,29 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     widget.onPendingDraftsChanged?.call(List.unmodifiable(_pendingDrafts));
   }
 
+  void _reorderDraft(int oldIndex, int newIndex) {
+    if (oldIndex == newIndex) return;
+    if (oldIndex < 0 ||
+        newIndex < 0 ||
+        oldIndex >= _pendingDrafts.length ||
+        newIndex >= _pendingDrafts.length) {
+      return;
+    }
+    setState(() {
+      final draft = _pendingDrafts.removeAt(oldIndex);
+      _pendingDrafts.insert(newIndex, draft);
+    });
+    widget.onPendingDraftsChanged?.call(List.unmodifiable(_pendingDrafts));
+  }
+
+  void _removeDraftAt(int index) {
+    if (index < 0 || index >= _pendingDrafts.length) return;
+    final draft = _pendingDrafts.removeAt(index);
+    setState(() {});
+    widget.onPendingDraftsChanged?.call(List.unmodifiable(_pendingDrafts));
+    // draft discarded without upload
+  }
+
   Future<void> _commitPendingDrafts(String memoryId) async {
     if (_pendingDrafts.isEmpty) return;
     final drafts = List<PendingMemoryMediaDraft>.from(_pendingDrafts);
@@ -110,13 +143,21 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     required MemoryMediaKind kind,
     required String label,
     required Future<void> Function(String memoryId) uploader,
+    Uint8List? previewBytes,
+    String? noteContent,
   }) async {
     if (!widget.deferUploads) {
       await uploader(widget.memoryId);
       return;
     }
     _registerDraft(
-      PendingMemoryMediaDraft(kind: kind, label: label, uploader: uploader),
+      PendingMemoryMediaDraft(
+        kind: kind,
+        label: label,
+        uploader: uploader,
+        previewBytes: previewBytes,
+        noteContent: noteContent,
+      ),
     );
   }
 
@@ -132,6 +173,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
       kind: kind,
       label: file.name,
       uploader: (memoryId) => _uploadPickedFile(kind, file, memoryId),
+      previewBytes: kind == MemoryMediaKind.image ? file.bytes : null,
     );
   }
 
@@ -147,6 +189,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
       kind: MemoryMediaKind.note,
       label: label,
       uploader: (memoryId) => _uploadNote(note, memoryId),
+      noteContent: note,
     );
   }
 

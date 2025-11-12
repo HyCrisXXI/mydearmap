@@ -20,6 +20,7 @@ import 'package:mydearmap/features/memories/widgets/memory_media_editor.dart'
         MemoryMediaEditorController,
         PendingMemoryMediaDraft;
 import 'package:mydearmap/features/memories/widgets/memory_media_carousel.dart';
+import 'package:mydearmap/features/memories/views/memory_view.dart';
 
 final _memoryByIdProvider = FutureProvider.family<Memory, String>((
   ref,
@@ -212,8 +213,11 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       );
 
       try {
-        await memoryController.createMemory(newMemory, user.id);
-        final createdId = newMemory.id ?? _resolvedMemoryId;
+        final createdMemory = await memoryController.createMemory(
+          newMemory,
+          user.id,
+        );
+        final createdId = createdMemory.id ?? _resolvedMemoryId;
         if (createdId != null) {
           _resolvedMemoryId = createdId;
           await _mediaEditorController.commitPendingChanges(
@@ -237,7 +241,15 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             backgroundColor: AppColors.accentColor,
           ),
         );
-        Navigator.of(context).pop(true);
+        if (createdId != null) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => MemoryDetailView(memoryId: createdId),
+            ),
+          );
+        } else {
+          Navigator.of(context).pop(true);
+        }
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -362,8 +374,10 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     }
   }
 
-  String _mediaLabel(MemoryMedia asset) {
-    switch (asset.kind) {
+  String _mediaLabel(MemoryMedia asset) => _kindLabel(asset.kind);
+
+  String _kindLabel(MemoryMediaKind kind) {
+    switch (kind) {
       case MemoryMediaKind.image:
         return 'Imagen';
       case MemoryMediaKind.video:
@@ -579,17 +593,29 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 const SizedBox(height: AppSizes.paddingLarge),
               ],
               if (_pendingMediaDrafts.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppSizes.paddingMedium,
-                  ),
-                  child: Text(
-                    'Se subirán ${_pendingMediaDrafts.length} archivo(s) cuando guardes.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.orangeAccent,
-                      fontWeight: FontWeight.w600,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Adjuntos pendientes (${_pendingMediaDrafts.length})',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: AppSizes.paddingSmall),
+                    Text(
+                      'Los archivos se subirán al guardar. Ajusta el orden antes de continuar.',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: AppSizes.paddingSmall),
+                    ...List.generate(
+                      _pendingMediaDrafts.length,
+                      _buildPendingDraftTile,
+                    ),
+                    const SizedBox(height: AppSizes.paddingMedium),
+                  ],
                 ),
               MemoryMediaEditor(
                 memoryId: widget.mode == MemoryUpsertMode.edit
@@ -898,6 +924,133 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       case MemoryMediaKind.unknown:
         return 'Contenido adjunto';
     }
+  }
+
+  Widget _buildPendingDraftTile(int index) {
+    final draft = _pendingMediaDrafts[index];
+    final canMoveUp = index > 0;
+    final canMoveDown = index < _pendingMediaDrafts.length - 1;
+
+    Widget preview;
+    switch (draft.kind) {
+      case MemoryMediaKind.image:
+        preview = draft.previewBytes != null
+            ? Image.memory(
+                draft.previewBytes!,
+                fit: BoxFit.cover,
+                width: 72,
+                height: 72,
+              )
+            : const Icon(Icons.image, size: 48, color: Colors.blueGrey);
+        break;
+      case MemoryMediaKind.video:
+        preview = const Icon(
+          Icons.play_circle_outline,
+          size: 48,
+          color: Colors.deepPurple,
+        );
+        break;
+      case MemoryMediaKind.audio:
+        preview = const Icon(Icons.graphic_eq, size: 48, color: Colors.teal);
+        break;
+      case MemoryMediaKind.note:
+        preview = Container(
+          width: 72,
+          height: 72,
+          alignment: Alignment.center,
+          color: Colors.yellow.shade100,
+          child: const Icon(
+            Icons.sticky_note_2_outlined,
+            size: 40,
+            color: Colors.orange,
+          ),
+        );
+        break;
+      case MemoryMediaKind.unknown:
+        preview = const Icon(
+          Icons.insert_drive_file,
+          size: 48,
+          color: Colors.grey,
+        );
+        break;
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSizes.paddingMedium),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+              child: SizedBox(width: 72, height: 72, child: preview),
+            ),
+            const SizedBox(width: AppSizes.paddingMedium),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _kindLabel(draft.kind),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  if (draft.kind == MemoryMediaKind.note &&
+                      (draft.noteContent?.isNotEmpty ?? false))
+                    Text(
+                      draft.noteContent!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                    )
+                  else
+                    Text(
+                      draft.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                    ),
+                ],
+              ),
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Mover arriba',
+                  icon: const Icon(Icons.arrow_upward),
+                  onPressed: canMoveUp
+                      ? () => _mediaEditorController.reorderDraft(
+                          index,
+                          index - 1,
+                        )
+                      : null,
+                ),
+                IconButton(
+                  tooltip: 'Mover abajo',
+                  icon: const Icon(Icons.arrow_downward),
+                  onPressed: canMoveDown
+                      ? () => _mediaEditorController.reorderDraft(
+                          index,
+                          index + 1,
+                        )
+                      : null,
+                ),
+                IconButton(
+                  tooltip: 'Quitar adjunto',
+                  icon: const Icon(Icons.close, color: Colors.redAccent),
+                  onPressed: () => _mediaEditorController.removeDraftAt(index),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
