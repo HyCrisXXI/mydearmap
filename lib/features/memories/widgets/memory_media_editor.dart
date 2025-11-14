@@ -124,10 +124,8 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
 
   void _removeDraftAt(int index) {
     if (index < 0 || index >= _pendingDrafts.length) return;
-    final draft = _pendingDrafts.removeAt(index);
     setState(() {});
     widget.onPendingDraftsChanged?.call(List.unmodifiable(_pendingDrafts));
-    // draft discarded without upload
   }
 
   Future<void> _commitPendingDrafts(String memoryId) async {

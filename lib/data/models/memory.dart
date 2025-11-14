@@ -15,6 +15,7 @@ class Memory {
   final DateTime happenedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isFavorite;
   MemoryRole? currentUserRole;
 
   List<UserRole> participants = [];
@@ -30,6 +31,7 @@ class Memory {
     required this.happenedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.isFavorite = false,
     this.currentUserRole,
   });
 
@@ -46,6 +48,7 @@ class Memory {
     List<Comment>? comments,
     List<Reaction>? reactions,
     MemoryRole? currentUserRole,
+    bool? isFavorite,
   }) {
     final newMemory = Memory(
       id: id ?? this.id,
@@ -55,6 +58,7 @@ class Memory {
       happenedAt: happenedAt ?? this.happenedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      isFavorite: isFavorite ?? this.isFavorite,
       currentUserRole: currentUserRole ?? this.currentUserRole,
     );
 
@@ -78,6 +82,7 @@ class Memory {
       happenedAt: DateTime.parse(json['happened_at'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      isFavorite: (json['favorite'] as bool?) ?? false,
       currentUserRole: _tryParseRole(json['current_user_role'] as String?),
     );
 
@@ -155,6 +160,7 @@ class Memory {
       'happened_at': happenedAt.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'favorite': isFavorite,
     };
   }
 }

@@ -1,165 +1,16 @@
-// lib/features/relations/views/relation_view.dart
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mydearmap/core/providers/current_user_provider.dart'
-    show currentUserProvider;
+import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
-import 'package:mydearmap/core/utils/avatar_url.dart';
-import 'package:mydearmap/data/models/user.dart';
+import 'package:mydearmap/core/providers/memories_provider.dart';
+import 'package:mydearmap/core/utils/media_url.dart';
+import 'package:mydearmap/data/models/media.dart';
+import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
-import 'package:mydearmap/features/relations/controllers/relations_controller.dart'
-    show relationControllerProvider;
+import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
 
-class RelationCreateView extends ConsumerStatefulWidget {
-  const RelationCreateView({super.key});
-
-  @override
-  RelationCreateViewState createState() => RelationCreateViewState();
-}
-
-class RelationCreateViewState extends ConsumerState<RelationCreateView> {
-  final _formKey = GlobalKey<FormState>();
-  final _userController = TextEditingController();
-  final _relationController = TextEditingController();
-  bool _loading = false;
-
-  @override
-  void dispose() {
-    _userController.dispose();
-    _relationController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    // Obtener usuario actual
-    final currentUserId = _currentUserIdFromRef(ref);
-
-    if (currentUserId == null || currentUserId.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuario actual no disponible')),
-        );
-      }
-      return;
-    }
-
-    final relatedIdentifier = _userController.text.trim();
-    final relationType = _relationController.text.trim();
-    setState(() => _loading = true);
-
-    try {
-      await ref
-          .read(relationControllerProvider.notifier)
-          .createRelation(
-            currentUserId: currentUserId,
-            relatedUserIdentifier: relatedIdentifier,
-            relationType: relationType,
-          );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Relación añadida correctamente')),
-      );
-      Navigator.of(context).pop(true); // devuelve éxito
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al añadir la relación: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  String? _currentUserIdFromRef(WidgetRef ref) {
-    final dynamic val = ref.read(currentUserProvider);
-    // Si es AsyncValue<User?>
-    if (val is AsyncValue<User?>) {
-      final user = val.asData?.value;
-      return user?.id;
-    }
-    // Si el provider devuelve directamente User
-    if (val is User) return val.id;
-    // Fallback dinámico seguro
-    try {
-      final dyn = val as dynamic;
-      final id = dyn?.id;
-      return id?.toString();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Añadir relación')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Usuario a añadir (id/email/nombre según tu implementación)
-              TextFormField(
-                controller: _userController,
-                decoration: const InputDecoration(
-                  labelText: 'Usuario (id o email)',
-                  hintText: 'Introduce el id o email del usuario',
-                  prefixIcon: Icon(Icons.person_add),
-                ),
-                textInputAction: TextInputAction.next,
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Introduce un usuario'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              // Nombre/tipo de la relación
-              TextFormField(
-                controller: _relationController,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de relación',
-                  hintText: 'ej. amigo, familiar, compañero',
-                  prefixIcon: Icon(Icons.label),
-                ),
-                textInputAction: TextInputAction.done,
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Introduce el tipo de relación'
-                    : null,
-                onFieldSubmitted: (_) => _submit(),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: _loading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(_loading ? 'Guardando...' : 'Guardar relación'),
-                  onPressed: _loading ? null : _submit,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class RelationOverviewView extends ConsumerWidget {
-  const RelationOverviewView({super.key});
+class RelationsView extends ConsumerWidget {
+  const RelationsView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -168,530 +19,552 @@ class RelationOverviewView extends ConsumerWidget {
     return userAsync.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, _) =>
-          Scaffold(body: Center(child: Text('Error cargando usuario: $error'))),
+      error: (error, _) => Scaffold(body: Center(child: Text('Error: $error'))),
       data: (user) {
         if (user == null) {
           return const Scaffold(
-            body: Center(child: Text('No hay usuario autenticado')),
+            body: Center(child: Text('Inicia sesión para ver tus vínculos')),
           );
         }
 
         final relationsAsync = ref.watch(userRelationsProvider(user.id));
+        final memoriesAsync = ref.watch(userMemoriesProvider);
 
         return relationsAsync.when(
           loading: () => Scaffold(
-            appBar: AppBar(title: Text('Relaciones de ${user.name}')),
+            appBar: AppBar(title: const Text('Tus vínculos')),
             body: const Center(child: CircularProgressIndicator()),
           ),
           error: (error, _) => Scaffold(
-            appBar: AppBar(title: Text('Relaciones de ${user.name}')),
-            body: Center(child: Text('Error cargando relaciones: $error')),
+            appBar: AppBar(title: const Text('Tus vínculos')),
+            body: Center(child: Text('Error: $error')),
           ),
-          data: (relations) =>
-              UserRelationGraph(currentUser: user, relations: relations),
+          data: (relations) => memoriesAsync.when(
+            loading: () => Scaffold(
+              appBar: AppBar(title: const Text('Tus vínculos')),
+              body: const Center(child: CircularProgressIndicator()),
+            ),
+            error: (error, _) => Scaffold(
+              appBar: AppBar(title: const Text('Tus vínculos')),
+              body: Center(child: Text('Error: $error')),
+            ),
+            data: (memories) {
+              final sorted = [...relations]
+                ..sort(
+                  (a, b) =>
+                      _relationListLabel(a).compareTo(_relationListLabel(b)),
+                );
+
+              return Scaffold(
+                appBar: AppBar(title: const Text('Tus vínculos')),
+                body: sorted.isEmpty
+                    ? const Center(child: Text('Aún no has creado relaciones.'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        itemBuilder: (context, index) {
+                          final relation = sorted[index];
+                          final shared = _sharedMemoriesForRelation(
+                            allMemories: memories,
+                            currentUserId: user.id,
+                            relatedUserId: relation.relatedUser.id,
+                          );
+                          final color = _colorFromHex(
+                            _extractColorHex(relation),
+                          );
+                          final relationLabel = _relationListLabel(relation);
+
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => RelationDetailView(
+                                    currentUserId: user.id,
+                                    relatedUserId: relation.relatedUser.id,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18),
+                                color: color.withValues(alpha: 0.1),
+                              ),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: color,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          relationLabel,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleMedium,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _sharedMemoriesLabel(shared.length),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(color: Colors.black54),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemCount: sorted.length,
+                      ),
+              );
+            },
+          ),
         );
       },
     );
   }
 }
 
-class UserRelationGraph extends ConsumerWidget {
-  const UserRelationGraph({
+class RelationDetailView extends ConsumerStatefulWidget {
+  const RelationDetailView({
     super.key,
-    required this.currentUser,
-    required this.relations,
+    required this.currentUserId,
+    required this.relatedUserId,
   });
 
-  final User currentUser;
-  final List<UserRelation> relations;
-
-  static const double _centralNodeSize = 120;
-  static const double _relatedNodeSize = 88;
-  static const double _ringPadding = 12;
-  static const double _nodeGap = 120;
+  final String currentUserId;
+  final String relatedUserId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sortedRelations = [...relations]
-      ..sort((a, b) => a.relationType.compareTo(b.relationType));
+  ConsumerState<RelationDetailView> createState() => _RelationDetailViewState();
+}
 
-    return Scaffold(
-      appBar: AppBar(title: Text('Red de ${currentUser.name}')),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final height = constraints.maxHeight;
-          final size = Size(width, height);
-          final center = Offset(width / 2, height / 2);
+class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
+  bool _updatingColor = false;
 
-          final nodePositions = _computeNodePositions(
-            sortedRelations,
-            center,
-            size,
+  @override
+  Widget build(BuildContext context) {
+    final relationsAsync = ref.watch(
+      userRelationsProvider(widget.currentUserId),
+    );
+    final memoriesAsync = ref.watch(userMemoriesProvider);
+
+    return relationsAsync.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, _) => Scaffold(body: Center(child: Text('Error: $error'))),
+      data: (relations) {
+        final relation = _findRelationByUser(relations, widget.relatedUserId);
+        if (relation == null) {
+          return const Scaffold(
+            body: Center(child: Text('Relación no encontrada')),
           );
+        }
 
-          // Agrupar nodos por tipo de relación
-          final relationGroups = <String, List<_NodePos>>{};
-          for (final node in nodePositions) {
-            relationGroups.putIfAbsent(node.relationType, () => []).add(node);
-          }
+        return memoriesAsync.when(
+          loading: () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          error: (error, _) =>
+              Scaffold(body: Center(child: Text('Error: $error'))),
+          data: (memories) {
+            final shared = _sharedMemoriesForRelation(
+              allMemories: memories,
+              currentUserId: widget.currentUserId,
+              relatedUserId: relation.relatedUser.id,
+            );
+            final previewCount = shared.length > 8 ? 8 : shared.length;
+            final colorHex = _extractColorHex(relation);
+            final color = _colorFromHex(colorHex);
+            final displayName = _relationDisplayName(relation);
+            final Widget sharedContent = shared.isEmpty
+                ? const Text('Aún no hay recuerdos en común.')
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: previewCount,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.78,
+                        ),
+                    itemBuilder: (_, index) {
+                      final memory = shared[index];
+                      return _MemoryPreviewCard(memory: memory);
+                    },
+                  );
 
-          return InteractiveViewer(
-            minScale: 0.75,
-            maxScale: 2.5,
-            boundaryMargin: const EdgeInsets.all(48),
-            child: SizedBox.expand(
-              child: Stack(
-                children: [
-                  CustomPaint(
-                    size: size,
-                    painter: _EdgesPainter(
-                      center: center,
-                      centralSize: _centralNodeSize,
-                      nodes: nodePositions,
-                      nodeSize: _relatedNodeSize,
-                      relationGroups: relationGroups,
-                    ),
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(displayName),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.more_horiz),
+                    onPressed: () {},
                   ),
-                  Positioned(
-                    left: center.dx - _centralNodeSize / 2,
-                    top: center.dy - _centralNodeSize / 2,
-                    child: _buildUserNode(
-                      context,
-                      ref,
-                      currentUser,
-                      size: _centralNodeSize,
-                      isCentral: true,
+                ],
+              ),
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Tooltip(
+                          message: 'Toca el círculo para elegir un color',
+                          child: GestureDetector(
+                            onTap: _updatingColor
+                                ? null
+                                : () => _pickColor(context, relation),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: color,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: color.withValues(alpha: 0.35),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: _updatingColor
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16.0),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                displayName,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                relation.relationType,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: Colors.black54),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _sharedMemoriesLabel(shared.length),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: Colors.black54),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  for (final node in nodePositions)
-                    Positioned(
-                      left: node.position.dx - _relatedNodeSize / 2,
-                      top: node.position.dy - _relatedNodeSize / 2,
-                      child: _buildUserNode(
+                    const SizedBox(height: 8),
+                    Text(
+                      'Toca el círculo para elegir un color.',
+                      style: Theme.of(
                         context,
-                        ref,
-                        node.user,
-                        size: _relatedNodeSize,
-                        relationLabel: node.relationType,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Recuerdos en común',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    sharedContent,
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _pickColor(BuildContext context, UserRelation relation) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => const _ColorPickerSheet(),
+    );
+
+    if (selected == null) return;
+    if (_extractColorHex(relation)?.toUpperCase() == selected.toUpperCase()) {
+      return;
+    }
+
+    setState(() => _updatingColor = true);
+    try {
+      await ref
+          .read(relationControllerProvider.notifier)
+          .updateRelationColor(
+            currentUserId: widget.currentUserId,
+            relatedUserId: relation.relatedUser.id,
+            colorHex: selected,
+          );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo actualizar el color: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _updatingColor = false);
+    }
+  }
+}
+
+class _ColorPickerSheet extends StatelessWidget {
+  const _ColorPickerSheet();
+
+  static const List<String> _palette = [
+    '#FF6F61',
+    '#FF9F1C',
+    '#F9C74F',
+    '#90BE6D',
+    '#43AA8B',
+    '#577590',
+    '#6C5CE7',
+    '#B185DB',
+    '#F28482',
+    '#14B8A6',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Elige un color',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: _palette
+                  .map(
+                    (hex) => GestureDetector(
+                      onTap: () => Navigator.of(context).pop(hex),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _colorFromHex(hex),
+                        ),
                       ),
                     ),
-                  if (nodePositions.isEmpty)
-                    Center(
-                      child: Text(
-                        'Todavía no tienes relaciones registradas.',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        textAlign: TextAlign.center,
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MemoryPreviewCard extends StatelessWidget {
+  const _MemoryPreviewCard({required this.memory});
+
+  final Memory memory;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverUrl = _resolveCoverUrl(memory);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 8,
+              color: Colors.black12,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (coverUrl != null)
+                    Image.network(coverUrl, fit: BoxFit.cover)
+                  else
+                    Container(
+                      color: Colors.grey.shade200,
+                      child: const Icon(
+                        Icons.image_not_supported_outlined,
+                        color: Colors.black45,
+                        size: 36,
                       ),
                     ),
                 ],
               ),
             ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Añadir relación',
-        onPressed: () {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const RelationCreateView()));
-        },
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  List<_NodePos> _computeNodePositions(
-    List<UserRelation> relations,
-    Offset center,
-    Size canvasSize,
-  ) {
-    if (relations.isEmpty) return const [];
-
-    final n = relations.length;
-    final minDimension = math.min(canvasSize.width, canvasSize.height);
-    final availableRadius = math.max(
-      0.0,
-      (minDimension / 2) - (_relatedNodeSize / 2) - _ringPadding,
-    );
-
-    final minRadiusForCenterClearance =
-        (_centralNodeSize / 2) + (_relatedNodeSize / 2) + _nodeGap;
-    final circumferencePerNode = _relatedNodeSize + _nodeGap;
-    final minRadiusForSpacing = (circumferencePerNode * n) / (2 * math.pi);
-
-    final desiredRadius = math.max(
-      minRadiusForCenterClearance,
-      minRadiusForSpacing,
-    );
-
-    var radius = desiredRadius.clamp(0, availableRadius).toDouble();
-
-    final expansion = n <= 4
-        ? 180.0
-        : n <= 8
-        ? 120.0
-        : 80.0;
-    radius = math.min(availableRadius, radius + expansion);
-
-    return List.generate(n, (index) {
-      final fraction = index / n;
-      final angle = -math.pi / 2 + (2 * math.pi * fraction);
-      final offset = Offset(
-        center.dx + radius * math.cos(angle),
-        center.dy + radius * math.sin(angle),
-      );
-      final relation = relations[index];
-      return _NodePos(
-        user: relation.relatedUser,
-        relationType: relation.relationType,
-        position: offset,
-      );
-    });
-  }
-
-  Widget _buildUserNode(
-    BuildContext context,
-    WidgetRef ref,
-    User user, {
-    required double size,
-    bool isCentral = false,
-    String relationLabel = '',
-  }) {
-    final color = isCentral ? Colors.green[400] : Colors.blue[400];
-    final displayName = user.name.isNotEmpty
-        ? user.name
-        : (user.email.isNotEmpty ? user.email : user.id);
-    final avatarUrl = buildAvatarUrl(user.profileUrl);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        GestureDetector(
-          onTap: () => debugPrint('Tapped user: ${user.name}'),
-          onLongPress: isCentral
-              ? null
-              : () => _onNodeLongPress(context, ref, user, relationLabel),
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-              boxShadow: const [
-                BoxShadow(blurRadius: 6, color: Colors.black26),
-              ],
-            ),
-            child: ClipOval(
-              child: avatarUrl != null
-                  ? Image.network(
-                      avatarUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Center(
-                        child: Text(
-                          displayName.isNotEmpty ? displayName[0] : '?',
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: Text(
-                        displayName.isNotEmpty ? displayName[0] : '?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: size / 3,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          width: math.max(80, size),
-          child: Text(
-            displayName,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black87,
-              fontWeight: FontWeight.w500,
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _onNodeLongPress(
-    BuildContext context,
-    WidgetRef ref,
-    User related,
-    String currentRelationLabel,
-  ) async {
-    final choice = await showModalBottomSheet<String?>(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Editar relación'),
-              onTap: () => Navigator.of(context).pop('edit'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text(
-                'Eliminar relación',
-                style: TextStyle(color: Colors.red),
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 12,
+                right: 12,
+                top: 12,
+                bottom: 10,
               ),
-              onTap: () => Navigator.of(context).pop('delete'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.close),
-              title: const Text('Cancelar'),
-              onTap: () => Navigator.of(context).pop(null),
+              child: Text(
+                memory.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ),
           ],
         ),
       ),
     );
-
-    if (choice == 'delete') {
-      if (!context.mounted) return;
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Eliminar relación'),
-          content: Text(
-            '¿Eliminar relación con ${related.name.isNotEmpty ? related.name : related.email}?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Eliminar'),
-            ),
-          ],
-        ),
-      );
-      if (!context.mounted || confirm != true) return;
-
-      try {
-        await ref
-            .read(relationControllerProvider.notifier)
-            .deleteRelation(
-              currentUserId: currentUser.id,
-              relatedUserId: related.id,
-              relationType: currentRelationLabel,
-            );
-        ref.invalidate(userRelationsProvider(currentUser.id));
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Relación eliminada')));
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error eliminando relación: $e')),
-          );
-        }
-      }
-    } else if (choice == 'edit') {
-      final controller = TextEditingController(text: currentRelationLabel);
-      if (!context.mounted) return;
-      final newLabel = await showDialog<String?>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Editar relación'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(labelText: 'Tipo de relación'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(null),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(controller.text.trim()),
-              child: const Text('Guardar'),
-            ),
-          ],
-        ),
-      );
-
-      if (!context.mounted || newLabel == null || newLabel.isEmpty) return;
-
-      try {
-        await ref
-            .read(relationControllerProvider.notifier)
-            .deleteRelation(
-              currentUserId: currentUser.id,
-              relatedUserId: related.id,
-              relationType: currentRelationLabel,
-            );
-        await ref
-            .read(relationControllerProvider.notifier)
-            .createRelation(
-              currentUserId: currentUser.id,
-              relatedUserIdentifier: related.id,
-              relationType: newLabel,
-            );
-        ref.invalidate(userRelationsProvider(currentUser.id));
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Relación actualizada')));
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error editando relación: $e')),
-          );
-        }
-      }
-    }
   }
 }
 
-class _NodePos {
-  const _NodePos({
-    required this.user,
-    required this.relationType,
-    required this.position,
-  });
-
-  final User user;
-  final String relationType;
-  final Offset position;
+UserRelation? _findRelationByUser(
+  List<UserRelation> relations,
+  String relatedUserId,
+) {
+  for (final relation in relations) {
+    if (relation.relatedUser.id == relatedUserId) return relation;
+  }
+  return null;
 }
 
-class _EdgesPainter extends CustomPainter {
-  const _EdgesPainter({
-    required this.center,
-    required this.centralSize,
-    required this.nodes,
-    required this.nodeSize,
-    required this.relationGroups,
-  });
+List<Memory> _sharedMemoriesForRelation({
+  required Iterable<Memory> allMemories,
+  required String currentUserId,
+  required String relatedUserId,
+}) {
+  final result = <Memory>[];
 
-  final Offset center;
-  final double centralSize;
-  final List<_NodePos> nodes;
-  final double nodeSize;
-  final Map<String, List<_NodePos>> relationGroups;
+  for (final memory in allMemories) {
+    if (memory.participants.isEmpty) continue;
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint linePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round;
+    UserRole? currentParticipant;
+    UserRole? relatedParticipant;
 
-    final TextPainter textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-    );
-
-    final Offset centralCenter = center;
-
-    // Dibujar por grupos de tipo de relación
-    for (final entry in relationGroups.entries) {
-      final relationType = entry.key;
-      final groupNodes = entry.value;
-
-      if (groupNodes.isEmpty) continue;
-
-      // Calcular punto intermedio promedio para el grupo
-      final avgX =
-          groupNodes.map((n) => n.position.dx).reduce((a, b) => a + b) /
-          groupNodes.length;
-      final avgY =
-          groupNodes.map((n) => n.position.dy).reduce((a, b) => a + b) /
-          groupNodes.length;
-      final groupCenter = Offset(avgX, avgY);
-
-      // Calcular punto de ramificación (entre el centro y el punto promedio del grupo)
-      final branchPoint = Offset(
-        centralCenter.dx + (groupCenter.dx - centralCenter.dx) * 0.4,
-        centralCenter.dy + (groupCenter.dy - centralCenter.dy) * 0.4,
-      );
-
-      // Dibujar línea principal desde el centro hasta el punto de ramificación
-      final dirToBranch = branchPoint - centralCenter;
-      final distToBranch = dirToBranch.distance;
-      if (distToBranch > 0.001) {
-        final unitToBranch = dirToBranch / distToBranch;
-        final fromCenter = centralCenter + unitToBranch * (centralSize / 2);
-
-        linePaint.color = _relationColor(relationType);
-        canvas.drawLine(fromCenter, branchPoint, linePaint);
-
-        // Dibujar etiqueta del tipo de relación en la línea principal
-        final mid = Offset(
-          (fromCenter.dx + branchPoint.dx) / 2,
-          (fromCenter.dy + branchPoint.dy) / 2,
-        );
-        final perp = Offset(-unitToBranch.dy, unitToBranch.dx) * 12;
-        final labelPos = mid + perp;
-
-        textPainter.text = TextSpan(
-          text: relationType,
-          style: const TextStyle(
-            color: Colors.black87,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            backgroundColor: Colors.white70,
-          ),
-        );
-        textPainter.layout();
-        final offset =
-            labelPos - Offset(textPainter.width / 2, textPainter.height / 2);
-        textPainter.paint(canvas, offset);
-      }
-
-      // Dibujar líneas desde el punto de ramificación a cada nodo del grupo
-      for (final node in groupNodes) {
-        final dirToNode = node.position - branchPoint;
-        final distToNode = dirToNode.distance;
-        if (distToNode <= 0.001) continue;
-
-        final unitToNode = dirToNode / distToNode;
-        final toNode = node.position - unitToNode * (nodeSize / 2);
-
-        linePaint.color = _relationColor(relationType).withOpacity(0.7);
-        canvas.drawLine(branchPoint, toNode, linePaint);
+    for (final participant in memory.participants) {
+      if (participant.user.id == currentUserId) {
+        currentParticipant = participant;
+      } else if (participant.user.id == relatedUserId) {
+        relatedParticipant = participant;
       }
     }
+
+    if (currentParticipant == null || relatedParticipant == null) continue;
+    if (currentParticipant.role == MemoryRole.guest ||
+        relatedParticipant.role == MemoryRole.guest) {
+      continue;
+    }
+
+    result.add(memory);
   }
 
-  @override
-  bool shouldRepaint(covariant _EdgesPainter oldDelegate) {
-    return oldDelegate.nodes != nodes || oldDelegate.center != center;
-  }
+  result.sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
+  return result;
+}
 
-  Color _relationColor(String type) {
-    switch (type.toLowerCase()) {
-      case 'amigo':
-        return Colors.blueAccent;
-      case 'familiar':
-        return Colors.redAccent;
-      case 'pareja':
-        return Colors.pinkAccent;
-      case 'compañero':
-        return Colors.orangeAccent;
-      default:
-        return Colors.grey.shade600;
+String _relationDisplayName(UserRelation relation) {
+  final name = relation.relatedUser.name.trim();
+  if (name.isNotEmpty) return name;
+  final email = relation.relatedUser.email.trim();
+  if (email.isNotEmpty) return email;
+  return relation.relationType;
+}
+
+String _relationListLabel(UserRelation relation) {
+  final relationName = relation.relationType.trim();
+  if (relationName.isNotEmpty) return relationName;
+  return _relationDisplayName(relation);
+}
+
+String _sharedMemoriesLabel(int count) {
+  if (count == 1) return '1 recuerdo en común';
+  return '$count recuerdos en común';
+}
+
+String? _extractColorHex(UserRelation relation) {
+  final dynamic dyn = relation;
+  try {
+    final value = dyn.color;
+    if (value is String && value.isNotEmpty) return value;
+  } catch (_) {}
+  try {
+    final value = dyn.colorHex;
+    if (value is String && value.isNotEmpty) return value;
+  } catch (_) {}
+  return null;
+}
+
+Color _colorFromHex(String? hex) {
+  final sanitized = (hex ?? '').replaceFirst('#', '').toUpperCase();
+  final value = int.tryParse(sanitized, radix: 16);
+  if (value == null) {
+    return const Color(0xFF7C9EB2);
+  }
+  return Color(0xFF000000 | value);
+}
+
+String? _resolveCoverUrl(Memory memory) {
+  for (final media in memory.media) {
+    if (media.type == MediaType.image) {
+      return buildMediaPublicUrl(media.url);
     }
   }
+  return null;
 }

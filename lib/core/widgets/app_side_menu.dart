@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
-import 'package:mydearmap/features/relations/views/relations_view.dart'
+import 'package:mydearmap/features/relations/views/relation_nodes_view.dart'
     show RelationOverviewView;
 import 'package:mydearmap/features/memories/views/all_memories_view.dart';
 import 'package:mydearmap/features/timeline/view/timeline_view.dart';
+import 'package:mydearmap/features/relations/views/relations_view.dart';
 
 class AppSideMenu extends ConsumerWidget {
   const AppSideMenu({super.key});
@@ -96,9 +97,14 @@ class AppSideMenu extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.group),
-            title: const Text('Ver Relaciones'),
+            title: const Text('Ver Relaciones Nodo'),
             onTap: () =>
                 _handleNavigation(context, const RelationOverviewView()),
+          ),
+          ListTile(
+            leading: const Icon(Icons.group),
+            title: const Text('Ver Relaciones'),
+            onTap: () => _handleNavigation(context, const RelationsView()),
           ),
           const Spacer(),
           // Cerrar sesión
