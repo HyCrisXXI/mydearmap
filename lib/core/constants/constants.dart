@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 export 'app_icons.dart';
 
+// Definiciones de colores, tamaños y estilos de texto utilizados en la aplicaciónç
 class AppColors {
   static const primaryColor = Color(0xFFFFFCF6);
   static const accentColor = Color(0xFFFF9312);
@@ -72,4 +73,21 @@ class AppTextStyles {
   );
 }
 
-class AppRoutes {}
+// Definición del esquema de colores claro
+const ColorScheme lightColorScheme = ColorScheme(
+  brightness: Brightness.light,
+  primary: AppColors.accentColor,
+  onPrimary: AppColors.buttonForeground,
+  secondary: AppColors.blue,
+  onSecondary: Colors.white,
+  tertiary: AppColors.pink,
+  onTertiary: AppColors.textColor,
+  surface: AppColors.primaryColor,
+  onSurface: AppColors.textColor,
+  surfaceContainerHighest: AppColors.backgroundColor,
+  onSurfaceVariant: AppColors.textColor,
+  // Todos los colores derivados de Colors son placeholders, por ahora
+  outline: Colors.grey,
+  error: Colors.red,
+  onError: Colors.white,
+);

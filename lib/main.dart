@@ -23,23 +23,26 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.accentColor,
-      surface: AppColors.backgroundColor,
-    );
-
     return MaterialApp(
       title: 'MyDearMap',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: baseScheme,
+        colorScheme: lightColorScheme,
         scaffoldBackgroundColor: AppColors.backgroundColor,
         fontFamily: 'TikTokSans',
+
         textTheme: ThemeData.light().textTheme.copyWith(
           titleLarge: AppTextStyles.title,
           titleMedium: AppTextStyles.subtitle,
           bodyMedium: AppTextStyles.text,
           labelLarge: AppTextStyles.textButton,
+        ),
+
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.accentColor,
+            textStyle: AppTextStyles.textButton,
+          ),
         ),
       ),
       home: const AuthGate(),

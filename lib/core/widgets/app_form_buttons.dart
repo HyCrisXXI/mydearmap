@@ -31,8 +31,8 @@ class AppFormButtons extends StatelessWidget {
   ButtonStyle _buttonStyle() => FilledButton.styleFrom(
     backgroundColor: AppColors.buttonBackground,
     foregroundColor: AppColors.buttonForeground,
-    disabledBackgroundColor: AppColors.buttonBackground.withOpacity(.4),
-    disabledForegroundColor: AppColors.buttonForeground.withOpacity(.7),
+    disabledBackgroundColor: AppColors.buttonBackground.withValues(alpha: .4),
+    disabledForegroundColor: AppColors.buttonForeground.withValues(alpha: .7),
     padding: const EdgeInsets.symmetric(
       horizontal: AppSizes.buttonPaddingHorizontal,
       vertical: AppSizes.buttonPaddingVertical,
@@ -44,9 +44,9 @@ class AppFormButtons extends StatelessWidget {
 
   // new: outlined style for secondary
   ButtonStyle _outlinedStyle() => OutlinedButton.styleFrom(
-    foregroundColor: AppColors.buttonBackground,
+    foregroundColor: AppColors.buttonForeground,
     backgroundColor: Colors.transparent,
-    disabledForegroundColor: AppColors.buttonBackground.withOpacity(.4),
+    disabledForegroundColor: AppColors.buttonForeground.withValues(alpha: .4),
     side: const BorderSide(color: AppColors.buttonBackground, width: 1.0),
     padding: const EdgeInsets.symmetric(
       horizontal: AppSizes.buttonPaddingHorizontal,
@@ -59,6 +59,16 @@ class AppFormButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseLabel =
+        Theme.of(context).textTheme.labelLarge ?? const TextStyle();
+    final primaryLabelStyle = baseLabel.copyWith(
+      fontWeight: FontWeight.bold,
+      color: AppColors.buttonForeground,
+    );
+    final secondaryLabelStyle = baseLabel.copyWith(
+      fontWeight: FontWeight.bold,
+      color: AppColors.buttonBackground,
+    );
     final bool disablePrimary = isProcessing || onPrimaryPressed == null;
     final bool disableSecondary = isProcessing || onSecondaryPressed == null;
 
@@ -81,10 +91,7 @@ class AppFormButtons extends StatelessWidget {
                         color: AppColors.buttonForeground,
                       ),
                     )
-                  : Text(
-                      primaryLabel,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                  : Text(primaryLabel, style: primaryLabelStyle),
             ),
           ),
         ),
@@ -96,22 +103,14 @@ class AppFormButtons extends StatelessWidget {
               height: AppSizes.buttonHeight,
               child: secondaryOutlined
                   ? OutlinedButton(
-                      // render outlined/transparent secondary
                       onPressed: disableSecondary ? null : onSecondaryPressed,
                       style: _outlinedStyle(),
-                      child: Text(
-                        secondaryLabel!,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      child: Text(secondaryLabel!, style: secondaryLabelStyle),
                     )
                   : FilledButton(
-                      // fallback filled secondary
                       onPressed: disableSecondary ? null : onSecondaryPressed,
                       style: _buttonStyle(),
-                      child: Text(
-                        secondaryLabel!,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      child: Text(secondaryLabel!, style: primaryLabelStyle),
                     ),
             ),
           ),
