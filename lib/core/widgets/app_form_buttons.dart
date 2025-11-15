@@ -1,10 +1,6 @@
+// lib/core/widgets/app_form_buttons.dart
 import 'package:flutter/material.dart';
 import 'package:mydearmap/core/constants/constants.dart';
-
-extension _ColorHelpers on ColorScheme {
-  Color get subduedPrimary => primary.withValues(alpha: .5);
-  Color get subduedOnPrimary => onPrimary.withValues(alpha: .7);
-}
 
 class AppFormButtons extends StatelessWidget {
   const AppFormButtons({
@@ -14,6 +10,10 @@ class AppFormButtons extends StatelessWidget {
     this.isProcessing = false,
     this.secondaryLabel,
     this.onSecondaryPressed,
+    this.primaryIsCompact = false,
+    this.secondaryIsCompact = false,
+    this.secondaryOutlined =
+        true, // new: render secondary as outlined by default
   });
 
   final String primaryLabel;
@@ -21,64 +21,98 @@ class AppFormButtons extends StatelessWidget {
   final bool isProcessing;
   final String? secondaryLabel;
   final VoidCallback? onSecondaryPressed;
+  final bool primaryIsCompact;
+  final bool secondaryIsCompact;
+  final bool secondaryOutlined;
+
+  double _buttonWidth(bool isCompact) =>
+      isCompact ? AppSizes.buttonWidthSmall : AppSizes.buttonWidthLarge;
+
+  ButtonStyle _buttonStyle() => FilledButton.styleFrom(
+    backgroundColor: AppColors.buttonBackground,
+    foregroundColor: AppColors.buttonForeground,
+    disabledBackgroundColor: AppColors.buttonBackground.withOpacity(.4),
+    disabledForegroundColor: AppColors.buttonForeground.withOpacity(.7),
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSizes.buttonPaddingHorizontal,
+      vertical: AppSizes.buttonPaddingVertical,
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+    ),
+  );
+
+  // new: outlined style for secondary
+  ButtonStyle _outlinedStyle() => OutlinedButton.styleFrom(
+    foregroundColor: AppColors.buttonBackground,
+    backgroundColor: Colors.transparent,
+    disabledForegroundColor: AppColors.buttonBackground.withOpacity(.4),
+    side: const BorderSide(color: AppColors.buttonBackground, width: 1.0),
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSizes.buttonPaddingHorizontal,
+      vertical: AppSizes.buttonPaddingVertical,
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final bool disablePrimary = isProcessing || onPrimaryPressed == null;
+    final bool disableSecondary = isProcessing || onSecondaryPressed == null;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          height: 50,
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: disablePrimary ? null : onPrimaryPressed,
-            style: FilledButton.styleFrom(
-              backgroundColor: scheme.primary,
-              foregroundColor: scheme.onPrimary,
-              disabledBackgroundColor: scheme.subduedPrimary,
-              disabledForegroundColor: scheme.subduedOnPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-              ),
-            ),
-            child: isProcessing
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+        Align(
+          child: SizedBox(
+            width: _buttonWidth(primaryIsCompact),
+            height: AppSizes.buttonHeight,
+            child: FilledButton(
+              onPressed: disablePrimary ? null : onPrimaryPressed,
+              style: _buttonStyle(),
+              child: isProcessing
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.buttonForeground,
+                      ),
+                    )
+                  : Text(
+                      primaryLabel,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                  )
-                : Text(
-                    primaryLabel,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+            ),
           ),
         ),
         if (secondaryLabel != null) ...[
-          const SizedBox(height: AppSizes.paddingMedium),
-          SizedBox(
-            height: 50,
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: (isProcessing || onSecondaryPressed == null)
-                  ? null
-                  : onSecondaryPressed,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: scheme.primary,
-                disabledForegroundColor: scheme.subduedPrimary,
-                side: BorderSide(color: scheme.primary, width: 1.4),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                ),
-              ),
-              child: Text(
-                secondaryLabel!,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+          const SizedBox(height: AppSizes.buttonSpacing),
+          Align(
+            child: SizedBox(
+              width: _buttonWidth(secondaryIsCompact),
+              height: AppSizes.buttonHeight,
+              child: secondaryOutlined
+                  ? OutlinedButton(
+                      // render outlined/transparent secondary
+                      onPressed: disableSecondary ? null : onSecondaryPressed,
+                      style: _outlinedStyle(),
+                      child: Text(
+                        secondaryLabel!,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    )
+                  : FilledButton(
+                      // fallback filled secondary
+                      onPressed: disableSecondary ? null : onSecondaryPressed,
+                      style: _buttonStyle(),
+                      child: Text(
+                        secondaryLabel!,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
             ),
           ),
         ],

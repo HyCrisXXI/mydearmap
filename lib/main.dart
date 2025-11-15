@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'core/constants/env_constants.dart';
+import 'core/constants/constants.dart';
 import 'core/widgets/auth_gate.dart';
 
 Future<void> main() async {
@@ -22,9 +23,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseScheme = ColorScheme.fromSeed(
+      seedColor: AppColors.accentColor,
+      surface: AppColors.backgroundColor,
+    );
+
     return MaterialApp(
       title: 'MyDearMap',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: baseScheme,
+        scaffoldBackgroundColor: AppColors.backgroundColor,
+        fontFamily: 'TikTokSans',
+        textTheme: ThemeData.light().textTheme.copyWith(
+          titleLarge: AppTextStyles.title,
+          titleMedium: AppTextStyles.subtitle,
+          bodyMedium: AppTextStyles.text,
+          labelLarge: AppTextStyles.textButton,
+        ),
+      ),
       home: const AuthGate(),
     );
   }

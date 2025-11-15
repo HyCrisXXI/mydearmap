@@ -294,13 +294,6 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Toca el círculo para elegir un color.',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                    ),
                     const SizedBox(height: 24),
                     Text(
                       'Recuerdos en común',

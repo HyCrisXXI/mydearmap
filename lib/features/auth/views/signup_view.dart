@@ -237,19 +237,13 @@ class _SignupViewState extends ConsumerState<SignupView> {
               primaryLabel: 'Registrarse',
               onPrimaryPressed: signupState.canSubmit ? _signUp : null,
               isProcessing: signupState.isSubmitting,
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('¿Ya tienes cuenta?'),
-                TextButton(
-                  onPressed: signupState.isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  child: const Text('Iniciar Sesión'),
-                ),
-              ],
+              secondaryLabel: 'Iniciar Sesión',
+              onSecondaryPressed: signupState.isSubmitting
+                  ? null
+                  : () => Navigator.of(context).pop(),
+              secondaryIsCompact: false, // same width as primary
+              secondaryOutlined:
+                  true, // outlined (transparent background + border)
             ),
           ],
         ),

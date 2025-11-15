@@ -147,25 +147,19 @@ class _LoginViewState extends ConsumerState<LoginView> {
               primaryLabel: 'Iniciar Sesión',
               onPrimaryPressed: loginState.canSubmit ? _signIn : null,
               isProcessing: loginState.isSubmitting,
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('¿No tienes cuenta?'),
-                TextButton(
-                  onPressed: loginState.isSubmitting
-                      ? null
-                      : () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const SignupView(),
-                            ),
-                          );
-                        },
-                  child: const Text('Regístrate aquí'),
-                ),
-              ],
+              secondaryLabel: 'Registrarse',
+              onSecondaryPressed: loginState.isSubmitting
+                  ? null
+                  : () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const SignupView(),
+                        ),
+                      );
+                    },
+              secondaryIsCompact: false, // ensure same (large) width as primary
+              secondaryOutlined:
+                  true, // outlined (transparent background + border)
             ),
           ],
         ),

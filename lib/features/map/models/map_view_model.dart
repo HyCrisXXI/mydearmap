@@ -58,11 +58,11 @@ class MapViewModel extends Notifier<MapViewState> {
   final Map<String, Color> _memoryPinColorCache = {};
   int _colorIndex = 0;
   final List<Color> _memoryPinColors = const [
-    AppColors.cian,
+    AppColors.blue,
     AppColors.yellow,
     AppColors.orange,
     AppColors.pink,
-    AppColors.purple,
+    AppColors.green,
   ];
 
   @override
