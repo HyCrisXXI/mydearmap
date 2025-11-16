@@ -8,6 +8,7 @@ import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
+import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/core/widgets/app_form_buttons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:mydearmap/core/constants/constants.dart';
@@ -89,6 +90,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   final _dateController = TextEditingController();
   final _mapController = MapController();
 
+  // selected related users (userId -> roleName)
+  final Map<String, String> _selectedRelationUserRoles = <String, String>{};
+
   final MemoryMediaEditorController _mediaEditorController =
       MemoryMediaEditorController();
   List<PendingMemoryMediaDraft> _pendingMediaDrafts =
@@ -139,6 +143,13 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         .where((p) => p.role != MemoryRole.creator)
         .toList();
     _isInitialized = true;
+
+    _selectedRelationUserRoles.clear();
+    for (final p in memory.participants) {
+      if (p.user.id != ref.read(currentUserProvider).asData?.value?.id) {
+        _selectedRelationUserRoles[p.user.id] = p.role.name;
+      }
+    }
   }
 
   Future<DateTime?> _pickDate() async {
@@ -171,6 +182,218 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     } finally {
       if (mounted) setState(() => _committingMedia = false);
     }
+  }
+
+  Widget _buildRelationsSelector() {
+    final currentUserAsync = ref.watch(currentUserProvider);
+    return currentUserAsync.when(
+      data: (user) {
+        if (user == null) return const SizedBox.shrink();
+        final relationsAsync = ref.watch(userRelationsProvider(user.id));
+        return relationsAsync.when(
+          data: (relations) {
+            if (relations.isEmpty) return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                Text(
+                  'Personas relacionadas',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () async {
+                    // temp map userId -> roleName
+                    final temp = Map<String, String>.from(
+                      _selectedRelationUserRoles,
+                    );
+                    await showDialog<void>(
+                      context: context,
+                      builder: (ctx) {
+                        return AlertDialog(
+                          title: const Text(
+                            'Seleccionar personas relacionadas',
+                          ),
+                          content: SizedBox(
+                            width: double.maxFinite,
+                            child: StatefulBuilder(
+                              builder: (context, setStateDialog) {
+                                return relations.isEmpty
+                                    ? const Text(
+                                        'No hay relaciones disponibles',
+                                      )
+                                    : ListView(
+                                        shrinkWrap: true,
+                                        children: relations.map((r) {
+                                          final related = r.relatedUser;
+                                          final id = related.id;
+                                          final selected = temp.containsKey(id);
+                                          return ListTile(
+                                            leading: Checkbox(
+                                              value: selected,
+                                              onChanged: (v) {
+                                                setStateDialog(() {
+                                                  if (v == true) {
+                                                    temp[id] = MemoryRole
+                                                        .participant
+                                                        .name;
+                                                  } else {
+                                                    temp.remove(id);
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                            title: Text(
+                                              related.name.isNotEmpty
+                                                  ? related.name
+                                                  : related.email,
+                                            ),
+                                            subtitle: r.relationType.isNotEmpty
+                                                ? Text(r.relationType)
+                                                : null,
+                                            trailing: selected
+                                                ? DropdownButton<String>(
+                                                    value: temp[id],
+                                                    items: [
+                                                      DropdownMenuItem(
+                                                        value: MemoryRole
+                                                            .participant
+                                                            .name,
+                                                        child: const Text(
+                                                          'Participante',
+                                                        ),
+                                                      ),
+                                                      DropdownMenuItem(
+                                                        value: MemoryRole
+                                                            .guest
+                                                            .name,
+                                                        child: const Text(
+                                                          'Invitado',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                    onChanged: (val) {
+                                                      if (val == null) return;
+                                                      setStateDialog(() {
+                                                        temp[id] = val;
+                                                      });
+                                                    },
+                                                  )
+                                                : null,
+                                            // show avatar as part of the tile
+                                            dense: false,
+                                            isThreeLine: false,
+                                            // Use a CircleAvatar in the subtitle area
+                                            // (we keep this in the title area via a Row could be heavier; keep simple)
+                                          );
+                                        }).toList(),
+                                      );
+                              },
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _selectedRelationUserRoles
+                                    ..clear()
+                                    ..addAll(temp);
+                                });
+                                Navigator.of(ctx).pop();
+                              },
+                              child: const Text('Aceptar'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      suffixIcon: const Icon(Icons.arrow_drop_down),
+                    ),
+                    child: _selectedRelationUserRoles.isEmpty
+                        ? const Text('Ninguna seleccionada')
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: relations
+                                .where(
+                                  (r) => _selectedRelationUserRoles.containsKey(
+                                    r.relatedUser.id,
+                                  ),
+                                )
+                                .map((r) {
+                                  final role =
+                                      _selectedRelationUserRoles[r
+                                          .relatedUser
+                                          .id];
+                                  return Chip(
+                                    label: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          r.relatedUser.name.isNotEmpty
+                                              ? r.relatedUser.name
+                                              : r.relatedUser.email,
+                                        ),
+                                        if (role != null)
+                                          Text(
+                                            role,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  color: Colors.grey[600],
+                                                ),
+                                          ),
+                                      ],
+                                    ),
+                                    avatar:
+                                        r.relatedUser.profileUrl != null &&
+                                            r.relatedUser.profileUrl!.isNotEmpty
+                                        ? CircleAvatar(
+                                            backgroundImage: NetworkImage(
+                                              r.relatedUser.profileUrl!,
+                                            ),
+                                          )
+                                        : null,
+                                  );
+                                })
+                                .toList(),
+                          ),
+                  ),
+                ),
+              ],
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, st) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text('Error cargando relaciones'),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (e, st) => const SizedBox.shrink(),
+    );
   }
 
   Future<void> _handleUpsert(Memory? originalMemory) async {
@@ -220,12 +443,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       );
 
       try {
-        final createdMemory = await memoryController.createMemory(
-          newMemory,
-          user.id,
-        );
-        final createdId = createdMemory.id ?? _resolvedMemoryId;
-        // Add related participants (skip creator). Validate IDs and capture failures.
+        await memoryController.createMemory(newMemory, user.id);
+        final createdId = newMemory.id ?? _resolvedMemoryId;
         if (createdId != null) {
           _resolvedMemoryId = createdId;
           final toUpsert = _relatedPeople
@@ -272,6 +491,18 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           await _mediaEditorController.commitPendingChanges(
             memoryId: createdId,
           );
+          // Añadir participantes seleccionados (con rol seleccionado)
+          for (final relatedUserId in _selectedRelationUserRoles.keys) {
+            if (relatedUserId == user.id) continue; // evitar duplicados
+            final roleName =
+                _selectedRelationUserRoles[relatedUserId] ??
+                MemoryRole.participant.name;
+            await memoryController.addParticipant(
+              createdId,
+              relatedUserId,
+              roleName,
+            );
+          }
         } else if (_pendingMediaDrafts.isNotEmpty) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -324,6 +555,29 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       await _commitPendingMediaChanges(memoryId: widget.memoryId!);
       if (mounted) {
         setState(() => _locationDirty = false);
+      }
+      // Sync participants: add newly selected, remove deselected
+      final existingIds = originalMemory.participants
+          .map((p) => p.user.id)
+          .toSet();
+      final currentSelectedIds = _selectedRelationUserRoles.keys.toSet();
+      final toAdd = currentSelectedIds.difference(existingIds);
+      final toRemove = existingIds.difference(currentSelectedIds);
+      for (final id in toAdd) {
+        if (id == ref.read(currentUserProvider).asData?.value?.id) continue;
+        final roleName =
+            _selectedRelationUserRoles[id] ?? MemoryRole.participant.name;
+        await memoryController.addParticipant(widget.memoryId!, id, roleName);
+      }
+      for (final id in toRemove) {
+        // don't remove creator
+        final matches = originalMemory.participants
+            .where((p) => p.user.id == id)
+            .toList();
+        if (matches.isEmpty) continue;
+        final participant = matches.first;
+        if (participant.role == MemoryRole.creator) continue;
+        await memoryController.removeParticipant(widget.memoryId!, id);
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -593,6 +847,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                   if (idx != -1) _relatedPeople[idx] = p;
                 }),
               ),
+              const SizedBox(height: AppSizes.paddingMedium),
+              // Selector de personas relacionadas
+              _buildRelationsSelector(),
               const SizedBox(height: AppSizes.paddingLarge),
               Text(
                 'Ubicación del recuerdo',

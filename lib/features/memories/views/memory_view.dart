@@ -82,6 +82,51 @@ class MemoryDetailView extends ConsumerWidget {
                   _formatDate(happenedAt),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                if (memory.participants.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Personas',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: memory.participants.map((p) {
+                      final user = p.user;
+                      return Chip(
+                        avatar:
+                            user.profileUrl != null &&
+                                user.profileUrl!.isNotEmpty
+                            ? CircleAvatar(
+                                backgroundImage: NetworkImage(user.profileUrl!),
+                              )
+                            : CircleAvatar(
+                                child: Text(
+                                  user.name.isNotEmpty ? user.name[0] : '?',
+                                ),
+                              ),
+                        label: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.name,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            Text(
+                              p.role.name,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
                 mediaAsync.when(
                   loading: () => const SizedBox(
                     height: 220,

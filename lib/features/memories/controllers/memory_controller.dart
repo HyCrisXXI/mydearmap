@@ -24,7 +24,7 @@ class MemoryController extends AsyncNotifier<void> {
   }
 
   /// Crear un nuevo recuerdo
-  Future<Memory> createMemory(Memory memory, String userId) async {
+  Future<Memory?> createMemory(Memory memory, String userId) async {
     state = const AsyncValue.loading();
     try {
       final createdM = await _repository.createMemory(memory, userId);
@@ -106,7 +106,11 @@ class MemoryController extends AsyncNotifier<void> {
   }
 
   /// Añadir participante al recuerdo
-  Future<void> addParticipant(String memoryId, String userId, String role) async {
+  Future<void> addParticipant(
+    String memoryId,
+    String userId,
+    String role,
+  ) async {
     try {
       await _repository.addParticipant(memoryId, userId, role);
       // Invalidate caches / providers that depend on memory participants
