@@ -2,6 +2,7 @@
 import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_side_menu.dart';
+import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/map/models/map_view_model.dart';
 import 'package:mydearmap/core/constants/constants.dart';
@@ -371,6 +372,9 @@ class _MapViewState extends ConsumerState<MapView> {
           );
         },
         child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: AppNavBar(
+        currentIndex: 2, // El índice del mapa
       ),
     );
   }

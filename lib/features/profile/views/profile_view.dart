@@ -7,6 +7,8 @@ import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/achievement_provider.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/features/profile/views/profile_edit_view.dart';
+import 'package:mydearmap/core/widgets/app_nav_bar.dart';
+import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
@@ -170,6 +172,30 @@ class ProfileView extends ConsumerWidget {
               ],
             ),
           ),
+          bottomNavigationBar: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingLarge,
+                  vertical: AppSizes.paddingLarge,
+                ),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Cerrar sesión'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  onPressed: () => _handleLogout(context, ref),
+                ),
+              ),
+              AppNavBar(
+                currentIndex: 4, // El índice del mapa
+              ),
+            ],
+          ),
         );
       },
     );
@@ -179,5 +205,41 @@ class ProfileView extends ConsumerWidget {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     return '$day/$month/${date.year}';
+  }
+
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cerrar sesión'),
+        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sí, cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true) {
+      try {
+        if (context.mounted) Navigator.of(context).pop(); // cerrar drawer
+        await ref.read(authControllerProvider.notifier).signOut();
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al cerrar sesión: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }

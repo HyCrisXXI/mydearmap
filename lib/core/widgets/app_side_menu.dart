@@ -7,6 +7,7 @@ import 'package:mydearmap/features/memories/views/all_memories_view.dart';
 import 'package:mydearmap/features/timeline/view/timeline_view.dart';
 import 'package:mydearmap/features/relations/views/relations_view.dart';
 
+// Deprecated: Se usará AppNavBar a partir de ahora
 class AppSideMenu extends ConsumerWidget {
   const AppSideMenu({super.key});
 
@@ -92,8 +93,7 @@ class AppSideMenu extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.photo_library),
             title: const Text('Mis Recuerdos'),
-            onTap: () =>
-                _handleNavigation(context, const MemoriesOverviewView()),
+            onTap: () => _handleNavigation(context, const MemoriesView()),
           ),
           ListTile(
             leading: const Icon(Icons.group),

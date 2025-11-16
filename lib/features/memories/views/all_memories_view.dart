@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/data/models/media.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 
-class MemoriesOverviewView extends ConsumerWidget {
-  const MemoriesOverviewView({super.key});
+class MemoriesView extends ConsumerWidget {
+  const MemoriesView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,6 +63,9 @@ class MemoriesOverviewView extends ConsumerWidget {
             );
           },
         ),
+      ),
+      bottomNavigationBar: AppNavBar(
+        currentIndex: 1, // El índice de los recuerdos
       ),
     );
   }
