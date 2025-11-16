@@ -35,11 +35,11 @@ class _AuthGateState extends ConsumerState<AuthGate> {
           );
         }
 
-        if (snapshot.hasData && snapshot.data != null) {
-          return const MapView();
+        if (snapshot.data == null) {
+          return const LoginView();
         }
 
-        return const LoginView();
+        return const MapView();
       },
     );
   }

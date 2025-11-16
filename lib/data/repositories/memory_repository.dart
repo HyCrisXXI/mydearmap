@@ -137,8 +137,30 @@ class MemoryRepository {
       memories.add(memory);
     }
 
+    // Filtrar recuerdos en time capsules cerradas
+    final excludedIds = await _getExcludedMemoryIds();
+    memories.removeWhere((memory) => excludedIds.contains(memory.id));
+
     memories.sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
     return memories;
+  }
+
+  Future<Set<String>> _getExcludedMemoryIds() async {
+    final capsuleResponse = await _client
+        .from('time_capsules')
+        .select('id')
+        .eq('is_open', false);
+    final capsuleIds = (capsuleResponse as List)
+        .map((e) => e['id'] as String)
+        .toList();
+
+    if (capsuleIds.isEmpty) return {};
+
+    final response = await _client
+        .from('time_capsule_memories')
+        .select('memory_id')
+        .filter('capsule_id', 'in', capsuleIds);
+    return (response as List).map((e) => e['memory_id'] as String).toSet();
   }
 
   Future<bool> existsByTitle(String title) async {

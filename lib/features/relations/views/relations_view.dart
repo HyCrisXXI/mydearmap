@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
+import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:mydearmap/data/models/media.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
-import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
 
 class RelationsView extends ConsumerWidget {
   const RelationsView({super.key});
@@ -71,10 +71,12 @@ class RelationsView extends ConsumerWidget {
                             currentUserId: user.id,
                             relatedUserId: relation.relatedUser.id,
                           );
-                          final color = _colorFromHex(
-                            _extractColorHex(relation),
-                          );
                           final relationLabel = _relationListLabel(relation);
+
+                          // Avatar del usuario relacionado
+                          final avatarUrl = buildAvatarUrl(
+                            relation.relatedUser.profileUrl,
+                          );
 
                           return InkWell(
                             borderRadius: BorderRadius.circular(18),
@@ -92,13 +94,29 @@ class RelationsView extends ConsumerWidget {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(18),
-                                color: color.withValues(alpha: 0.1),
+                                color: Colors.grey.shade100,
                               ),
                               child: Row(
                                 children: [
                                   CircleAvatar(
                                     radius: 24,
-                                    backgroundColor: color,
+                                    backgroundColor: avatarUrl == null
+                                        ? Colors.white
+                                        : Colors.grey.shade300,
+                                    backgroundImage: avatarUrl != null
+                                        ? NetworkImage(avatarUrl)
+                                        : null,
+                                    child: avatarUrl == null
+                                        ? Text(
+                                            (relationLabel.isNotEmpty
+                                                ? relationLabel[0].toUpperCase()
+                                                : '?'),
+                                            style: const TextStyle(
+                                              fontSize: 20,
+                                              color: Colors.black,
+                                            ),
+                                          )
+                                        : null,
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
@@ -156,7 +174,7 @@ class RelationDetailView extends ConsumerStatefulWidget {
 }
 
 class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
-  bool _updatingColor = false;
+  // Eliminado: lógica de actualización de color
 
   @override
   Widget build(BuildContext context) {
@@ -189,9 +207,10 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
               relatedUserId: relation.relatedUser.id,
             );
             final previewCount = shared.length > 8 ? 8 : shared.length;
-            final colorHex = _extractColorHex(relation);
-            final color = _colorFromHex(colorHex);
-            final displayName = _relationDisplayName(relation);
+            // Mostrar nombre de la relación o nombre real
+            final displayName = (relation.relationType.trim().isNotEmpty)
+                ? relation.relationType.trim()
+                : relation.relatedUser.name.trim();
             final Widget sharedContent = shared.isEmpty
                 ? const Text('Aún no hay recuerdos en común.')
                 : GridView.builder(
@@ -210,6 +229,9 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                       return _MemoryPreviewCard(memory: memory);
                     },
                   );
+
+            // Construir URL de avatar
+            final avatarUrl = buildAvatarUrl(relation.relatedUser.profileUrl);
 
             return Scaffold(
               appBar: AppBar(
@@ -231,40 +253,25 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                   children: [
                     Row(
                       children: [
-                        Tooltip(
-                          message: 'Toca el círculo para elegir un color',
-                          child: GestureDetector(
-                            onTap: _updatingColor
-                                ? null
-                                : () => _pickColor(context, relation),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 64,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: color,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: color.withValues(alpha: 0.35),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 6),
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: avatarUrl == null
+                              ? Colors.white
+                              : Colors.grey.shade300,
+                          backgroundImage: avatarUrl != null
+                              ? NetworkImage(avatarUrl)
+                              : null,
+                          child: avatarUrl == null
+                              ? Text(
+                                  (displayName.isNotEmpty
+                                      ? displayName[0].toUpperCase()
+                                      : '?'),
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    color: Colors.black,
                                   ),
-                                ],
-                              ),
-                              child: _updatingColor
-                                  ? const Padding(
-                                      padding: EdgeInsets.all(16),
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                          ),
+                                )
+                              : null,
                         ),
                         const SizedBox(width: 16.0),
                         Expanded(
@@ -276,12 +283,6 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                                 style: Theme.of(
                                   context,
                                 ).textTheme.headlineSmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                relation.relationType,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: Colors.black54),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -310,97 +311,9 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
       },
     );
   }
-
-  Future<void> _pickColor(BuildContext context, UserRelation relation) async {
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      builder: (_) => const _ColorPickerSheet(),
-    );
-
-    if (selected == null) return;
-    if (_extractColorHex(relation)?.toUpperCase() == selected.toUpperCase()) {
-      return;
-    }
-
-    setState(() => _updatingColor = true);
-    try {
-      await ref
-          .read(relationControllerProvider.notifier)
-          .updateRelationColor(
-            currentUserId: widget.currentUserId,
-            relatedUserId: relation.relatedUser.id,
-            colorHex: selected,
-          );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo actualizar el color: $error')),
-      );
-    } finally {
-      if (mounted) setState(() => _updatingColor = false);
-    }
-  }
 }
 
-class _ColorPickerSheet extends StatelessWidget {
-  const _ColorPickerSheet();
-
-  static const List<String> _palette = [
-    '#FF6F61',
-    '#FF9F1C',
-    '#F9C74F',
-    '#90BE6D',
-    '#43AA8B',
-    '#577590',
-    '#6C5CE7',
-    '#B185DB',
-    '#F28482',
-    '#14B8A6',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Elige un color',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: _palette
-                  .map(
-                    (hex) => GestureDetector(
-                      onTap: () => Navigator.of(context).pop(hex),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _colorFromHex(hex),
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// Eliminado: widget para elegir color
 
 class _MemoryPreviewCard extends StatelessWidget {
   const _MemoryPreviewCard({required this.memory});
@@ -529,28 +442,6 @@ String _relationListLabel(UserRelation relation) {
 String _sharedMemoriesLabel(int count) {
   if (count == 1) return '1 recuerdo en común';
   return '$count recuerdos en común';
-}
-
-String? _extractColorHex(UserRelation relation) {
-  final dynamic dyn = relation;
-  try {
-    final value = dyn.color;
-    if (value is String && value.isNotEmpty) return value;
-  } catch (_) {}
-  try {
-    final value = dyn.colorHex;
-    if (value is String && value.isNotEmpty) return value;
-  } catch (_) {}
-  return null;
-}
-
-Color _colorFromHex(String? hex) {
-  final sanitized = (hex ?? '').replaceFirst('#', '').toUpperCase();
-  final value = int.tryParse(sanitized, radix: 16);
-  if (value == null) {
-    return const Color(0xFF7C9EB2);
-  }
-  return Color(0xFF000000 | value);
 }
 
 String? _resolveCoverUrl(Memory memory) {

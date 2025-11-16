@@ -15,6 +15,7 @@ class AppColors {
   static const green = Color(0xFFADE4A6);
   static const buttonBackground = Color(0xFF000000);
   static const buttonForeground = Color(0xFFFFFFFF);
+  static const buttonDisabledBackground = Color(0xFFD9D9D9);
 }
 
 class AppSizes {
@@ -73,6 +74,17 @@ class AppTextStyles {
   );
 }
 
+class AppButtonStyles {
+  static const ButtonStyle circularIconButton = ButtonStyle(
+    backgroundColor: WidgetStatePropertyAll(AppColors.primaryColor),
+    shape: WidgetStatePropertyAll(CircleBorder()),
+    shadowColor: WidgetStatePropertyAll(Color(0xADDBD0BE)),
+    elevation: WidgetStatePropertyAll(2),
+    padding: WidgetStatePropertyAll(EdgeInsets.all(1)),
+    fixedSize: WidgetStatePropertyAll(Size(34, 34)),
+  );
+}
+
 // Definición del esquema de colores claro
 const ColorScheme lightColorScheme = ColorScheme(
   brightness: Brightness.light,
@@ -91,3 +103,25 @@ const ColorScheme lightColorScheme = ColorScheme(
   error: Colors.red,
   onError: Colors.white,
 );
+
+class AppDecorations {
+  static const Color _shadowColor = Color(0xADDBD0BE);
+
+  static const BoxDecoration cardMemoryDecoration = BoxDecoration(
+    color: AppColors.primaryColor,
+    borderRadius: BorderRadius.all(Radius.circular(20.0)),
+    boxShadow: [
+      BoxShadow(
+        color: _shadowColor,
+        blurRadius: 3.5,
+        spreadRadius: 0,
+        offset: Offset(0, 2.0),
+      ),
+    ],
+  );
+
+  static const BoxConstraints cardMemoryConstraints = BoxConstraints.tightFor(
+    width: 170,
+    height: 160,
+  );
+}

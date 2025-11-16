@@ -7,6 +7,7 @@ import 'package:mydearmap/data/models/media.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
+import 'package:mydearmap/features/timecapsule/views/timecapsules_view.dart';
 
 class MemoriesView extends ConsumerWidget {
   const MemoriesView({super.key});
@@ -16,7 +17,20 @@ class MemoriesView extends ConsumerWidget {
     final memoriesAsync = ref.watch(userMemoriesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis recuerdos')),
+      appBar: AppBar(
+        title: const Text('Mis recuerdos'),
+        actions: [
+          IconButton(
+            icon: Image.asset(AppIcons.timer),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TimeCapsulesView()),
+              );
+            },
+            style: AppButtonStyles.circularIconButton,
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingLarge),
         child: memoriesAsync.when(

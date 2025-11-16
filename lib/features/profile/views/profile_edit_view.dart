@@ -391,7 +391,7 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
         ),
       ),
       bottomNavigationBar: AppNavBar(
-        currentIndex: 4, // El índice del mapa
+        currentIndex: 4, // El índice del perfíl
       ),
     );
   }

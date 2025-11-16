@@ -5,13 +5,11 @@ class UserRelation {
   final User user;
   final User relatedUser;
   final String relationType;
-  final String color;
 
   UserRelation({
     required this.user,
     required this.relatedUser,
     required this.relationType,
-    required this.color,
   });
   factory UserRelation.fromMapWithRelated(Map<String, dynamic> map) {
     final userMap = map['user'] is Map<String, dynamic>
@@ -35,7 +33,6 @@ class UserRelation {
       user: user,
       relatedUser: relatedUser,
       relationType: (map['relation_type'] ?? '').toString(),
-      color: (map['color'] ?? '').toString(),
     );
   }
 }

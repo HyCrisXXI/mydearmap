@@ -192,7 +192,7 @@ class ProfileView extends ConsumerWidget {
                 ),
               ),
               AppNavBar(
-                currentIndex: 4, // El índice del mapa
+                currentIndex: 4, // El índice del perfíl
               ),
             ],
           ),
@@ -230,6 +230,14 @@ class ProfileView extends ConsumerWidget {
       try {
         if (context.mounted) Navigator.of(context).pop(); // cerrar drawer
         await ref.read(authControllerProvider.notifier).signOut();
+        ref.invalidate(
+          currentUserProvider,
+        ); // Invalidate to clear cached user data
+        if (context.mounted) {
+          Navigator.of(
+            context,
+          ).popUntil((route) => route.isFirst); // Pop to root (AuthGate)
+        }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

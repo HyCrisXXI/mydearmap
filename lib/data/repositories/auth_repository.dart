@@ -65,7 +65,7 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
+    await _supabase.auth.signOut(scope: SignOutScope.global);
   }
 }
 
