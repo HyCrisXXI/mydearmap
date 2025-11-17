@@ -62,6 +62,8 @@ class _MapViewState extends ConsumerState<MapView> {
         );
         mapController.move(location, 15.0);
         viewModel.highlightMemory(matchingMemory.id);
+        // Limpiar sugerencias de recuerdos al buscar
+        viewModel.selectMemorySuggestion();
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -71,6 +73,12 @@ class _MapViewState extends ConsumerState<MapView> {
     } else {
       try {
         await viewModel.searchLocation(trimmedQuery);
+        final searchedLocation = ref
+            .read(mapViewModelProvider)
+            .searchedLocation;
+        if (searchedLocation != null) {
+          mapController.move(searchedLocation, 15.0);
+        }
       } catch (e) {
         if (!mounted) return;
         final message = e.toString().replaceAll('Exception: ', '');
@@ -81,10 +89,13 @@ class _MapViewState extends ConsumerState<MapView> {
     }
   }
 
-  // Lógica para el autocompletado de recuerdos
+  // Lógica para el autocompletado de recuerdos y ubicaciones
   void _onSearchQueryChanged(String query) {
-    if (ref.read(mapViewModelProvider).searchType == SearchType.memory) {
+    final searchType = ref.read(mapViewModelProvider).searchType;
+    if (searchType == SearchType.memory) {
       ref.read(mapViewModelProvider.notifier).updateMemorySuggestions(query);
+    } else {
+      ref.read(mapViewModelProvider.notifier).updateLocationSuggestions(query);
     }
   }
 
@@ -93,6 +104,7 @@ class _MapViewState extends ConsumerState<MapView> {
     final userAsync = ref.watch(currentUserProvider);
     final mapState = ref.watch(mapViewModelProvider);
     final memorySuggestions = mapState.memorySuggestions;
+    final locationSuggestions = mapState.locationSuggestions;
     final currentSearchType = mapState.searchType;
     final searchedLocation = mapState.searchedLocation;
 
@@ -203,10 +215,23 @@ class _MapViewState extends ConsumerState<MapView> {
                               PopupMenuButton<SearchType>(
                                 initialValue: currentSearchType,
                                 onSelected: (SearchType result) {
-                                  searchController.clear();
                                   ref
                                       .read(mapViewModelProvider.notifier)
                                       .setSearchType(result);
+                                  // Actualizar sugerencias según el tipo
+                                  if (result == SearchType.memory) {
+                                    ref
+                                        .read(mapViewModelProvider.notifier)
+                                        .updateMemorySuggestions(
+                                          searchController.text,
+                                        );
+                                  } else {
+                                    ref
+                                        .read(mapViewModelProvider.notifier)
+                                        .updateLocationSuggestions(
+                                          searchController.text,
+                                        );
+                                  }
                                 },
                                 itemBuilder: (BuildContext context) =>
                                     <PopupMenuEntry<SearchType>>[
@@ -273,7 +298,57 @@ class _MapViewState extends ConsumerState<MapView> {
                                 title: Text(suggestion.title),
                                 onTap: () {
                                   searchController.text = suggestion.title;
+                                  ref
+                                      .read(mapViewModelProvider.notifier)
+                                      .selectMemorySuggestion();
                                   _searchAndMove(suggestion.title);
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      if (currentSearchType == SearchType.place &&
+                          locationSuggestions.isNotEmpty)
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryColor,
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(
+                                AppSizes.borderRadius,
+                              ),
+                              bottomRight: Radius.circular(
+                                AppSizes.borderRadius,
+                              ),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withValues(alpha: .2),
+                                spreadRadius: 2,
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: locationSuggestions.length,
+                            itemBuilder: (context, index) {
+                              final suggestion = locationSuggestions[index];
+                              return ListTile(
+                                title: Text(suggestion.name),
+                                onTap: () {
+                                  searchController.text = suggestion.name;
+                                  mapController.move(suggestion.location, 15.0);
+                                  ref
+                                      .read(mapViewModelProvider.notifier)
+                                      .clearLocationSuggestions();
+                                  // Opcional: actualizar searchedLocation para mostrar el marcador
+                                  ref
+                                      .read(mapViewModelProvider.notifier)
+                                      .selectLocationSuggestion(
+                                        suggestion.location,
+                                      );
                                 },
                               );
                             },

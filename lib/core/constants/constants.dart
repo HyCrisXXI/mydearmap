@@ -5,7 +5,7 @@ export 'app_icons.dart';
 // Definiciones de colores, tamaños y estilos de texto utilizados en la aplicaciónç
 class AppColors {
   static const primaryColor = Color(0xFFFFFCF6);
-  static const accentColor = Color(0xFFFF9312);
+  static const accentColor = Color(0xFF3B82F6); // Azul vibrante placeholder?
   static const backgroundColor = Color(0xFFFFF5E5);
   static const textColor = Color(0xFF000000);
   static const blue = Color(0xFF5E67F2);

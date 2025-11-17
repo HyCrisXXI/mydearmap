@@ -22,6 +22,7 @@ class MapViewState {
   final String memoryQuery;
   final LatLng? searchedLocation;
   final String? highlightedMemoryId;
+  final List<LocationSuggestion> locationSuggestions;
 
   const MapViewState({
     this.memories = const AsyncValue.loading(),
@@ -30,6 +31,7 @@ class MapViewState {
     this.memoryQuery = '',
     this.searchedLocation,
     this.highlightedMemoryId,
+    this.locationSuggestions = const [],
   });
 
   MapViewState copyWith({
@@ -39,6 +41,7 @@ class MapViewState {
     String? memoryQuery,
     LatLng? searchedLocation,
     String? highlightedMemoryId,
+    List<LocationSuggestion>? locationSuggestions,
     bool resetHighlight = false,
   }) {
     return MapViewState(
@@ -50,8 +53,17 @@ class MapViewState {
       highlightedMemoryId: resetHighlight
           ? null
           : (highlightedMemoryId ?? this.highlightedMemoryId),
+      locationSuggestions: locationSuggestions ?? this.locationSuggestions,
     );
   }
+}
+
+// Nueva clase para sugerencias de ubicación
+class LocationSuggestion {
+  final String name;
+  final LatLng location;
+
+  LocationSuggestion({required this.name, required this.location});
 }
 
 class MapViewModel extends Notifier<MapViewState> {
@@ -121,12 +133,7 @@ class MapViewModel extends Notifier<MapViewState> {
   }
 
   void setSearchType(SearchType newType) {
-    state = state.copyWith(
-      searchType: newType,
-      memorySuggestions: const [],
-      memoryQuery: '',
-      resetHighlight: true,
-    );
+    state = state.copyWith(searchType: newType, resetHighlight: true);
   }
 
   void clearMemorySuggestions() {
@@ -135,6 +142,10 @@ class MapViewModel extends Notifier<MapViewState> {
       memoryQuery: '',
       resetHighlight: true,
     );
+  }
+
+  void clearLocationSuggestions() {
+    state = state.copyWith(locationSuggestions: const []);
   }
 
   void updateMemorySuggestions(String query) {
@@ -219,6 +230,44 @@ class MapViewModel extends Notifier<MapViewState> {
       state = state.copyWith(searchedLocation: null);
       rethrow;
     }
+  }
+
+  Future<void> updateLocationSuggestions(String query) async {
+    if (query.trim().isEmpty) {
+      clearLocationSuggestions();
+      return;
+    }
+    final url = Uri.parse(
+      'https://api.maptiler.com/geocoding/${Uri.encodeComponent(query)}.json?autocomplete=true&key=${EnvConstants.mapTilesApiKey}',
+    );
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final features = data['features'] as List<dynamic>? ?? const [];
+        final suggestions = features.map((feature) {
+          final f = feature as Map<String, dynamic>;
+          final coords = f['geometry']['coordinates'] as List<dynamic>;
+          final lng = (coords[0] as num).toDouble();
+          final lat = (coords[1] as num).toDouble();
+          final name = f['place_name'] ?? f['text'] ?? '';
+          return LocationSuggestion(name: name, location: LatLng(lat, lng));
+        }).toList();
+        state = state.copyWith(locationSuggestions: suggestions);
+      } else {
+        state = state.copyWith(locationSuggestions: []);
+      }
+    } catch (_) {
+      state = state.copyWith(locationSuggestions: []);
+    }
+  }
+
+  void selectLocationSuggestion(LatLng location) {
+    state = state.copyWith(searchedLocation: location, locationSuggestions: []);
+  }
+
+  void selectMemorySuggestion() {
+    state = state.copyWith(memorySuggestions: []);
   }
 }
 

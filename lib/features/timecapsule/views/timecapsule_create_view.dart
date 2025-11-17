@@ -106,8 +106,7 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
 
       // RESETEA la caché antes de refrescar el provider
       ref.read(userMemoriesCacheProvider.notifier).reset();
-      await ref.refresh(userMemoriesProvider.future);
-
+      ref.invalidate(userMemoriesProvider);
       ref.invalidate(timeCapsuleProvider);
       ref.invalidate(timeCapsuleMemoriesProvider);
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mydearmap/core/widgets/auth_gate.dart';
 import 'package:mydearmap/features/map/views/map_view.dart';
 import 'package:mydearmap/features/profile/views/profile_view.dart';
-import 'package:mydearmap/features/memories/views/all_memories_view.dart';
+import 'package:mydearmap/features/memories/views/memories_view.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 
 // Importar aquí las demás vistas cuando existan
