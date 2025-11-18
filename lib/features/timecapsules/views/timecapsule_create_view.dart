@@ -4,9 +4,8 @@ import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/timecapsule_provider.dart';
 import 'package:mydearmap/data/models/memory.dart';
-import 'package:mydearmap/features/timecapsule/controllers/timecapsule_controller.dart';
-import 'package:mydearmap/core/utils/media_url.dart';
-import 'package:mydearmap/core/constants/constants.dart';
+import 'package:mydearmap/features/timecapsules/controllers/timecapsule_controller.dart';
+import 'package:mydearmap/core/widgets/memory_selection_widget.dart';
 
 class TimeCapsuleCreateView extends ConsumerStatefulWidget {
   const TimeCapsuleCreateView({super.key, this.capsuleId});
@@ -130,12 +129,14 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
   void _addMemories() async {
     final availableMemories = await _getAvailableMemories();
     if (!mounted) return;
-    // Pasar ids seleccionados, no objetos
     final result = await Navigator.of(context).push<List<Memory>>(
       MaterialPageRoute(
-        builder: (_) => MemorySelectionView(
+        builder: (_) => MemorySelectionWidget(
           availableMemories: availableMemories,
           selectedMemories: _selectedMemories,
+          onSelectionDone: (selected) {
+            Navigator.of(context).pop(selected);
+          },
         ),
       ),
     );
@@ -234,160 +235,6 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
                 ),
               ),
             ),
-    );
-  }
-}
-
-class MemorySelectionView extends StatefulWidget {
-  const MemorySelectionView({
-    super.key,
-    required this.availableMemories,
-    required this.selectedMemories,
-  });
-
-  final List<Memory> availableMemories;
-  final List<Memory> selectedMemories;
-
-  @override
-  State<MemorySelectionView> createState() => _MemorySelectionViewState();
-}
-
-class _MemorySelectionViewState extends State<MemorySelectionView> {
-  late List<Memory> _selected;
-
-  @override
-  void initState() {
-    super.initState();
-    // Usar ids para asegurar que los seleccionados se marquen correctamente
-    _selected = List<Memory>.from(widget.selectedMemories);
-  }
-
-  bool _isMemorySelected(Memory memory) {
-    return _selected.any((m) => m.id == memory.id);
-  }
-
-  void _toggleMemory(Memory memory) {
-    setState(() {
-      if (_isMemorySelected(memory)) {
-        _selected.removeWhere((m) => m.id == memory.id);
-      } else {
-        _selected.add(memory);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Seleccionar Recuerdos'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(_selected),
-            child: const Text('Listo'),
-          ),
-        ],
-      ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 170 / 192, // 170 ancho, 160+32 alto
-        ),
-        itemCount: widget.availableMemories.length,
-        itemBuilder: (context, index) {
-          final memory = widget.availableMemories[index];
-          final isSelected = _isMemorySelected(memory);
-          final mainMedia = memory.media.isNotEmpty ? memory.media.first : null;
-          final imageUrl = mainMedia != null && mainMedia.url != null
-              ? buildMediaPublicUrl(mainMedia.url)
-              : null;
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 170,
-                maxHeight: 192, // 160 + espacio para el título
-              ),
-              child: AspectRatio(
-                aspectRatio: 170 / 192,
-                child: Stack(
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 170 / 160,
-                          child: Container(
-                            decoration: AppDecorations.cardMemoryDecoration,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: imageUrl != null
-                                  ? Image.network(
-                                      imageUrl,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                    )
-                                  : Container(
-                                      color: Colors.grey.shade200,
-                                      child: const Center(
-                                        child: Icon(Icons.image, size: 50),
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 24,
-                          child: Center(
-                            child: Text(
-                              memory.title,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Positioned(
-                      bottom: 40,
-                      right: 16,
-                      child: GestureDetector(
-                        onTap: () => _toggleMemory(memory),
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSelected
-                                ? AppColors.blue
-                                : AppColors.buttonDisabledBackground,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 18,
-                                )
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 }

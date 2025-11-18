@@ -78,8 +78,8 @@ class AppButtonStyles {
   static const ButtonStyle circularIconButton = ButtonStyle(
     backgroundColor: WidgetStatePropertyAll(AppColors.primaryColor),
     shape: WidgetStatePropertyAll(CircleBorder()),
-    shadowColor: WidgetStatePropertyAll(Color(0xADDBD0BE)),
-    elevation: WidgetStatePropertyAll(2),
+    //shadowColor: WidgetStatePropertyAll(Color(0xADDBD0BE)),
+    //elevation: WidgetStatePropertyAll(2),
     padding: WidgetStatePropertyAll(EdgeInsets.all(1)),
     fixedSize: WidgetStatePropertyAll(Size(34, 34)),
   );
@@ -105,23 +105,24 @@ const ColorScheme lightColorScheme = ColorScheme(
 );
 
 class AppDecorations {
-  static const Color _shadowColor = Color(0xADDBD0BE);
-
   static const BoxDecoration cardMemoryDecoration = BoxDecoration(
     color: AppColors.primaryColor,
     borderRadius: BorderRadius.all(Radius.circular(20.0)),
     boxShadow: [
       BoxShadow(
-        color: _shadowColor,
+        color: Color(0xADDBD0BE),
         blurRadius: 3.5,
         spreadRadius: 0,
         offset: Offset(0, 2.0),
       ),
     ],
   );
+}
 
-  static const BoxConstraints cardMemoryConstraints = BoxConstraints.tightFor(
-    width: 170,
-    height: 160,
-  );
+class AppCardMemory {
+  static const double width = 170;
+  static const double height = 160;
+  static const double cardWithTitleHeight = 192; // 160 + espacio para el título
+  static const double aspectRatio = width / cardWithTitleHeight;
+  static const double borderRadius = 20.0;
 }

@@ -85,6 +85,7 @@ class MemoryRepository {
         .from('memory_users')
         .select('''
           role,
+          favorite,
           memory:memories(
             *,
             media(*),
@@ -99,7 +100,12 @@ class MemoryRepository {
       final memoryData = row['memory'];
       if (memoryData is! Map<String, dynamic>) continue;
 
-      final memory = Memory.fromJson(memoryData);
+      final memoryJson = Map<String, dynamic>.from(memoryData);
+      if (row.containsKey('favorite')) {
+        memoryJson['favorite'] = row['favorite'];
+      }
+
+      final memory = Memory.fromJson(memoryJson);
 
       final roleValue = row['role'] as String?;
       if (roleValue != null) {
@@ -186,5 +192,17 @@ class MemoryRepository {
 
     if (response == null) return null;
     return Memory.fromJson(response);
+  }
+
+  Future<void> setFavorite({
+    required String memoryId,
+    required String userId,
+    required bool isFavorite,
+  }) async {
+    await _client
+        .from('memory_users')
+        .update({'favorite': isFavorite})
+        .eq('memory_id', memoryId)
+        .eq('user_id', userId);
   }
 }
