@@ -9,4 +9,6 @@ class EnvConstants {
 
   static String get mapTilesApiKey =>
       dotenv.get('MAP_TILES_API_KEY', fallback: '');
+
+  static String get geminiApiKey => dotenv.get('GEMINI_API_KEY', fallback: '');
 }

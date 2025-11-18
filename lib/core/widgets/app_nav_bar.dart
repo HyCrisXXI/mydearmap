@@ -52,8 +52,8 @@ class _AppNavBarState extends State<AppNavBar> {
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
       backgroundColor: AppColors.primaryColor,
-      selectedItemColor: AppColors.textColor,
-      unselectedItemColor: AppColors.textColor.withValues(alpha: 0.54),
+      selectedItemColor: AppColors.accentColor,
+      unselectedItemColor: Colors.black,
       showSelectedLabels: false,
       showUnselectedLabels: false,
       currentIndex: _selectedIndex,
