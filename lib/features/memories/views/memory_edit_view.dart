@@ -466,8 +466,12 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       );
 
       try {
-        await memoryController.createMemory(newMemory, user.id);
-        final createdId = newMemory.id ?? _resolvedMemoryId;
+        final createdMemory = await memoryController.createMemory(
+          newMemory,
+          user.id,
+        );
+        final createdId =
+            createdMemory?.id ?? newMemory.id ?? _resolvedMemoryId;
         if (createdId != null) {
           _resolvedMemoryId = createdId;
           final toUpsert = _relatedPeople
