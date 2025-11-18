@@ -8,6 +8,8 @@ import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:mydearmap/data/models/media.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
+import 'package:mydearmap/core/widgets/memory_card.dart';
+import 'package:mydearmap/core/constants/constants.dart';
 
 class RelationsView extends ConsumerWidget {
   const RelationsView({super.key});
@@ -206,12 +208,26 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
               currentUserId: widget.currentUserId,
               relatedUserId: relation.relatedUser.id,
             );
-            final previewCount = shared.length > 8 ? 8 : shared.length;
+
+            // Placeholder: favorito si el título contiene 'fav'
+            final sortedShared = [...shared]
+              ..sort((a, b) {
+                final aFav = a.title.toLowerCase().contains('fav');
+                final bFav = b.title.toLowerCase().contains('fav');
+                if (aFav == bFav) {
+                  return b.happenedAt.compareTo(a.happenedAt);
+                }
+                return bFav ? 1 : -1; // Favoritos arriba
+              });
+
+            final previewCount = sortedShared.length > 8
+                ? 8
+                : sortedShared.length;
             // Mostrar nombre de la relación o nombre real
             final displayName = (relation.relationType.trim().isNotEmpty)
                 ? relation.relationType.trim()
                 : relation.relatedUser.name.trim();
-            final Widget sharedContent = shared.isEmpty
+            final Widget sharedContent = sortedShared.isEmpty
                 ? const Text('Aún no hay recuerdos en común.')
                 : GridView.builder(
                     shrinkWrap: true,
@@ -222,11 +238,34 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                           crossAxisCount: 2,
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 16,
-                          childAspectRatio: 0.78,
+                          childAspectRatio: AppCardMemory.aspectRatio,
                         ),
                     itemBuilder: (_, index) {
-                      final memory = shared[index];
-                      return _MemoryPreviewCard(memory: memory);
+                      final memory = sortedShared[index];
+                      final mainMedia = memory.media.isNotEmpty
+                          ? memory.media.first
+                          : null;
+                      final imageUrl =
+                          mainMedia != null && mainMedia.url != null
+                          ? buildMediaPublicUrl(mainMedia.url)
+                          : null;
+                      // Placeholder: favorito si el título contiene 'fav'
+                      final isFavorite = memory.title.toLowerCase().contains(
+                        'fav',
+                      );
+                      return MemoryCard(
+                        memory: memory,
+                        imageUrl: imageUrl,
+                        overlay: Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Image.asset(
+                            isFavorite ? AppIcons.starFilled : AppIcons.star,
+                            width: 23,
+                            height: 22,
+                          ),
+                        ),
+                      );
                     },
                   );
 
@@ -286,7 +325,7 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _sharedMemoriesLabel(shared.length),
+                                _sharedMemoriesLabel(sortedShared.length),
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(color: Colors.black54),
                               ),
@@ -309,72 +348,6 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
           },
         );
       },
-    );
-  }
-}
-
-class _MemoryPreviewCard extends StatelessWidget {
-  const _MemoryPreviewCard({required this.memory});
-
-  final Memory memory;
-
-  @override
-  Widget build(BuildContext context) {
-    final coverUrl = _resolveCoverUrl(memory);
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 8,
-              color: Colors.black12,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (coverUrl != null)
-                    Image.network(coverUrl, fit: BoxFit.cover)
-                  else
-                    Container(
-                      color: Colors.grey.shade200,
-                      child: const Icon(
-                        Icons.image_not_supported_outlined,
-                        color: Colors.black45,
-                        size: 36,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 12,
-                right: 12,
-                top: 12,
-                bottom: 10,
-              ),
-              child: Text(
-                memory.title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -440,13 +413,4 @@ String _relationListLabel(UserRelation relation) {
 String _sharedMemoriesLabel(int count) {
   if (count == 1) return '1 recuerdo en común';
   return '$count recuerdos en común';
-}
-
-String? _resolveCoverUrl(Memory memory) {
-  for (final media in memory.media) {
-    if (media.type == MediaType.image) {
-      return buildMediaPublicUrl(media.url);
-    }
-  }
-  return null;
 }

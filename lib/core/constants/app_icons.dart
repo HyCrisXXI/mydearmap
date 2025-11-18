@@ -60,6 +60,7 @@ class AppIcons {
   static const String squareArrowOutUpRight =
       '$_basePath/square-arrow-out-up-right.png';
   static const String star = '$_basePath/star.png';
+  static const String starFilled = '$_basePath/star-filled.png';
   static const String stepBack = '$_basePath/step-back.png';
   static const String stepForward = '$_basePath/step-forward.png';
   static const String sticker = '$_basePath/sticker.png';
