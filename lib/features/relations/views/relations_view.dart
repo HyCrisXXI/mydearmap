@@ -313,8 +313,6 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
   }
 }
 
-// Eliminado: widget para elegir color
-
 class _MemoryPreviewCard extends StatelessWidget {
   const _MemoryPreviewCard({required this.memory});
 
