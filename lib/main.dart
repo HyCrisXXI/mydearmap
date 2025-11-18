@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: lightColorScheme,
-        scaffoldBackgroundColor: AppColors.backgroundColor,
+        scaffoldBackgroundColor: AppColors.primaryColor, // Este se ve mejor
         fontFamily: 'TikTokSans',
 
         textTheme: ThemeData.light().textTheme.copyWith(

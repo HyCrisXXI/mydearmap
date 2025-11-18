@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/data/repositories/relation_repository.dart';
+import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/data/models/user_relation.dart';
 
 final relationControllerProvider =
     AsyncNotifierProvider<RelationController, void>(() {
@@ -96,4 +98,54 @@ class RelationController extends AsyncNotifier<void> {
     if (match == null) throw Exception('Formato de color inválido');
     return value;
   }
+}
+
+// Métodos auxiliares compartidos
+
+List<Memory> sharedMemoriesForRelation({
+  required Iterable<Memory> allMemories,
+  required String currentUserId,
+  required String relatedUserId,
+}) {
+  final result = <Memory>[];
+
+  for (final memory in allMemories) {
+    if (memory.participants.isEmpty) continue;
+
+    UserRole? currentParticipant;
+    UserRole? relatedParticipant;
+
+    for (final participant in memory.participants) {
+      if (participant.user.id == currentUserId) {
+        currentParticipant = participant;
+      } else if (participant.user.id == relatedUserId) {
+        relatedParticipant = participant;
+      }
+    }
+
+    if (currentParticipant == null || relatedParticipant == null) continue;
+    if (currentParticipant.role == MemoryRole.guest ||
+        relatedParticipant.role == MemoryRole.guest) {
+      continue;
+    }
+
+    result.add(memory);
+  }
+
+  result.sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
+  return result;
+}
+
+UserRelation? findRelationByUser(
+  List<UserRelation> relations,
+  String relatedUserId,
+) {
+  for (final relation in relations) {
+    if (relation.relatedUser.id == relatedUserId) return relation;
+  }
+  return null;
+}
+
+String sharedMemoriesLabel(int count) {
+  return '$count recuerdos en común';
 }

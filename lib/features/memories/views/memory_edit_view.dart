@@ -185,12 +185,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
 
       final userAsync = ref.read(currentUserProvider);
       if (userAsync is AsyncLoading) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cargando usuario...'),
-            backgroundColor: Colors.orangeAccent,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Cargando usuario...')));
         return;
       }
       if (userAsync is AsyncError) {

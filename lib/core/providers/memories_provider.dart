@@ -75,8 +75,6 @@ final userMemoriesProvider = FutureProvider<List<Memory>>((ref) async {
     return const <Memory>[];
   }
 
-  if (cached.isNotEmpty) return cached;
-
   final memoryRepository = ref.read(memoryRepositoryProvider);
   try {
     final fetched = await memoryRepository.getMemoriesByUser(user.id);

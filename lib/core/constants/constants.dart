@@ -78,8 +78,8 @@ class AppButtonStyles {
   static const ButtonStyle circularIconButton = ButtonStyle(
     backgroundColor: WidgetStatePropertyAll(AppColors.primaryColor),
     shape: WidgetStatePropertyAll(CircleBorder()),
-    shadowColor: WidgetStatePropertyAll(Color(0xADDBD0BE)),
-    elevation: WidgetStatePropertyAll(2),
+    //shadowColor: WidgetStatePropertyAll(Color(0xADDBD0BE)),
+    //elevation: WidgetStatePropertyAll(2),
     padding: WidgetStatePropertyAll(EdgeInsets.all(1)),
     fixedSize: WidgetStatePropertyAll(Size(34, 34)),
   );

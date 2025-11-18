@@ -4,6 +4,9 @@ import 'package:mydearmap/core/providers/timecapsule_provider.dart';
 import 'timecapsule_view.dart';
 import 'timecapsule_create_view.dart';
 import 'package:mydearmap/core/constants/constants.dart';
+import 'package:mydearmap/features/memories/views/memories_view.dart';
+import 'package:mydearmap/features/relations/views/relations_view.dart';
+import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 
 class TimeCapsulesView extends ConsumerWidget {
   const TimeCapsulesView({super.key});
@@ -16,21 +19,54 @@ class TimeCapsulesView extends ConsumerWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: Image.asset(AppIcons.chevronLeft),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const MemoriesView()),
+              (route) => false,
+            );
+          },
           style: AppButtonStyles.circularIconButton,
         ),
         title: const Text('Mis Cápsulas de Tiempo'),
         actions: [
-          IconButton(
-            icon: Image.asset(AppIcons.plus),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const TimeCapsuleCreateView(),
-                ),
-              );
-            },
-            style: AppButtonStyles.circularIconButton,
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Image.asset(AppIcons.timer, color: AppColors.blue),
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const MemoriesView()),
+                  (route) => false,
+                );
+              },
+              style: AppButtonStyles.circularIconButton,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Image.asset(AppIcons.heartHandshake),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RelationsView()),
+                );
+              },
+              style: AppButtonStyles.circularIconButton,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: IconButton(
+              icon: Image.asset(AppIcons.plus),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const TimeCapsuleCreateView(),
+                  ),
+                );
+              },
+              style: AppButtonStyles.circularIconButton,
+            ),
           ),
         ],
       ),
@@ -70,6 +106,7 @@ class TimeCapsulesView extends ConsumerWidget {
                 },
               ),
       ),
+      bottomNavigationBar: AppNavBar(currentIndex: 1),
     );
   }
 }
