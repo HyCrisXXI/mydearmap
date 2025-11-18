@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/core/widgets/auth_gate.dart';
 import 'package:mydearmap/features/map/views/map_view.dart';
-import 'package:mydearmap/features/profile/views/profile_view.dart';
 import 'package:mydearmap/features/memories/views/memories_view.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
+import 'package:mydearmap/features/notifications/views/notifications_view.dart';
+import 'package:mydearmap/features/profile/views/profile_view.dart';
 
 // Importar aquí las demás vistas cuando existan
 
@@ -18,12 +19,6 @@ final Map<String, WidgetBuilder> appRoutes = {
   ),
   '/memories': (context) => MemoriesView(),
   '/map': (context) => MapView(),
-  '/notifications': (context) => Scaffold(
-    appBar: AppBar(title: const Text('Notificaciones')),
-    body: const Center(child: Text('Notifications View Placeholder')),
-    bottomNavigationBar: AppNavBar(
-      currentIndex: 3, // El índice de las notificaciones
-    ),
-  ),
+  '/notifications': (context) => const NotificationsView(),
   '/profile': (context) => ProfileView(),
 };
