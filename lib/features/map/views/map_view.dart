@@ -1,7 +1,6 @@
 // lib/features/map/views/map_view.dart
 import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
-import 'package:mydearmap/core/widgets/app_side_menu.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/map/models/map_view_model.dart';
@@ -109,7 +108,6 @@ class _MapViewState extends ConsumerState<MapView> {
     final searchedLocation = mapState.searchedLocation;
 
     return Scaffold(
-      drawer: const AppSideMenu(),
       body: SafeArea(
         child: userAsync.when(
           data: (user) {
@@ -162,12 +160,6 @@ class _MapViewState extends ConsumerState<MapView> {
                   ),
                   child: Row(
                     children: [
-                      Builder(
-                        builder: (context) => IconButton(
-                          icon: const Icon(Icons.menu),
-                          onPressed: () => Scaffold.of(context).openDrawer(),
-                        ),
-                      ),
                       Expanded(
                         child: Text(
                           '${greeting()}, $name',

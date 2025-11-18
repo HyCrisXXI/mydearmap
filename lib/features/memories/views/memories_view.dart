@@ -8,6 +8,7 @@ import 'package:mydearmap/features/timecapsules/views/timecapsules_view.dart';
 import 'package:mydearmap/core/widgets/memories_grid.dart';
 import 'package:mydearmap/features/relations/views/relations_view.dart';
 import 'package:mydearmap/features/memories/views/memory_edit_view.dart';
+import 'package:mydearmap/features/timeline/view/timeline_view.dart';
 import 'package:latlong2/latlong.dart';
 
 class MemoriesView extends ConsumerStatefulWidget {
@@ -32,6 +33,22 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
       appBar: AppBar(
         title: const Text('Mis recuerdos'),
         actions: [
+          // Botón Timeline a la izquierda de los demás
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: const Icon(Icons.timeline),
+              tooltip: 'Ver timeline',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const MemoriesTimelineView(),
+                  ),
+                );
+              },
+              style: AppButtonStyles.circularIconButton,
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
