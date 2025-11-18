@@ -27,11 +27,11 @@ class MemoryRepository {
     String userId,
     String role,
   ) async {
-    await _client.from('memory_users').insert({
+    await _client.from('memory_users').upsert({
       'memory_id': memoryId,
       'user_id': userId,
       'role': role,
-    });
+    }, onConflict: 'memory_id,user_id');
   }
 
   Future<void> removeParticipant(String memoryId, String userId) async {

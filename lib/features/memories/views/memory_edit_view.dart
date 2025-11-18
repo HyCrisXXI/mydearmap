@@ -142,14 +142,48 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     _relatedPeople = memory.participants
         .where((p) => p.role != MemoryRole.creator)
         .toList();
+    _selectedRelationUserRoles
+      ..clear()
+      ..addEntries(
+        _relatedPeople
+            .where((p) => p.user.id.isNotEmpty)
+            .map((p) => MapEntry<String, String>(p.user.id, p.role.name)),
+      );
+
     _isInitialized = true;
 
-    _selectedRelationUserRoles.clear();
-    for (final p in memory.participants) {
-      if (p.user.id != ref.read(currentUserProvider).asData?.value?.id) {
-        _selectedRelationUserRoles[p.user.id] = p.role.name;
-      }
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  MemoryRole _roleFromName(String? raw) {
+    if (raw == null) return MemoryRole.participant;
+    return MemoryRole.values.firstWhere(
+      (role) => role.name == raw,
+      orElse: () => MemoryRole.participant,
+    );
+  }
+
+  void _syncRelatedPeopleFromSelections(List<UserRelation> relations) {
+    final relationUsers = <String, User>{
+      for (final rel in relations) rel.relatedUser.id: rel.relatedUser,
+    };
+
+    final existingUsers = <String, User>{
+      for (final person in _relatedPeople) person.user.id: person.user,
+    };
+
+    final synced = _selectedRelationUserRoles.entries
+        .map((entry) {
+          final user = relationUsers[entry.key] ?? existingUsers[entry.key];
+          if (user == null) return null;
+          return UserRole(user: user, role: _roleFromName(entry.value));
+        })
+        .whereType<UserRole>()
+        .toList();
+
+    _relatedPeople = synced;
   }
 
   Future<DateTime?> _pickDate() async {
@@ -303,6 +337,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                                   _selectedRelationUserRoles
                                     ..clear()
                                     ..addAll(temp);
+                                  _syncRelatedPeopleFromSelections(relations);
                                 });
                                 Navigator.of(ctx).pop();
                               },
@@ -354,24 +389,12 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                                         if (role != null)
                                           Text(
                                             role,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color: Colors.grey[600],
-                                                ),
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall,
                                           ),
                                       ],
                                     ),
-                                    avatar:
-                                        r.relatedUser.profileUrl != null &&
-                                            r.relatedUser.profileUrl!.isNotEmpty
-                                        ? CircleAvatar(
-                                            backgroundImage: NetworkImage(
-                                              r.relatedUser.profileUrl!,
-                                            ),
-                                          )
-                                        : null,
                                   );
                                 })
                                 .toList(),
@@ -381,7 +404,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
               ],
             );
           },
-          loading: () => const Padding(
+          loading: () => Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Center(child: CircularProgressIndicator()),
           ),
@@ -646,6 +669,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         } catch (_) {}
       }
 
+      if (widget.memoryId != null) {
+        ref.invalidate(_memoryByIdProvider(widget.memoryId!));
+      }
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -784,19 +810,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   }
 
   Scaffold _buildScaffold({Memory? memory}) {
-    final currentUserAsync = ref.watch(currentUserProvider);
-    final List<User> availableUsers = currentUserAsync.maybeWhen(
-      data: (user) {
-        if (user == null) return <User>[];
-        final relationsAsync = ref.watch(userRelationsProvider(user.id));
-        return relationsAsync.maybeWhen(
-          data: (rels) => rels.map((r) => r.relatedUser).toList(),
-          orElse: () => <User>[],
-        );
-      },
-      orElse: () => <User>[],
-    );
-
     final isEdit = widget.mode == MemoryUpsertMode.edit;
     final memoryControllerState = ref.watch(memoryControllerProvider);
 
@@ -834,17 +847,17 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 dateValidator: (_) => _selectedDate == null
                     ? 'Selecciona la fecha del recuerdo'
                     : null,
-                relatedPeople: _relatedPeople,
-                availableUsers: availableUsers,
-                onAddUser: (p) => setState(() => _relatedPeople.add(p)),
-                onRemoveUser: (p) => setState(() {
+                participants: _relatedPeople,
+                onRemoveParticipant: (p) => setState(() {
                   _relatedPeople.removeWhere((x) => x.user.id == p.user.id);
+                  _selectedRelationUserRoles.remove(p.user.id);
                 }),
                 onChangeRole: (p) => setState(() {
                   final idx = _relatedPeople.indexWhere(
                     (x) => x.user.id == p.user.id,
                   );
                   if (idx != -1) _relatedPeople[idx] = p;
+                  _selectedRelationUserRoles[p.user.id] = p.role.name;
                 }),
               ),
               const SizedBox(height: AppSizes.paddingMedium),

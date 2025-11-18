@@ -115,9 +115,6 @@ class MemoryController extends AsyncNotifier<void> {
       await _repository.addParticipant(memoryId, userId, role);
       // Invalidate caches / providers that depend on memory participants
       ref.invalidate(userMemoriesProvider);
-      if (memoryId.isNotEmpty) {
-        ref.invalidate(memoryControllerProvider);
-      }
     } catch (e) {
       rethrow;
     }
@@ -128,9 +125,6 @@ class MemoryController extends AsyncNotifier<void> {
     try {
       await _repository.removeParticipant(memoryId, userId);
       ref.invalidate(userMemoriesProvider);
-      if (memoryId.isNotEmpty) {
-        ref.invalidate(memoryControllerProvider);
-      }
     } catch (e) {
       rethrow;
     }
