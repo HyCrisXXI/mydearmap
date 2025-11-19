@@ -1,7 +1,6 @@
 // lib/features/memories/widgets/memory_form.dart
 import 'package:flutter/material.dart';
 import 'package:mydearmap/core/constants/constants.dart';
-import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/data/models/memory.dart';
 
 class MemoryForm extends StatefulWidget {

@@ -36,6 +36,11 @@ class MemoryDetailView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: Image.asset(AppIcons.chevronLeft),
+          onPressed: () => Navigator.of(context).pop(),
+          style: AppButtonStyles.circularIconButton,
+        ),
         title: const Text('Detalle del recuerdo'),
         actions: [
           IconButton(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
+import 'package:mydearmap/core/constants/constants.dart';
 
 class RelationCreateView extends ConsumerStatefulWidget {
   const RelationCreateView({super.key});
@@ -85,7 +86,14 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Añadir relación')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Image.asset(AppIcons.chevronLeft),
+          onPressed: () => Navigator.of(context).pop(),
+          style: AppButtonStyles.circularIconButton,
+        ),
+        title: const Text('Añadir relación'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(

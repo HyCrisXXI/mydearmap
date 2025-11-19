@@ -16,7 +16,6 @@ import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
-import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/features/memories/widgets/memory_form.dart';
 import 'package:mydearmap/features/memories/widgets/memory_media_editor.dart'
     show
@@ -25,6 +24,7 @@ import 'package:mydearmap/features/memories/widgets/memory_media_editor.dart'
         PendingMemoryMediaDraft;
 import 'package:mydearmap/features/memories/widgets/memory_media_carousel.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
+import 'package:mydearmap/features/map/views/map_view.dart';
 
 final _memoryByIdProvider = FutureProvider.family<Memory, String>((
   ref,
@@ -479,13 +479,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
               .toList();
 
           if (toUpsert.isNotEmpty) {
-            // Log what we'll attempt to upsert
-            try {
-              print(
-                'Will upsert participants for memory $createdId: ${toUpsert.map((u) => u.user.id).toList()}',
-              );
-            } catch (_) {}
-
             final List<String> failed = [];
             for (final ur in toUpsert) {
               try {
@@ -494,10 +487,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                   ur.user.id,
                   ur.role.name,
                 );
-              } catch (e) {
-                try {
-                  print('Failed adding participant ${ur.user.id} -> $e');
-                } catch (_) {}
+              } catch (_) {
                 failed.add(ur.user.id);
               }
             }
@@ -667,15 +657,12 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             );
           }
         }
-      } catch (e) {
-        try {
-          print('Error syncing participants on update: $e');
-        } catch (_) {}
-      }
+      } catch (_) {}
 
       if (widget.memoryId != null) {
         ref.invalidate(_memoryByIdProvider(widget.memoryId!));
       }
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -720,7 +707,11 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             backgroundColor: AppColors.accentColor,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context); // cerrar diálogo
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const MapView()),
+        );
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -818,8 +809,12 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     final memoryControllerState = ref.watch(memoryControllerProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
       appBar: AppBar(
+        leading: IconButton(
+          icon: Image.asset(AppIcons.chevronLeft),
+          onPressed: () => Navigator.of(context).pop(),
+          style: AppButtonStyles.circularIconButton,
+        ),
         title: Text(isEdit ? 'Editar recuerdo' : 'Crear nuevo recuerdo'),
         backgroundColor: AppColors.primaryColor,
         actions: isEdit

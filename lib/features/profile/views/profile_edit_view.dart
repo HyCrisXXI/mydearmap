@@ -259,7 +259,14 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar perfil')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Image.asset(AppIcons.chevronLeft),
+          onPressed: () => Navigator.of(context).pop(),
+          style: AppButtonStyles.circularIconButton,
+        ),
+        title: const Text('Editar perfil'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSizes.paddingLarge),
         child: Column(

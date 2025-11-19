@@ -7,6 +7,7 @@ import 'package:mydearmap/data/models/memory.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:math' as math;
 import 'package:mydearmap/features/memories/views/memory_view.dart';
+import 'package:mydearmap/core/constants/constants.dart';
 
 class MemoriesTimelineView extends ConsumerWidget {
   const MemoriesTimelineView({super.key});
@@ -69,7 +70,14 @@ class _TimelineBody extends StatelessWidget {
     final groups = grouped.entries.toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Timeline')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Image.asset(AppIcons.chevronLeft),
+          onPressed: () => Navigator.of(context).pop(),
+          style: AppButtonStyles.circularIconButton,
+        ),
+        title: const Text('Timeline'),
+      ),
       body: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: groups.length,
