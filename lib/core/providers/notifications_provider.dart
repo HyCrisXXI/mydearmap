@@ -13,6 +13,12 @@ final userNotificationsCacheProvider =
       UserNotificationsCacheNotifier.new,
     );
 
+final userNotificationsRealtimeProvider =
+    StreamProvider.family<AppNotification, String>((ref, userId) {
+  return ref.watch(notificationRepositoryProvider)
+      .watchUserNotifications(userId);
+});
+
 class UserNotificationsCacheNotifier extends Notifier<List<AppNotification>> {
   @override
   List<AppNotification> build() {
@@ -61,6 +67,14 @@ class UserNotificationsCacheNotifier extends Notifier<List<AppNotification>> {
           notification,
     ];
   }
+
+  void upsert(AppNotification notification) {
+    final next = <AppNotification>[notification,
+      ...state.where((item) => item.id != notification.id),
+    ]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    state = List<AppNotification>.unmodifiable(next);
+  }
 }
 
 final userNotificationsProvider = FutureProvider<List<AppNotification>>((
@@ -84,6 +98,13 @@ final userNotificationsProvider = FutureProvider<List<AppNotification>>((
     cacheNotifier.reset();
     return const <AppNotification>[];
   }
+
+  ref.listen<AsyncValue<AppNotification>>(
+    userNotificationsRealtimeProvider(user.id),
+    (previous, next) {
+      next.whenData(cacheNotifier.upsert);
+    },
+  );
 
   if (cached.isNotEmpty) return cached;
 
