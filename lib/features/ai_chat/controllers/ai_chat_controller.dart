@@ -1,8 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:mydearmap/core/providers/current_user_provider.dart';
+import 'package:mydearmap/core/providers/memories_provider.dart';
+import 'package:mydearmap/data/models/memory.dart';
+// ignore: depend_on_referenced_packages
 import 'package:uuid/uuid.dart';
-import '../models/chat_message.dart';
 
-// Estado del controlador de chat
+import '../models/chat_message.dart';
+import '../services/gemini_chat_service.dart';
+
 class ChatState {
   final List<ChatMessage> messages;
   final bool isLoading;
@@ -23,35 +31,42 @@ class ChatState {
   }
 }
 
-// Proveedor del controlador de chat usando NotifierProvider
 class AiChatNotifier extends Notifier<ChatState> {
+  late final GeminiChatService _chatService;
+  DateFormat? _dateFormat;
+  bool _localeReady = false;
+
   @override
   ChatState build() {
+    _chatService = ref.read(geminiChatServiceProvider);
     return ChatState(messages: [], isLoading: false);
   }
 
-  // Añadir un mensaje del usuario
-  void addUserMessage(String content) {
+  Future<void> addUserMessage(String content) async {
+    if (state.isLoading) return;
+
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return;
+
     final message = ChatMessage(
       id: const Uuid().v4(),
-      content: content,
+      content: trimmed,
       isUser: true,
       timestamp: DateTime.now(),
     );
-    state = state.copyWith(messages: [...state.messages, message]);
-    _simulateAiResponse(content);
+    state = state.copyWith(messages: [...state.messages, message], error: null);
+    await _fetchAiResponse();
   }
 
-  // Simular respuesta de la IA
-  Future<void> _simulateAiResponse(String userMessage) async {
+  Future<void> _fetchAiResponse() async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Simular un retraso de red
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Generar una respuesta simulada de la IA
-      final aiResponse = _generateAiResponse(userMessage);
+      final memoryContext = await _buildMemoryContext();
+      final aiResponse = await _chatService.sendMessage(
+        history: state.messages,
+        memoryContext: memoryContext,
+      );
 
       final aiMessage = ChatMessage(
         id: const Uuid().v4(),
@@ -64,25 +79,114 @@ class AiChatNotifier extends Notifier<ChatState> {
         messages: [...state.messages, aiMessage],
         isLoading: false,
       );
-    } catch (e) {
+    } on GeminiChatException catch (error) {
+      state = state.copyWith(error: error.message, isLoading: false);
+    } catch (_) {
       state = state.copyWith(
-        error: 'Error al obtener respuesta: $e',
+        error: 'Error al obtener respuesta de la IA. Intenta de nuevo.',
         isLoading: false,
       );
     }
   }
 
-  // Generar una respuesta simulada de la IA
-  String _generateAiResponse(String userMessage) {
-    // Respuesta genérica simulada
-    return 'Esta es una respuesta simulada a tu pregunta: "$userMessage".\n\n'
-        'Integra una API real (OpenAI, Gemini, Claude, etc.) en EnvConstants y actualiza '
-        '_simulateAiResponse para obtener respuestas verdaderas.';
+  Future<String?> _buildMemoryContext() async {
+    try {
+      await _ensureLocaleInitialized();
+      final memories = await _loadUserMemories();
+      if (memories.isEmpty) return null;
+      final summary = _summarizeMemories(memories);
+      return summary.isEmpty ? null : summary;
+    } catch (error, stack) {
+      debugPrint('Error building memory context: $error\n$stack');
+      return null;
+    }
+  }
+
+  Future<void> _ensureLocaleInitialized() async {
+    if (_localeReady) return;
+    try {
+      await initializeDateFormatting('es_ES');
+      _localeReady = true;
+    } catch (error, stack) {
+      debugPrint(
+        'No se pudo inicializar la localización es_ES: $error\n$stack',
+      );
+      _localeReady = true; // evitar llamadas repetidas
+    }
+  }
+
+  Future<List<Memory>> _loadUserMemories() async {
+    final cached = ref.read(userMemoriesCacheProvider);
+    if (cached.isNotEmpty) {
+      return cached;
+    }
+
+    final currentUser = await ref.read(currentUserProvider.future);
+    if (currentUser == null) {
+      return const [];
+    }
+
+    final repository = ref.read(memoryRepositoryProvider);
+    final memories = await repository.getMemoriesByUser(currentUser.id);
+    ref.read(userMemoriesCacheProvider.notifier).setAll(memories);
+    return memories;
+  }
+
+  String _summarizeMemories(List<Memory> memories) {
+    if (memories.isEmpty) return '';
+    final sorted = List<Memory>.of(memories)
+      ..sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
+
+    final buffer = StringBuffer('Recuerdos recientes del usuario:\n');
+    for (final memory in sorted.take(8)) {
+      buffer.writeln(_formatMemoryLine(memory));
+    }
+    return buffer.toString().trim();
+  }
+
+  String _formatMemoryLine(Memory memory) {
+    final dateLabel = _memoryDateFormat.format(memory.happenedAt);
+    final location = memory.location;
+    final locationLabel = location != null
+        ? ' en (${location.latitude.toStringAsFixed(2)}, '
+              '${location.longitude.toStringAsFixed(2)})'
+        : '';
+    final description = memory.description?.trim();
+    final descLabel = (description == null || description.isEmpty)
+        ? ''
+        : ' — ${_truncate(description, 160)}';
+
+    return '- $dateLabel • ${memory.title}$locationLabel$descLabel';
+  }
+
+  String _truncate(String value, int maxLength) {
+    if (value.length <= maxLength) return value;
+    return '${value.substring(0, maxLength - 3)}...';
+  }
+
+  DateFormat get _memoryDateFormat {
+    if (_dateFormat != null) {
+      return _dateFormat!;
+    }
+    try {
+      _dateFormat = DateFormat('d MMM yyyy', 'es_ES');
+    } catch (error, stack) {
+      debugPrint(
+        'Fallo al crear el DateFormat es_ES, usando locale por defecto: '
+        '$error\n$stack',
+      );
+      _dateFormat = DateFormat('d MMM yyyy');
+    }
+    return _dateFormat!;
   }
 
   // Limpiar el chat
   void clearChat() {
     state = ChatState(messages: [], isLoading: false);
+  }
+
+  void dismissError() {
+    state = state.copyWith(error: null);
   }
 }
 

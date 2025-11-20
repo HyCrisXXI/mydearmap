@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import '../controllers/ai_chat_controller.dart';
 
 class AiChatView extends ConsumerStatefulWidget {
@@ -44,7 +45,8 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pregúntale a la IA'),
+        title: const Text('Mapi'),
+
         backgroundColor: Theme.of(context).primaryColor,
         actions: [
           if (chatState.messages.isNotEmpty)
@@ -199,6 +201,7 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
           ),
         ],
       ),
+      bottomNavigationBar: const AppNavBar(currentIndex: 0),
     );
   }
 }

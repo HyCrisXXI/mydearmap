@@ -62,6 +62,15 @@ flutter run
 - Widgets personalizados reutilizables
 - Navegación estructurada con rutas definidas
 - Estilo minimalista, cálido, cercano...
+- Chat con IA basado en Gemini 1.5 Flash
+
+### Chat con Gemini
+
+- El controlador `ai_chat_controller.dart` invoca el endpoint `gemini-2.0-flash` (v1beta).
+- Antes de cada petición, el controlador resume los últimos recuerdos del usuario y los envía como contexto para que la IA pueda contestar preguntas como "dame los recuerdos de este mes".
+- Añade tu `GEMINI_API_KEY` al `.env` para habilitar las peticiones.
+- El historial completo del chat se envía en cada llamada para conservar el contexto.
+- Puedes ajustar temperatura y tokens máximos en `GeminiChatService` si necesitas respuestas más creativas o largas.
 
 ## Arquitectura
 
