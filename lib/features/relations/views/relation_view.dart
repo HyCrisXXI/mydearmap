@@ -85,7 +85,6 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                     onMemoryTap: (memory) {
                       // Puedes navegar a detalle si lo deseas
                     },
-                    shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridPadding: EdgeInsets.zero, // o el padding que desees
                   );

@@ -9,6 +9,7 @@ class AppIcons {
   static const String ai = '$_basePath/ai.png';
   static const String asterisk = '$_basePath/asterisk.png';
   static const String bell = '$_basePath/bell.png';
+  static const String blackStar = '$_basePath/black-star.png';
   static const String calendar = '$_basePath/calendar.png';
   static const String chevronDown = '$_basePath/chevron-down.png';
   static const String chevronLeft = '$_basePath/chevron-left.png';

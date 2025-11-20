@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart'; // Necesario para el ScrollBehavior
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/data/models/memory.dart';
@@ -14,7 +15,7 @@ class MemoriesGrid extends StatelessWidget {
   final MemoryTapCallback? onMemoryTap;
   final bool showFavoriteOverlay;
   final EdgeInsets gridPadding;
-  final bool shrinkWrap;
+  final bool showFeatured;
   final ScrollPhysics? physics;
 
   const MemoriesGrid({
@@ -23,14 +24,17 @@ class MemoriesGrid extends StatelessWidget {
     this.onMemoryTap,
     this.showFavoriteOverlay = true,
     this.gridPadding = const EdgeInsets.all(AppSizes.paddingLarge),
-    this.shrinkWrap = false,
+    this.showFeatured = false,
     this.physics,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Ordena favoritos primero, luego por fecha
-    final sorted = [...memories]
+    // 1. Filtrar destacados (favoritos)
+    final featuredMemories = memories.where((m) => m.isFavorite).toList();
+
+    // 2. Ordenar lista general: favoritos primero, luego por fecha
+    final sortedMemories = [...memories]
       ..sort((a, b) {
         final aFav = a.isFavorite;
         final bFav = b.isFavorite;
@@ -40,46 +44,212 @@ class MemoriesGrid extends StatelessWidget {
         return bFav ? 1 : -1;
       });
 
-    return GridView.builder(
-      padding: gridPadding,
-      shrinkWrap: shrinkWrap,
-      physics: physics,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: AppCardMemory.aspectRatio,
-      ),
-      itemCount: sorted.length,
-      itemBuilder: (context, index) {
-        final memory = sorted[index];
-        final mainMedia = memory.media.isNotEmpty ? memory.media.first : null;
-        final imageUrl = mainMedia != null && mainMedia.url != null
-            ? buildMediaPublicUrl(mainMedia.url)
-            : null;
+    return CustomScrollView(
+      physics: physics ?? const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        // --- SECCIÓN DESTACADOS ---
+        if (showFeatured && featuredMemories.isNotEmpty) ...[
+          // Header Destacados
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: Row(
+                children: [
+                  const Text("Destacados", style: AppTextStyles.subtitle),
+                  const SizedBox(width: 8),
+                  Image.asset(AppIcons.blackStar, width: 24, height: 24),
+                ],
+              ),
+            ),
+          ),
 
-        return _FavoriteMemoryCard(
-          memory: memory,
-          imageUrl: imageUrl,
-          onTap: onMemoryTap != null ? () => onMemoryTap!(memory) : null,
-          showFavoriteOverlay: showFavoriteOverlay,
-        );
-      },
+          // Carrusel Horizontal
+          SliverToBoxAdapter(
+            child: _FeaturedCarousel(
+              memories: featuredMemories,
+              onTap: onMemoryTap,
+              showFavoriteOverlay: showFavoriteOverlay,
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+        ],
+
+        // --- SECCIÓN TODOS ---
+        if (showFeatured)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Text("Todos", style: AppTextStyles.subtitle),
+                  const SizedBox(width: 8),
+                  Image.asset(AppIcons.folderOpen, width: 24, height: 24),
+                ],
+              ),
+            ),
+          ),
+
+        // --- GRID DE TODOS LOS RECUERDOS ---
+        SliverPadding(
+          padding: gridPadding,
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: AppCardMemory.aspectRatio,
+            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final memory = sortedMemories[index];
+              final mainMedia = memory.media.isNotEmpty
+                  ? memory.media.first
+                  : null;
+              final imageUrl = mainMedia?.url != null
+                  ? buildMediaPublicUrl(mainMedia!.url)
+                  : null;
+
+              return _FavoriteMemoryCard(
+                memory: memory,
+                imageUrl: imageUrl,
+                onTap: onMemoryTap != null ? () => onMemoryTap!(memory) : null,
+                showFavoriteOverlay: showFavoriteOverlay,
+                size: MemoryCardSize.standard, // Tamaño pequeño para el grid
+              );
+            }, childCount: sortedMemories.length),
+          ),
+        ),
+
+        // Espacio extra al final
+        const SliverToBoxAdapter(child: SizedBox(height: 40)),
+      ],
     );
   }
 }
 
+// --- WIDGET DEL CARRUSEL DESTACADO ---
+class _FeaturedCarousel extends StatefulWidget {
+  final List<Memory> memories;
+  final MemoryTapCallback? onTap;
+  final bool showFavoriteOverlay;
+
+  const _FeaturedCarousel({
+    required this.memories,
+    this.onTap,
+    required this.showFavoriteOverlay,
+  });
+
+  @override
+  State<_FeaturedCarousel> createState() => _FeaturedCarouselState();
+}
+
+class _FeaturedCarouselState extends State<_FeaturedCarousel> {
+  late PageController _pageController;
+  final int _initialPage = 1000;
+
+  @override
+  void initState() {
+    super.initState();
+    // CORRECCIÓN: 0.6 es el valor ideal para ver la central + trozos de las laterales.
+    // Con 0.8 se iban fuera de pantalla.
+    _pageController = PageController(
+      viewportFraction: 0.6,
+      initialPage: _initialPage,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: AppCardMemory.bigTotalHeight,
+      // ESTA ES LA CLAVE: Permitir arrastrar con ratón y touch
+      child: ScrollConfiguration(
+        behavior: const _CarouselScrollBehavior(),
+        child: PageView.builder(
+          // CORRECCIÓN: Clip.none permite pintar fuera del área asignada,
+          // esencial para ver las tarjetas laterales sin cortes raros.
+          clipBehavior: Clip.none,
+          controller: _pageController,
+          physics: const BouncingScrollPhysics(),
+          itemCount: widget.memories.length * 10000,
+          itemBuilder: (context, index) {
+            final int realIndex = index % widget.memories.length;
+            final memory = widget.memories[realIndex];
+
+            final mainMedia = memory.media.isNotEmpty
+                ? memory.media.first
+                : null;
+            final imageUrl = mainMedia?.url != null
+                ? buildMediaPublicUrl(mainMedia!.url)
+                : null;
+
+            return AnimatedBuilder(
+              animation: _pageController,
+              builder: (context, child) {
+                double value = 1.0;
+                if (_pageController.position.haveDimensions) {
+                  value = _pageController.page! - index;
+                  // Suavizado de escala: Mantenemos 0.85 para que las de los lados sean un pelín más pequeñas
+                  value = (1 - (value.abs() * 0.2)).clamp(0.85, 1.0);
+                } else {
+                  value = (index == _initialPage) ? 1.0 : 0.85;
+                }
+
+                return Center(
+                  child: Transform.scale(scale: value, child: child),
+                );
+              },
+              child: _FavoriteMemoryCard(
+                memory: memory,
+                imageUrl: imageUrl,
+                onTap: widget.onTap != null
+                    ? () => widget.onTap!(memory)
+                    : null,
+                showFavoriteOverlay: widget.showFavoriteOverlay,
+                size: MemoryCardSize.big,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// --- CONFIGURACIÓN DE SCROLL (CLAVE PARA WEB/DESKTOP) ---
+class _CarouselScrollBehavior extends MaterialScrollBehavior {
+  const _CarouselScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.invertedStylus,
+    PointerDeviceKind.unknown,
+  };
+}
+
+// --- TARJETA CON LÓGICA DE FAVORITOS ---
 class _FavoriteMemoryCard extends StatefulWidget {
   final Memory memory;
   final String? imageUrl;
   final VoidCallback? onTap;
   final bool showFavoriteOverlay;
+  final MemoryCardSize size;
 
   const _FavoriteMemoryCard({
     required this.memory,
     this.imageUrl,
     this.onTap,
     this.showFavoriteOverlay = true,
+    required this.size,
   });
 
   @override
@@ -96,22 +266,35 @@ class _FavoriteMemoryCardState extends State<_FavoriteMemoryCard> {
   }
 
   @override
+  void didUpdateWidget(covariant _FavoriteMemoryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.memory.isFavorite != widget.memory.isFavorite) {
+      isFavorite = widget.memory.isFavorite;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ref = ProviderScope.containerOf(context, listen: false);
-    return GestureDetector(
+
+    return MemoryCard(
+      memory: widget.memory,
+      imageUrl: widget.imageUrl,
+      size: widget.size,
       onTap: widget.onTap,
-      child: MemoryCard(
-        memory: widget.memory,
-        imageUrl: widget.imageUrl,
-        overlay: widget.showFavoriteOverlay
-            ? Positioned(
-                top: 10,
-                right: 10,
-                child: GestureDetector(
-                  onTap: () async {
+      overlay: widget.showFavoriteOverlay
+          ? Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10, right: 10),
+                child: IconButton(
+                  style: AppButtonStyles.circularIconButton,
+                  onPressed: () async {
                     final userId = ref.read(currentUserProvider).value?.id;
                     if (userId == null || widget.memory.id == null) return;
-                    setState(() => isFavorite = !isFavorite); // Optimista
+
+                    setState(() => isFavorite = !isFavorite);
+
                     final repo = ref.read(memoryRepositoryProvider);
                     await repo.setFavorite(
                       memoryId: widget.memory.id!,
@@ -119,15 +302,15 @@ class _FavoriteMemoryCardState extends State<_FavoriteMemoryCard> {
                       isFavorite: isFavorite,
                     );
                   },
-                  child: Image.asset(
+                  icon: Image.asset(
                     isFavorite ? AppIcons.starFilled : AppIcons.star,
-                    width: 23,
-                    height: 22,
+                    width: 20,
+                    height: 20,
                   ),
                 ),
-              )
-            : null,
-      ),
+              ),
+            )
+          : null,
     );
   }
 }

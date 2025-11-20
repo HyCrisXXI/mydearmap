@@ -1,4 +1,3 @@
-// lib/core/constants/constants.dart
 import 'package:flutter/material.dart';
 export 'app_icons.dart';
 
@@ -36,6 +35,11 @@ class AppSizes {
   static const double buttonSpacing = 21.0;
   static const double buttonPaddingHorizontal = 15.0;
   static const double buttonPaddingVertical = 12.0;
+  static const double profileAvatarSize = 56.0;
+  static const double profileAvatarBorder = 1.5;
+
+  static const double memoryRadiusTop = 22.0;
+  static const double memoryFooterHeight = 46.0;
 }
 
 class AppTextStyles {
@@ -78,8 +82,6 @@ class AppButtonStyles {
   static const ButtonStyle circularIconButton = ButtonStyle(
     backgroundColor: WidgetStatePropertyAll(AppColors.primaryColor),
     shape: WidgetStatePropertyAll(CircleBorder()),
-    //shadowColor: WidgetStatePropertyAll(Color(0xADDBD0BE)),
-    //elevation: WidgetStatePropertyAll(2),
     padding: WidgetStatePropertyAll(EdgeInsets.all(1)),
     fixedSize: WidgetStatePropertyAll(Size(34, 34)),
   );
@@ -105,9 +107,11 @@ const ColorScheme lightColorScheme = ColorScheme(
 );
 
 class AppDecorations {
-  static const BoxDecoration cardMemoryDecoration = BoxDecoration(
+  static const BoxDecoration memoryCardTop = BoxDecoration(
     color: AppColors.primaryColor,
-    borderRadius: BorderRadius.all(Radius.circular(20.0)),
+    borderRadius: BorderRadius.vertical(
+      top: Radius.circular(AppSizes.memoryRadiusTop),
+    ),
     boxShadow: [
       BoxShadow(
         color: Color(0xADDBD0BE),
@@ -117,12 +121,41 @@ class AppDecorations {
       ),
     ],
   );
+
+  static const BoxDecoration memoryCardBottom = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.vertical(
+      bottom: Radius.circular(AppCardMemory.borderRadius),
+    ),
+  );
+
+  static BoxDecoration profileAvatar(ImageProvider imageProvider) {
+    return BoxDecoration(
+      shape: BoxShape.circle,
+      // Borde fino blanco
+      border: Border.all(
+        color: Colors.white,
+        width: AppSizes.profileAvatarBorder,
+      ),
+      // La imagen dentro del círculo
+      image: DecorationImage(
+        image: imageProvider,
+        fit: BoxFit.cover, // Para que la imagen cubra todo el círculo
+      ),
+    );
+  }
 }
 
 class AppCardMemory {
-  static const double width = 170;
+  // Mantenemos las existentes
+  static const double width = 171;
   static const double height = 160;
   static const double cardWithTitleHeight = 192; // 160 + espacio para el título
   static const double aspectRatio = width / cardWithTitleHeight;
   static const double borderRadius = 20.0;
+
+  static const double bigWidth = 219.0;
+  // Altura total 300 - Footer 46 = Imagen 254
+  static const double bigImageHeight = 254.0;
+  static const double bigTotalHeight = 300.0;
 }

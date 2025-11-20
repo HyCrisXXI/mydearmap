@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import '../controllers/ai_chat_controller.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 class AiChatView extends ConsumerStatefulWidget {
   const AiChatView({super.key});
@@ -232,12 +233,14 @@ class _MessageBubble extends StatelessWidget {
               ? CrossAxisAlignment.end
               : CrossAxisAlignment.start,
           children: [
-            Text(
-              message.content,
-              style: TextStyle(
-                color: message.isUser ? Colors.white : Colors.black87,
-              ),
-            ),
+            message.isUser
+                ? Text(message.content, style: TextStyle(color: Colors.white))
+                : MarkdownBody(
+                    data: message.content,
+                    styleSheet: MarkdownStyleSheet(
+                      p: TextStyle(color: Colors.black87),
+                    ),
+                  ),
             const SizedBox(height: 4),
             Text(
               _formatTime(message.timestamp),

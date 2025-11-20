@@ -106,6 +106,7 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
 
           return MemoriesGrid(
             memories: memories,
+            showFeatured: true,
             onMemoryTap: (memory) {
               final memoryId = memory.id ?? '';
               if (memoryId.isEmpty) return;
