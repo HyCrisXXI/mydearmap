@@ -13,21 +13,18 @@ class RelationRepository {
   Future<void> createRelation({
     required String currentUserId,
     required String relatedUserIdentifier,
-    required String relationType,
   }) async {
     final relatedUserId = await _resolveUserId(relatedUserIdentifier);
-    await _insertRelation(currentUserId, relatedUserId, relationType);
+    await _insertRelation(currentUserId, relatedUserId);
   }
 
   Future<void> deleteRelation({
     required String currentUserId,
     required String relatedUserId,
-    required String relationType,
   }) async {
     final raw = await _client.from('user_relations').delete().match({
       'user_id': currentUserId,
       'related_user_id': relatedUserId,
-      'relation_type': relationType,
     }).select();
     final data = _normalizeRaw(raw);
     if (data == null) throw Exception('No se pudo eliminar la relación');
@@ -47,15 +44,10 @@ class RelationRepository {
     if (data == null) throw Exception('No se pudo actualizar el color');
   }
 
-  Future<void> _insertRelation(
-    String userId,
-    String relatedUserId,
-    String relationType,
-  ) async {
+  Future<void> _insertRelation(String userId, String relatedUserId) async {
     final raw = await _client.from('user_relations').insert({
       'user_id': userId,
       'related_user_id': relatedUserId,
-      'relation_type': relationType,
     }).select();
     final data = _normalizeRaw(raw);
     if (data == null) throw Exception('No se pudo crear la relación');

@@ -1,3 +1,4 @@
+// lib/features/memories/views/memory_view.dart
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,7 @@ import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
-import 'package:mydearmap/features/memories/views/memory_edit_view.dart';
+import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/memories/widgets/memory_media_carousel.dart';
 
 final memoryDetailProvider = FutureProvider.family<Memory, String>((

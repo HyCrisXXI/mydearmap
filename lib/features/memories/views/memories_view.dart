@@ -1,3 +1,4 @@
+// lib/features/memories/views/memories_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
@@ -7,7 +8,7 @@ import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/features/timecapsules/views/timecapsules_view.dart';
 import 'package:mydearmap/core/widgets/memories_grid.dart';
 import 'package:mydearmap/features/relations/views/relations_view.dart';
-import 'package:mydearmap/features/memories/views/memory_edit_view.dart';
+import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/timeline/view/timeline_view.dart';
 import 'package:latlong2/latlong.dart';
 

@@ -4,13 +4,9 @@ import 'user.dart';
 class UserRelation {
   final User user;
   final User relatedUser;
-  final String relationType;
 
-  UserRelation({
-    required this.user,
-    required this.relatedUser,
-    required this.relationType,
-  });
+  UserRelation({required this.user, required this.relatedUser});
+
   factory UserRelation.fromMapWithRelated(Map<String, dynamic> map) {
     final userMap = map['user'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(map['user'] as Map)
@@ -29,10 +25,6 @@ class UserRelation {
             'id': map['related_user_id'] ?? map['related_user'] ?? '',
           });
 
-    return UserRelation(
-      user: user,
-      relatedUser: relatedUser,
-      relationType: (map['relation_type'] ?? '').toString(),
-    );
+    return UserRelation(user: user, relatedUser: relatedUser);
   }
 }

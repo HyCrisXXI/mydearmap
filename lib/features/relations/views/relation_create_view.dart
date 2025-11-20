@@ -4,6 +4,7 @@ import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
 import 'package:mydearmap/core/constants/constants.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
 class RelationCreateView extends ConsumerStatefulWidget {
   const RelationCreateView({super.key});
@@ -15,21 +16,52 @@ class RelationCreateView extends ConsumerStatefulWidget {
 class RelationCreateViewState extends ConsumerState<RelationCreateView> {
   final _formKey = GlobalKey<FormState>();
   final _userController = TextEditingController();
-  final _relationController = TextEditingController();
   bool _loading = false;
+  String? _selectedUserId;
+  List<User> _suggestions = [];
 
   @override
   void dispose() {
     _userController.dispose();
-    _relationController.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
+  Future<void> _fetchSuggestions(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    final client = Supabase.instance.client;
     final currentUserId = _currentUserIdFromRef(ref);
+    final response = await client
+        .from('users')
+        .select('id, name, email, profile_url')
+        .ilike('name', '%$query%')
+        .limit(10);
+    final emailMatches = await client
+        .from('users')
+        .select('id, name, email, profile_url')
+        .ilike('email', '%$query%')
+        .limit(10);
 
+    final all = [...response as List, ...emailMatches as List];
+    final seen = <String>{};
+    final users = all
+        .map((e) => User.fromMap(Map<String, dynamic>.from(e)))
+        .where((u) => u.id != currentUserId)
+        .where((u) => seen.add(u.id))
+        .toList();
+    setState(() => _suggestions = users);
+  }
+
+  Future<void> _submit() async {
+    if (_selectedUserId == null || _selectedUserId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona un usuario válido')),
+      );
+      return;
+    }
+    final currentUserId = _currentUserIdFromRef(ref);
     if (currentUserId == null || currentUserId.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -38,30 +70,32 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
       }
       return;
     }
-
-    final relatedIdentifier = _userController.text.trim();
-    final relationType = _relationController.text.trim();
+    if (_selectedUserId == currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No puedes crear un vínculo contigo mismo'),
+        ),
+      );
+      return;
+    }
     setState(() => _loading = true);
-
     try {
       await ref
           .read(relationControllerProvider.notifier)
           .createRelation(
             currentUserId: currentUserId,
-            relatedUserIdentifier: relatedIdentifier,
-            relationType: relationType,
+            relatedUserIdentifier: _selectedUserId!,
           );
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Relación añadida correctamente')),
+        const SnackBar(content: Text('Vínculo añadido correctamente')),
       );
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al añadir la relación: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al añadir el vínculo: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -92,7 +126,7 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
           onPressed: () => Navigator.of(context).pop(),
           style: AppButtonStyles.circularIconButton,
         ),
-        title: const Text('Añadir relación'),
+        title: const Text('Añadir vínculo'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -100,31 +134,69 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(
-                controller: _userController,
-                decoration: const InputDecoration(
-                  labelText: 'Usuario (id o email)',
-                  hintText: 'Introduce el id o email del usuario',
-                  prefixIcon: Icon(Icons.person_add),
-                ),
-                textInputAction: TextInputAction.next,
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Introduce un usuario'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _relationController,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de relación',
-                  hintText: 'ej. amigo, familiar, compañero',
-                  prefixIcon: Icon(Icons.label),
-                ),
-                textInputAction: TextInputAction.done,
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Introduce el tipo de relación'
-                    : null,
-                onFieldSubmitted: (_) => _submit(),
+              Autocomplete<User>(
+                displayStringForOption: (u) => '${u.name} (${u.email})',
+                optionsBuilder: (TextEditingValue textEditingValue) async {
+                  await _fetchSuggestions(textEditingValue.text);
+                  return _suggestions;
+                },
+                fieldViewBuilder:
+                    (context, controller, focusNode, onFieldSubmitted) {
+                      _userController.value = controller.value;
+                      return TextFormField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(
+                          labelText: 'Usuario (nombre o email)',
+                          hintText: 'Busca por nombre o email',
+                          prefixIcon: Icon(Icons.person_add),
+                        ),
+                        validator: (v) =>
+                            (_selectedUserId == null ||
+                                _selectedUserId!.isEmpty)
+                            ? 'Selecciona un usuario de la lista'
+                            : null,
+                      );
+                    },
+                onSelected: (User selection) {
+                  _selectedUserId = selection.id;
+                  _userController.text =
+                      '${selection.name} (${selection.email})';
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4.0,
+                      child: SizedBox(
+                        height: 220,
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          itemCount: options.length,
+                          itemBuilder: (context, index) {
+                            final user = options.elementAt(index);
+                            return ListTile(
+                              leading: user.profileUrl != null
+                                  ? CircleAvatar(
+                                      backgroundImage: NetworkImage(
+                                        user.profileUrl!,
+                                      ),
+                                    )
+                                  : const CircleAvatar(
+                                      child: Icon(Icons.person),
+                                    ),
+                              title: Text(user.name),
+                              subtitle: Text(user.email),
+                              onTap: () {
+                                onSelected(user);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -140,7 +212,7 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
                           ),
                         )
                       : const Icon(Icons.save),
-                  label: Text(_loading ? 'Guardando...' : 'Guardar relación'),
+                  label: Text(_loading ? 'Guardando...' : 'Guardar vínculo'),
                   onPressed: _loading ? null : _submit,
                 ),
               ),

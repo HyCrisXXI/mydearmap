@@ -17,11 +17,10 @@ class RelationController extends AsyncNotifier<void> {
     // no inicialización necesaria
   }
 
-  /// Crea una relación: acepta identifier que puede ser email, número o id.
+  /// Crea una relación: solo requiere los ids.
   Future<void> createRelation({
     required String currentUserId,
-    required String relatedUserIdentifier, // email, phone o id
-    required String relationType,
+    required String relatedUserIdentifier, // email, id, etc.
   }) async {
     state = const AsyncValue.loading();
 
@@ -29,7 +28,6 @@ class RelationController extends AsyncNotifier<void> {
       await _repository.createRelation(
         currentUserId: currentUserId,
         relatedUserIdentifier: relatedUserIdentifier,
-        relationType: relationType,
       );
 
       // invalidar cache de relaciones del usuario
@@ -45,14 +43,12 @@ class RelationController extends AsyncNotifier<void> {
   Future<void> deleteRelation({
     required String currentUserId,
     required String relatedUserId,
-    required String relationType,
   }) async {
     state = const AsyncValue.loading();
     try {
       await _repository.deleteRelation(
         currentUserId: currentUserId,
         relatedUserId: relatedUserId,
-        relationType: relationType,
       );
 
       ref.invalidate(userRelationsProvider(currentUserId));

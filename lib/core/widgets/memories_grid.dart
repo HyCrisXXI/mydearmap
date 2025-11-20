@@ -17,6 +17,7 @@ class MemoriesGrid extends StatelessWidget {
   final EdgeInsets gridPadding;
   final bool showFeatured;
   final ScrollPhysics? physics;
+  final bool shrinkWrap;
 
   const MemoriesGrid({
     super.key,
@@ -26,6 +27,7 @@ class MemoriesGrid extends StatelessWidget {
     this.gridPadding = const EdgeInsets.all(AppSizes.paddingLarge),
     this.showFeatured = false,
     this.physics,
+    this.shrinkWrap = false,
   });
 
   @override
@@ -44,85 +46,164 @@ class MemoriesGrid extends StatelessWidget {
         return bFav ? 1 : -1;
       });
 
-    return CustomScrollView(
-      physics: physics ?? const AlwaysScrollableScrollPhysics(),
-      slivers: [
-        // --- SECCIÓN DESTACADOS ---
-        if (showFeatured && featuredMemories.isNotEmpty) ...[
-          // Header Destacados
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-              child: Row(
-                children: [
-                  const Text("Destacados", style: AppTextStyles.subtitle),
-                  const SizedBox(width: 8),
-                  Image.asset(AppIcons.blackStar, width: 24, height: 24),
-                ],
+    // --- FIX: Only use CustomScrollView if NOT inside another scrollable ---
+    // If shrinkWrap is true, always use a Wrap (never CustomScrollView)
+    if (shrinkWrap) {
+      return Padding(
+        padding: gridPadding,
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final memory in sortedMemories)
+              SizedBox(
+                width:
+                    (MediaQuery.of(context).size.width -
+                        gridPadding.horizontal -
+                        12) /
+                    2,
+                child: _FavoriteMemoryCard(
+                  memory: memory,
+                  imageUrl:
+                      memory.media.isNotEmpty && memory.media.first.url != null
+                      ? buildMediaPublicUrl(memory.media.first.url)
+                      : null,
+                  onTap: onMemoryTap != null
+                      ? () => onMemoryTap!(memory)
+                      : null,
+                  showFavoriteOverlay: showFavoriteOverlay,
+                  size: MemoryCardSize.standard,
+                ),
               ),
-            ),
-          ),
-
-          // Carrusel Horizontal
-          SliverToBoxAdapter(
-            child: _FeaturedCarousel(
-              memories: featuredMemories,
-              onTap: onMemoryTap,
-              showFavoriteOverlay: showFavoriteOverlay,
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        ],
-
-        // --- SECCIÓN TODOS ---
-        if (showFeatured)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  const Text("Todos", style: AppTextStyles.subtitle),
-                  const SizedBox(width: 8),
-                  Image.asset(AppIcons.folderOpen, width: 24, height: 24),
-                ],
-              ),
-            ),
-          ),
-
-        // --- GRID DE TODOS LOS RECUERDOS ---
-        SliverPadding(
-          padding: gridPadding,
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: AppCardMemory.aspectRatio,
-            ),
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final memory = sortedMemories[index];
-              final mainMedia = memory.media.isNotEmpty
-                  ? memory.media.first
-                  : null;
-              final imageUrl = mainMedia?.url != null
-                  ? buildMediaPublicUrl(mainMedia!.url)
-                  : null;
-
-              return _FavoriteMemoryCard(
-                memory: memory,
-                imageUrl: imageUrl,
-                onTap: onMemoryTap != null ? () => onMemoryTap!(memory) : null,
-                showFavoriteOverlay: showFavoriteOverlay,
-                size: MemoryCardSize.standard, // Tamaño pequeño para el grid
-              );
-            }, childCount: sortedMemories.length),
-          ),
+          ],
         ),
+      );
+    }
 
-        // Espacio extra al final
-        const SliverToBoxAdapter(child: SizedBox(height: 40)),
-      ],
+    // --- Only use CustomScrollView if shrinkWrap is false (full screen) ---
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // If height is unbounded, fallback to Wrap (prevents error)
+        if (!constraints.hasBoundedHeight) {
+          return Padding(
+            padding: gridPadding,
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final memory in sortedMemories)
+                  SizedBox(
+                    width:
+                        (MediaQuery.of(context).size.width -
+                            gridPadding.horizontal -
+                            12) /
+                        2,
+                    child: _FavoriteMemoryCard(
+                      memory: memory,
+                      imageUrl:
+                          memory.media.isNotEmpty &&
+                              memory.media.first.url != null
+                          ? buildMediaPublicUrl(memory.media.first.url)
+                          : null,
+                      onTap: onMemoryTap != null
+                          ? () => onMemoryTap!(memory)
+                          : null,
+                      showFavoriteOverlay: showFavoriteOverlay,
+                      size: MemoryCardSize.standard,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }
+
+        // --- Normal CustomScrollView for full screen usage ---
+        return CustomScrollView(
+          physics: physics ?? const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // --- SECCIÓN DESTACADOS ---
+            if (showFeatured && featuredMemories.isNotEmpty) ...[
+              // Header Destacados
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                  child: Row(
+                    children: [
+                      const Text("Destacados", style: AppTextStyles.subtitle),
+                      const SizedBox(width: 8),
+                      Image.asset(AppIcons.blackStar, width: 24, height: 24),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Carrusel Horizontal
+              SliverToBoxAdapter(
+                child: _FeaturedCarousel(
+                  memories: featuredMemories,
+                  onTap: onMemoryTap,
+                  showFavoriteOverlay: showFavoriteOverlay,
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            ],
+
+            // --- SECCIÓN TODOS ---
+            if (showFeatured)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      const Text("Todos", style: AppTextStyles.subtitle),
+                      const SizedBox(width: 8),
+                      Image.asset(AppIcons.folderOpen, width: 24, height: 24),
+                    ],
+                  ),
+                ),
+              ),
+
+            // --- GRID DE TODOS LOS RECUERDOS ---
+            SliverPadding(
+              padding: gridPadding,
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: AppCardMemory.aspectRatio,
+                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final memory = sortedMemories[index];
+                  final mainMedia = memory.media.isNotEmpty
+                      ? memory.media.first
+                      : null;
+                  final imageUrl = mainMedia?.url != null
+                      ? buildMediaPublicUrl(mainMedia!.url)
+                      : null;
+
+                  return _FavoriteMemoryCard(
+                    memory: memory,
+                    imageUrl: imageUrl,
+                    onTap: onMemoryTap != null
+                        ? () => onMemoryTap!(memory)
+                        : null,
+                    showFavoriteOverlay: showFavoriteOverlay,
+                    size: MemoryCardSize.standard,
+                  );
+                }, childCount: sortedMemories.length),
+              ),
+            ),
+
+            // Espacio extra al final
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          ],
+        );
+      },
     );
   }
 }

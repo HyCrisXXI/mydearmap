@@ -74,9 +74,9 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
             final previewCount = sortedShared.length > 8
                 ? 8
                 : sortedShared.length;
-            final displayName = (relation.relationType.trim().isNotEmpty)
-                ? relation.relationType.trim()
-                : relation.relatedUser.name.trim();
+            final displayName = relation.relatedUser.name.trim().isNotEmpty
+                ? relation.relatedUser.name.trim()
+                : relation.relatedUser.email.trim();
 
             final Widget sharedContent = sortedShared.isEmpty
                 ? const Text('Aún no hay recuerdos en común.')

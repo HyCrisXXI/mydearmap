@@ -3,6 +3,7 @@ import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/data/models/media.dart';
 import 'package:mydearmap/features/map/models/map_view_model.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:flutter/material.dart';
@@ -12,9 +13,10 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:mydearmap/features/memories/views/memory_view.dart';
-import 'package:mydearmap/features/memories/views/memory_edit_view.dart';
+import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/profile/views/profile_view.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
+import 'package:mydearmap/core/utils/media_url.dart';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -282,11 +284,41 @@ class _MapViewState extends ConsumerState<MapView> {
                                         .read(mapViewModelProvider.notifier)
                                         .getStableMemoryPinColor(suggestionId)
                                   : AppColors.primaryColor;
+                              String? imageUrl;
+                              if (suggestion.media.isNotEmpty) {
+                                final images = suggestion.media
+                                    .where(
+                                      (m) =>
+                                          m.type == MediaType.image &&
+                                          m.url != null,
+                                    )
+                                    .toList();
+                                if (images.isNotEmpty) {
+                                  images.sort(
+                                    (a, b) =>
+                                        (a.order ?? 0).compareTo(b.order ?? 0),
+                                  );
+                                  imageUrl = buildMediaPublicUrl(
+                                    images.first.url,
+                                  );
+                                }
+                              }
+                              final avatarSize = 32.0;
                               return ListTile(
-                                leading: Icon(
-                                  Icons.location_on,
-                                  color: suggestionColor,
-                                ),
+                                leading: imageUrl != null
+                                    ? Container(
+                                        width: avatarSize,
+                                        height: avatarSize,
+                                        decoration:
+                                            AppDecorations.profileAvatar(
+                                              NetworkImage(imageUrl),
+                                            ),
+                                      )
+                                    : Icon(
+                                        Icons.location_on,
+                                        color: suggestionColor,
+                                        size: avatarSize,
+                                      ),
                                 title: Text(suggestion.title),
                                 onTap: () {
                                   searchController.text = suggestion.title;
@@ -454,39 +486,86 @@ class _MapViewState extends ConsumerState<MapView> {
     final viewModel = ref.read(mapViewModelProvider.notifier);
     MemoryMarker? highlightedMarker;
 
-    final markers = memories
-        .where((memory) => memory.location != null && memory.id != null)
-        .map((memory) {
-          final memoryId = memory.id!;
-          final marker = MemoryMarker(
-            memory: memory,
-            point: LatLng(
-              memory.location!.latitude,
-              memory.location!.longitude,
-            ),
-            child: GestureDetector(
-              onLongPress: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => MemoryDetailView(memoryId: memoryId),
-                  ),
-                );
-              },
-              child: Icon(
-                Icons.location_on,
-                color: viewModel.getStableMemoryPinColor(memoryId),
-                size: 35,
+    // Separar recuerdos con imagen y sin imagen
+    final withImage = <Memory>[];
+    final withoutImage = <Memory>[];
+    for (final memory in memories) {
+      if (memory.location != null && memory.id != null) {
+        final images = memory.media
+            .where((m) => m.type == MediaType.image && m.url != null)
+            .toList();
+        if (images.isNotEmpty) {
+          withImage.add(memory);
+        } else {
+          withoutImage.add(memory);
+        }
+      }
+    }
+
+    // Primero los marcadores SIN imagen
+    final markerMarkers = withoutImage.map((memory) {
+      final memoryId = memory.id!;
+      final marker = MemoryMarker(
+        memory: memory,
+        point: LatLng(memory.location!.latitude, memory.location!.longitude),
+        child: GestureDetector(
+          onLongPress: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => MemoryDetailView(memoryId: memoryId),
               ),
-            ),
-          );
+            );
+          },
+          child: Icon(
+            Icons.location_on,
+            color: viewModel.getStableMemoryPinColor(memoryId),
+            size: 35,
+          ),
+        ),
+      );
+      if (memoryId == mapState.highlightedMemoryId) {
+        highlightedMarker = marker;
+      }
+      return marker;
+    });
 
-          if (memoryId == mapState.highlightedMemoryId) {
-            highlightedMarker = marker;
-          }
+    // Luego los marcadores CON imagen (por encima)
+    final imageMarkers = withImage.map((memory) {
+      final memoryId = memory.id!;
+      String? imageUrl;
+      final images = memory.media
+          .where((m) => m.type == MediaType.image && m.url != null)
+          .toList();
+      if (images.isNotEmpty) {
+        images.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
+        imageUrl = buildMediaPublicUrl(images.first.url);
+      }
+      final marker = MemoryMarker(
+        memory: memory,
+        point: LatLng(memory.location!.latitude, memory.location!.longitude),
+        child: GestureDetector(
+          onLongPress: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => MemoryDetailView(memoryId: memoryId),
+              ),
+            );
+          },
+          child: Container(
+            width: 48.0,
+            height: 48.0,
+            decoration: AppDecorations.profileAvatar(NetworkImage(imageUrl!)),
+          ),
+        ),
+      );
+      if (memoryId == mapState.highlightedMemoryId) {
+        highlightedMarker = marker;
+      }
+      return marker;
+    });
 
-          return marker;
-        })
-        .toList();
+    // Unir: primero los sin imagen, luego los con imagen
+    final markers = [...markerMarkers, ...imageMarkers].toList();
 
     if (highlightedMarker != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

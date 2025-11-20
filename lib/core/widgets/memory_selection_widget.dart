@@ -89,36 +89,48 @@ class _MemorySelectionWidgetState extends State<MemorySelectionWidget> {
                   isSelected,
                   () => _toggleMemory(memory),
                 )
-              : Positioned(
-                  bottom: 40,
-                  right: 16,
-                  child: GestureDetector(
-                    onTap: () => _toggleMemory(memory),
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected
-                            ? AppColors.blue
-                            : AppColors.buttonDisabledBackground,
-                        border: Border.all(color: Colors.white, width: 2),
+              : Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10, right: 10),
+                    child: GestureDetector(
+                      onTap: () => _toggleMemory(memory),
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? AppColors.blue
+                              : Colors.transparent,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: .15),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: isSelected
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 18,
+                              )
+                            : null,
                       ),
-                      child: isSelected
-                          ? const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 18,
-                            )
-                          : null,
                     ),
                   ),
                 );
 
-          return MemoryCard(
-            memory: memory,
-            imageUrl: imageUrl,
-            overlay: overlay,
+          return GestureDetector(
+            onTap: () => _toggleMemory(memory),
+            child: MemoryCard(
+              memory: memory,
+              imageUrl: imageUrl,
+              overlay: overlay,
+            ),
           );
         },
       ),

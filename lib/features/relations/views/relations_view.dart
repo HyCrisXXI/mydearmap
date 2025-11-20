@@ -115,14 +115,15 @@ class RelationsView extends ConsumerWidget {
             data: (memories) {
               final sorted = [...relations]
                 ..sort(
-                  (a, b) =>
-                      _relationListLabel(a).compareTo(_relationListLabel(b)),
+                  (a, b) => _relationDisplayName(
+                    a,
+                  ).compareTo(_relationDisplayName(b)),
                 );
 
               return Scaffold(
                 appBar: _buildRelationsAppBar(context),
                 body: sorted.isEmpty
-                    ? const Center(child: Text('Aún no has creado relaciones.'))
+                    ? const Center(child: Text('Aún no has creado vinculos.'))
                     : ListView.separated(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
@@ -135,7 +136,7 @@ class RelationsView extends ConsumerWidget {
                             currentUserId: user.id,
                             relatedUserId: relation.relatedUser.id,
                           );
-                          final relationLabel = _relationListLabel(relation);
+                          final relationLabel = _relationDisplayName(relation);
 
                           // Avatar del usuario relacionado
                           final avatarUrl = buildAvatarUrl(
@@ -229,13 +230,7 @@ String _relationDisplayName(UserRelation relation) {
   if (name.isNotEmpty) return name;
   final email = relation.relatedUser.email.trim();
   if (email.isNotEmpty) return email;
-  return relation.relationType;
-}
-
-String _relationListLabel(UserRelation relation) {
-  final relationName = relation.relationType.trim();
-  if (relationName.isNotEmpty) return relationName;
-  return _relationDisplayName(relation);
+  return '';
 }
 
 String _sharedMemoriesLabel(int count) {

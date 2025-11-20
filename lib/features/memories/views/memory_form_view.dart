@@ -1,4 +1,4 @@
-// lib/features/memories/views/memory_edit_view.dart
+// lib/features/memories/views/memory_form_view.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -283,9 +283,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                                                   ? related.name
                                                   : related.email,
                                             ),
-                                            subtitle: r.relationType.isNotEmpty
-                                                ? Text(r.relationType)
-                                                : null,
                                             trailing: selected
                                                 ? DropdownButton<String>(
                                                     value: temp[id],
