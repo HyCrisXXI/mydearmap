@@ -167,36 +167,33 @@ class _TimelineEventCard extends StatelessWidget {
             ],
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment:
                 alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
-              if (coverUrl != null) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: AspectRatio(
-                    aspectRatio: 3 / 2,
-                    child: Image.network(
-                      coverUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.grey.shade200,
-                        alignment: Alignment.center,
-                        child: const Icon(Icons.photo, color: Colors.grey),
-                      ),
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(12),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: AspectRatio(
+                  aspectRatio: 3 / 2,
+                  child: coverUrl != null
+                      ? Image.network(
+                          coverUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _TimelineImagePlaceholder(),
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(12),
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          },
+                        )
+                      : const _TimelineImagePlaceholder(),
                 ),
-                const SizedBox(height: 12),
-              ],
+              ),
+              const SizedBox(height: 12),
               Text(
                 dateLabel,
                 style: Theme.of(context)
@@ -355,8 +352,35 @@ String? _coverUrlFor(Memory memory) {
   for (final media in memory.media) {
     final url = media.url;
     if (media.type == MediaType.image && url != null && url.isNotEmpty) {
+      if (!_looksLikeImage(url)) continue;
       return buildMediaPublicUrl(url);
     }
   }
   return null;
+}
+
+bool _looksLikeImage(String url) {
+  final lower = url.toLowerCase();
+  return lower.endsWith('.png') ||
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.webp') ||
+      lower.endsWith('.gif');
+}
+
+class _TimelineImagePlaceholder extends StatelessWidget {
+  const _TimelineImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.grey.shade200,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.photo,
+        color: Colors.grey.shade500,
+        size: 32,
+      ),
+    );
+  }
 }
