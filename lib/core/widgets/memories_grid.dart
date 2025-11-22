@@ -392,6 +392,12 @@ class _FavoriteMemoryCardState extends State<_FavoriteMemoryCard> {
               ),
             )
           : null,
+      titleWidget: Text(
+        widget.memory.title,
+        style: AppTextStyles.text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }

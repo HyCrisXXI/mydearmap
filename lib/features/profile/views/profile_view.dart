@@ -236,7 +236,7 @@ class ProfileView extends ConsumerWidget {
         if (context.mounted) {
           Navigator.of(
             context,
-          ).popUntil((route) => route.isFirst); // Pop to root (AuthGate)
+          ).pushNamedAndRemoveUntil('/auth', (route) => false);
         }
       } catch (e) {
         if (context.mounted) {

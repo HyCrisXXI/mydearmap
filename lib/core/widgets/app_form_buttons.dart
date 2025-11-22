@@ -76,42 +76,49 @@ class AppFormButtons extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Align(
-          child: SizedBox(
-            width: _buttonWidth(primaryIsCompact),
-            height: AppSizes.buttonHeight,
-            child: FilledButton(
-              onPressed: disablePrimary ? null : onPrimaryPressed,
-              style: _buttonStyle(),
-              child: isProcessing
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.buttonForeground,
-                      ),
-                    )
-                  : Text(primaryLabel, style: primaryLabelStyle),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SizedBox(
+              width: _buttonWidth(primaryIsCompact),
+              child: FilledButton(
+                onPressed: disablePrimary ? null : onPrimaryPressed,
+                style: _buttonStyle(),
+                child: isProcessing
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.buttonForeground,
+                        ),
+                      )
+                    : Text(primaryLabel, style: primaryLabelStyle),
+              ),
             ),
           ),
         ),
         if (secondaryLabel != null) ...[
           const SizedBox(height: AppSizes.buttonSpacing),
           Align(
-            child: SizedBox(
-              width: _buttonWidth(secondaryIsCompact),
-              height: AppSizes.buttonHeight,
-              child: secondaryOutlined
-                  ? OutlinedButton(
-                      onPressed: disableSecondary ? null : onSecondaryPressed,
-                      style: _outlinedStyle(),
-                      child: Text(secondaryLabel!, style: secondaryLabelStyle),
-                    )
-                  : FilledButton(
-                      onPressed: disableSecondary ? null : onSecondaryPressed,
-                      style: _buttonStyle(),
-                      child: Text(secondaryLabel!, style: primaryLabelStyle),
-                    ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: SizedBox(
+                width: _buttonWidth(secondaryIsCompact),
+                child: secondaryOutlined
+                    ? OutlinedButton(
+                        onPressed: disableSecondary ? null : onSecondaryPressed,
+                        style: _outlinedStyle(),
+                        child: Text(
+                          secondaryLabel!,
+                          style: secondaryLabelStyle,
+                        ),
+                      )
+                    : FilledButton(
+                        onPressed: disableSecondary ? null : onSecondaryPressed,
+                        style: _buttonStyle(),
+                        child: Text(secondaryLabel!, style: primaryLabelStyle),
+                      ),
+              ),
             ),
           ),
         ],
