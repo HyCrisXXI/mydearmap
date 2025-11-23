@@ -9,6 +9,7 @@ import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/features/profile/views/profile_form_view.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
+import 'package:mydearmap/features/wishlist/views/wishlist_view.dart';
 
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
@@ -91,6 +92,32 @@ class ProfileView extends ConsumerWidget {
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: AppSizes.paddingMedium),
+                Card(
+                  child: ListTile(
+                    title: const Text('Wishlist'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        SizedBox(height: 6),
+                        Divider(height: 1, thickness: 1),
+                        SizedBox(height: 6),
+                        Text(
+                          'Todos los lugares o planes que estás deseando hacer.',
+                        ),
+                      ],
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      showDialog<void>(
+                        context: context,
+                        barrierDismissible: true,
+                        builder: (_) => const WishlistDialog(),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(height: AppSizes.paddingLarge),
                 const Divider(),

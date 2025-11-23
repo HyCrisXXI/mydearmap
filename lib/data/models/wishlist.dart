@@ -2,44 +2,37 @@
 import 'user.dart';
 
 class Wishlist {
+  Wishlist({required this.id, required this.title, required this.user});
+
   final String id;
   final String title;
-  final String? description;
-  final GeoPoint location;
-  final DateTime createdAt;
-
-  User creator;
-  List<User> sharedWith = [];
-
-  Wishlist({
-    required this.id,
-    required this.title,
-    this.description,
-    required this.location,
-    required this.createdAt,
-    required this.creator,
-  });
+  final User user;
 
   factory Wishlist.fromJson(Map<String, dynamic> json) {
+    final rawUser = json['user'] ?? json['creator'];
+    final user = _parseUser(rawUser, json);
     return Wishlist(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String?,
-      location: GeoPoint.fromJson(json['location']),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      creator: User.fromJson(json['creator']),
+      id: (json['id'] ?? '').toString(),
+      title: (json['title'] ?? '').toString(),
+      user: user,
     );
   }
-}
 
-class GeoPoint {
-  final double latitude;
-  final double longitude;
+  static User _parseUser(dynamic rawUser, Map<String, dynamic> fallbackJson) {
+    if (rawUser is Map<String, dynamic>) {
+      return User.fromJson(rawUser);
+    }
 
-  GeoPoint(this.latitude, this.longitude);
-
-  factory GeoPoint.fromJson(Map<String, dynamic> json) {
-    final coordinates = json['coordinates'] as List;
-    return GeoPoint(coordinates[1] as double, coordinates[0] as double);
+    return User(
+      id: (fallbackJson['user_id'] ?? '').toString(),
+      name: (fallbackJson['user_name'] ?? 'Usuario').toString(),
+      email: (fallbackJson['user_email'] ?? 'sin-correo@mydearmap.app')
+          .toString(),
+      number: null,
+      birthDate: null,
+      gender: Gender.other,
+      profileUrl: null,
+      createdAt: DateTime.now(),
+    );
   }
 }
