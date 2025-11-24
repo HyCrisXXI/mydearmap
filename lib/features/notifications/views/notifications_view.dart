@@ -6,6 +6,7 @@ import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/notifications_provider.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/data/models/app_notification.dart';
+import 'package:mydearmap/features/memories/views/memory_view.dart';
 
 class NotificationsView extends ConsumerWidget {
   const NotificationsView({super.key});
@@ -202,7 +203,7 @@ class _NotificationTile extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: null,
+          onTap: () => _handleNotificationTap(context, notification),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -254,30 +255,34 @@ class _NotificationTile extends StatelessWidget {
                               ?.copyWith(color: Colors.grey.shade700),
                         ),
                       ],
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
+                      if (notification.kind != NotificationKind.custom) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: badgeColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                notification.kind.name,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      color: badgeColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
                             ),
-                            decoration: BoxDecoration(
-                              color: badgeColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Text(
-                              notification.kind.name,
-                              style: Theme.of(context).textTheme.labelMedium
-                                  ?.copyWith(
-                                    color: badgeColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ),
-                          const Spacer(),
-                        ],
-                      ),
+                            const Spacer(),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -295,6 +300,25 @@ Widget _notificationsScaffold({required Widget body, List<Widget>? actions}) {
     appBar: AppBar(title: const Text('Notificaciones'), actions: actions),
     body: body,
     bottomNavigationBar: const AppNavBar(currentIndex: 3),
+  );
+}
+
+void _handleNotificationTap(
+  BuildContext context,
+  AppNotification notification,
+) {
+  final memoryId = _memoryIdFromMetadata(notification.metadata);
+  if (memoryId == null || memoryId.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Esta notificación no tiene un recuerdo asociado.')),
+    );
+    return;
+  }
+
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => MemoryDetailView(memoryId: memoryId),
+    ),
   );
 }
 
@@ -356,4 +380,24 @@ String? _contextLineFrom(Map<String, dynamic> metadata) {
 
   final text = buffer.toString();
   return text.isEmpty ? null : text;
+}
+
+String? _memoryIdFromMetadata(dynamic metadata) {
+  if (metadata is Map) {
+    final direct = metadata['memory_id'] ?? metadata['memoryId'];
+    if (direct != null) {
+      final value = direct.toString().trim();
+      if (value.isNotEmpty) return value;
+    }
+    for (final entry in metadata.entries) {
+      final candidate = _memoryIdFromMetadata(entry.value);
+      if (candidate != null) return candidate;
+    }
+  } else if (metadata is Iterable) {
+    for (final item in metadata) {
+      final candidate = _memoryIdFromMetadata(item);
+      if (candidate != null) return candidate;
+    }
+  }
+  return null;
 }
