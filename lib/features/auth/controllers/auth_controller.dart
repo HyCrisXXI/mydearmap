@@ -6,6 +6,7 @@ import 'package:mydearmap/data/repositories/auth_repository.dart';
 import 'package:mydearmap/core/errors/auth_errors.dart';
 import 'package:mydearmap/core/utils/validators.dart';
 import 'package:mydearmap/features/auth/models/signup_form_state.dart';
+import 'package:mydearmap/core/providers/current_user_provider.dart';
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, void>(() {
   return AuthController();
@@ -55,6 +56,9 @@ class AuthController extends AsyncNotifier<void> {
       };
 
       await _authRepository.createUserProfile(profileData);
+
+      ref.invalidate(currentUserProvider);
+
       state = const AsyncValue.data(null);
     } on AuthException catch (e) {
       final appAuthException = AppAuthException.fromSupabase(e);
@@ -90,6 +94,8 @@ class AuthController extends AsyncNotifier<void> {
         email: trimmedEmail,
         password: trimmedPassword,
       );
+
+      ref.invalidate(currentUserProvider);
       state = const AsyncValue.data(null);
     } on AuthException catch (e) {
       final appAuthException = AppAuthException.fromSupabase(e);
