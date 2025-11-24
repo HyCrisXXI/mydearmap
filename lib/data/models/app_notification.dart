@@ -156,6 +156,13 @@ class AppNotification {
           if (map['action'] != null) 'action': map['action'],
           if (map['activity_source'] != null)
             'activity_source': map['activity_source'],
+          if (map['role'] != null) 'role': map['role'],
+          if (map['user_role'] != null) 'user_role': map['user_role'],
+          if (map['current_user_role'] != null)
+            'current_user_role': map['current_user_role'],
+          if (map['participant_role'] != null)
+            'participant_role': map['participant_role'],
+          if (map['memory_role'] != null) 'memory_role': map['memory_role'],
         },
       ),
       actionLabel: _stringOrNull(

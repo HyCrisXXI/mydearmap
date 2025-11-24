@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:mydearmap/data/models/app_notification.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -61,25 +60,4 @@ class NotificationRepository {
     return controller.stream;
   }
 
-  Future<void> markAsRead(List<String> notificationIds) async {
-    if (notificationIds.isEmpty) return;
-    final payload = <String, dynamic>{
-      'is_read': true,
-      'read': true,
-      'read_at': DateTime.now().toIso8601String(),
-    };
-    try {
-      await _client
-          .from('notifications')
-          .update(payload)
-          .filter('id', 'in', _encodeInFilter(notificationIds));
-    } catch (error, stack) {
-      debugPrint('markAsRead failed: $error\n$stack');
-    }
-  }
-
-  String _encodeInFilter(List<String> values) {
-    final encoded = values.map((value) => '"$value"').join(',');
-    return '($encoded)';
-  }
 }

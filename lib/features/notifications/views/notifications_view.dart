@@ -51,52 +51,33 @@ class _NotificationsContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hasUnread = notifications.any((n) => !n.isRead);
+    final visibleNotifications = notifications
+        .where((notification) => !_shouldHideNotification(notification))
+        .toList(growable: false);
 
     Future<void> refresh() async {
       ref.invalidate(userNotificationsProvider);
       await ref.read(userNotificationsProvider.future);
     }
 
-    Future<void> markAllAsRead() async {
-      if (!hasUnread) return;
-      final ids = notifications
-          .where((n) => !n.isRead)
-          .map((n) => n.id)
-          .toList();
-      ref.read(userNotificationsCacheProvider.notifier).markManyRead(ids);
-      await ref.read(notificationRepositoryProvider).markAsRead(ids);
-    }
-
-    final content = notifications.isEmpty
+    final content = visibleNotifications.isEmpty
         ? ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: const [_NotificationsEmptyState()],
           )
         : ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 12),
-            itemCount: notifications.length,
+            itemCount: visibleNotifications.length,
             separatorBuilder: (context, index) => const SizedBox(height: 6),
             itemBuilder: (context, index) {
-              final notification = notifications[index];
+              final notification = visibleNotifications[index];
               return _NotificationTile(
                 notification: notification,
-                onTap: () => _markNotificationAsRead(notification, ref),
-                onActionTap: notification.actionLabel == null
-                    ? null
-                    : () => _markNotificationAsRead(notification, ref),
               );
             },
           );
 
     return _notificationsScaffold(
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.done_all),
-          tooltip: 'Marcar todo como leído',
-          onPressed: hasUnread ? () => markAllAsRead() : null,
-        ),
-      ],
       body: RefreshIndicator(onRefresh: refresh, child: content),
     );
   }
@@ -199,19 +180,15 @@ class _NotificationsEmptyState extends StatelessWidget {
 class _NotificationTile extends StatelessWidget {
   const _NotificationTile({
     required this.notification,
-    this.onTap,
-    this.onActionTap,
   });
 
   final AppNotification notification;
-  final VoidCallback? onTap;
-  final VoidCallback? onActionTap;
 
   @override
   Widget build(BuildContext context) {
     final unread = !notification.isRead;
     final icon = iconForKind(notification.kind);
-    final badgeColor = _badgeColor(notification.kind);
+    final badgeColor = Theme.of(context).colorScheme.primary;
     final dateLabel = DateFormat(
       'd MMM, HH:mm',
       'es_ES',
@@ -225,7 +202,7 @@ class _NotificationTile extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
+          onTap: null,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -299,11 +276,6 @@ class _NotificationTile extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
-                          if (notification.actionLabel != null)
-                            TextButton(
-                              onPressed: onActionTap,
-                              child: Text(notification.actionLabel!),
-                            ),
                         ],
                       ),
                     ],
@@ -326,23 +298,33 @@ Widget _notificationsScaffold({required Widget body, List<Widget>? actions}) {
   );
 }
 
-Color _badgeColor(NotificationKind kind) {
-  switch (kind) {
-    case NotificationKind.memory:
-      return AppColors.blue;
-    case NotificationKind.relation:
-      return AppColors.orange;
-    case NotificationKind.achievement:
-      return AppColors.green;
-    case NotificationKind.reminder:
-      return AppColors.yellow;
-    case NotificationKind.invite:
-      return AppColors.pink;
-    case NotificationKind.system:
-      return Colors.indigo;
-    case NotificationKind.custom:
-      return Colors.grey.shade600;
+bool _shouldHideNotification(AppNotification notification) {
+  return _metadataContainsCreatorRole(notification.metadata);
+}
+
+bool _metadataContainsCreatorRole(dynamic value) {
+  if (value is Map) {
+    for (final entry in value.entries) {
+      final key = entry.key.toString().toLowerCase();
+      final dynamic entryValue = entry.value;
+      if (key.contains('role') && entryValue is String) {
+        final normalized = entryValue.trim().toLowerCase();
+        if (normalized == 'creator' || normalized == 'creador') {
+          return true;
+        }
+      }
+      if (_metadataContainsCreatorRole(entryValue)) {
+        return true;
+      }
+    }
+    return false;
   }
+  if (value is Iterable) {
+    for (final item in value) {
+      if (_metadataContainsCreatorRole(item)) return true;
+    }
+  }
+  return false;
 }
 
 String? _contextLineFrom(Map<String, dynamic> metadata) {
@@ -374,10 +356,4 @@ String? _contextLineFrom(Map<String, dynamic> metadata) {
 
   final text = buffer.toString();
   return text.isEmpty ? null : text;
-}
-
-void _markNotificationAsRead(AppNotification notification, WidgetRef ref) {
-  if (notification.isRead) return;
-  ref.read(userNotificationsCacheProvider.notifier).markRead(notification.id);
-  ref.read(notificationRepositoryProvider).markAsRead([notification.id]);
 }
