@@ -18,14 +18,16 @@ class GeminiChatException implements Exception {
 class GeminiChatService {
   GeminiChatService({http.Client? client}) : _client = client ?? http.Client();
 
-  static const String _model = 'models/gemini-2.0-flash';
+  static const String _model = 'models/gemini-2.5-flash';
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta';
   static const double _temperature = 0.4;
   static const int _maxOutputTokens = 512;
   static const String _systemPrompt =
       'Eres el asistente de MyDearMap, tu nombre es Mapi. Responde siempre en español y ayuda '
-      'a los usuarios con sus recuerdos, ubicaciones y eventos.';
+      'a los usuarios con sus recuerdos, ubicaciones y eventos. No compartas coordenadas GPS '
+      'ni datos de latitud/longitud a menos que el usuario lo solicite explícitamente; si no '
+      'las pide, describe la ubicación de forma general.';
 
   final http.Client _client;
 

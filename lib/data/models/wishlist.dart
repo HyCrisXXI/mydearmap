@@ -2,10 +2,16 @@
 import 'user.dart';
 
 class Wishlist {
-  Wishlist({required this.id, required this.title, required this.user});
+  Wishlist({
+    required this.id,
+    required this.title,
+    required this.completed,
+    required this.user,
+  });
 
   final String id;
   final String title;
+  final bool completed;
   final User user;
 
   factory Wishlist.fromJson(Map<String, dynamic> json) {
@@ -14,6 +20,7 @@ class Wishlist {
     return Wishlist(
       id: (json['id'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
+      completed: json['completed'] == true,
       user: user,
     );
   }

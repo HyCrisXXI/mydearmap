@@ -14,7 +14,8 @@ class WishlistDialog extends ConsumerStatefulWidget {
 
 class _WishlistDialogState extends ConsumerState<WishlistDialog> {
   final TextEditingController _titleController = TextEditingController();
-  final Set<String> _selectedWishlistIds = <String>{};
+  final Map<String, bool> _completionOverrides = <String, bool>{};
+  final Set<String> _pendingCompletionWishlistIds = <String>{};
   final Set<String> _pendingRemovalWishlistIds = <String>{};
   final ScrollController _wishlistScrollController = ScrollController();
   bool _isSaving = false;
@@ -62,12 +63,14 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
                 child: wishlistsAsync.when(
                   data: (wishlists) => _WishlistList(
                     wishlists: wishlists,
-                    selectedWishlists: _selectedWishlistIds,
+                    completionResolver: _resolveWishlistCompletion,
+                    pendingCompletionWishlists: _pendingCompletionWishlistIds,
                     pendingRemovalWishlists: _pendingRemovalWishlistIds,
                     scrollController: _wishlistScrollController,
                     onRefresh: _refreshWishlists,
                     onCreateTap: () => _handleCreateWishlist(context),
-                    onToggleWishlist: _toggleWishlistSelection,
+                    onToggleWishlist: (wishlist) =>
+                        _handleToggleCompletion(context, wishlist),
                     onDeleteWishlist: (wishlistId) =>
                         _handleDeleteWishlist(context, wishlistId),
                   ),
@@ -148,19 +151,13 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
     );
   }
 
-  void _toggleWishlistSelection(String wishlistId) {
-    setState(() {
-      if (_selectedWishlistIds.contains(wishlistId)) {
-        _selectedWishlistIds.remove(wishlistId);
-      } else {
-        _selectedWishlistIds.add(wishlistId);
-      }
-    });
-  }
-
   Future<void> _refreshWishlists() async {
     ref.invalidate(userWishlistProvider);
     await ref.read(userWishlistProvider.future);
+  }
+
+  bool _resolveWishlistCompletion(Wishlist wishlist) {
+    return _completionOverrides[wishlist.id] ?? wishlist.completed;
   }
 
   Future<String?> _requireUserId(
@@ -177,6 +174,53 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _handleToggleCompletion(
+    BuildContext context,
+    Wishlist wishlist,
+  ) async {
+    if (_pendingCompletionWishlistIds.contains(wishlist.id)) return;
+
+    final userId = await _requireUserId(
+      context,
+      'Inicia sesión para actualizar tus deseos.',
+    );
+    if (userId == null) return;
+
+    final nextValue = !_resolveWishlistCompletion(wishlist);
+
+    setState(() {
+      _pendingCompletionWishlistIds.add(wishlist.id);
+      _completionOverrides[wishlist.id] = nextValue;
+    });
+
+    var updateSucceeded = false;
+
+    try {
+      final repository = ref.read(wishlistRepositoryProvider);
+      await repository.updateWishlistCompletion(
+        wishlistId: wishlist.id,
+        completed: nextValue,
+      );
+
+      await _refreshWishlists();
+      updateSucceeded = true;
+    } catch (error) {
+      if (!mounted) return;
+      _showSnack(context, 'No se pudo actualizar el deseo: $error');
+      setState(() {
+        _completionOverrides.remove(wishlist.id);
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _pendingCompletionWishlistIds.remove(wishlist.id);
+        if (updateSucceeded) {
+          _completionOverrides.remove(wishlist.id);
+        }
+      });
+    }
   }
 
   Future<void> _handleDeleteWishlist(
@@ -196,7 +240,8 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
     try {
       final repository = ref.read(wishlistRepositoryProvider);
       await repository.deleteWishlist(wishlistId: wishlistId);
-      _selectedWishlistIds.remove(wishlistId);
+      _completionOverrides.remove(wishlistId);
+      _pendingCompletionWishlistIds.remove(wishlistId);
       await _refreshWishlists();
 
       if (!mounted) return;
@@ -250,7 +295,8 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
 class _WishlistList extends StatelessWidget {
   const _WishlistList({
     required this.wishlists,
-    required this.selectedWishlists,
+    required this.completionResolver,
+    required this.pendingCompletionWishlists,
     required this.pendingRemovalWishlists,
     required this.scrollController,
     required this.onRefresh,
@@ -260,12 +306,13 @@ class _WishlistList extends StatelessWidget {
   });
 
   final List<Wishlist> wishlists;
-  final Set<String> selectedWishlists;
+  final bool Function(Wishlist wishlist) completionResolver;
+  final Set<String> pendingCompletionWishlists;
   final Set<String> pendingRemovalWishlists;
   final ScrollController scrollController;
   final Future<void> Function() onRefresh;
   final VoidCallback onCreateTap;
-  final void Function(String wishlistId) onToggleWishlist;
+  final void Function(Wishlist wishlist) onToggleWishlist;
   final void Function(String wishlistId) onDeleteWishlist;
 
   @override
@@ -290,11 +337,13 @@ class _WishlistList extends StatelessWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final wishlist = visibleWishlists[index];
-            final isSelected = selectedWishlists.contains(wishlist.id);
+            final isCompleted = completionResolver(wishlist);
+            final isUpdating = pendingCompletionWishlists.contains(wishlist.id);
             return _WishlistCard(
               wishlist: wishlist,
-              isSelected: isSelected,
-              onToggle: () => onToggleWishlist(wishlist.id),
+              isCompleted: isCompleted,
+              isUpdatingCompletion: isUpdating,
+              onToggle: () => onToggleWishlist(wishlist),
               onDelete: () => onDeleteWishlist(wishlist.id),
             );
           },
@@ -307,13 +356,15 @@ class _WishlistList extends StatelessWidget {
 class _WishlistCard extends StatelessWidget {
   const _WishlistCard({
     required this.wishlist,
-    required this.isSelected,
+    required this.isCompleted,
+    required this.isUpdatingCompletion,
     required this.onToggle,
     required this.onDelete,
   });
 
   final Wishlist wishlist;
-  final bool isSelected;
+  final bool isCompleted;
+  final bool isUpdatingCompletion;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
 
@@ -322,7 +373,7 @@ class _WishlistCard extends StatelessWidget {
     return Card(
       child: ListTile(
         leading: InkWell(
-          onTap: onToggle,
+          onTap: isUpdatingCompletion ? null : onToggle,
           borderRadius: BorderRadius.circular(24),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
@@ -330,25 +381,29 @@ class _WishlistCard extends StatelessWidget {
             height: 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isSelected ? AppColors.primaryColor : Colors.white,
+              color: isCompleted
+                  ? const Color.fromARGB(255, 194, 10, 240)
+                  : Colors.white,
               border: Border.all(
-                color: isSelected ? AppColors.primaryColor : Colors.black87,
+                color: isCompleted
+                    ? const Color.fromARGB(255, 0, 0, 0)
+                    : Colors.black87,
                 width: 2,
               ),
             ),
-            child: isSelected
+            child: isCompleted
                 ? const Icon(Icons.check, size: 18, color: Colors.white)
                 : null,
           ),
         ),
-        onTap: onToggle,
+        onTap: isUpdatingCompletion ? null : onToggle,
         title: Text(
           wishlist.title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            decoration: isSelected
+            decoration: isCompleted
                 ? TextDecoration.lineThrough
                 : TextDecoration.none,
-            color: isSelected ? Colors.black54 : null,
+            color: isCompleted ? Colors.black54 : null,
           ),
         ),
         trailing: IconButton(

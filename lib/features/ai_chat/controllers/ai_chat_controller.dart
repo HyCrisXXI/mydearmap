@@ -32,6 +32,17 @@ class ChatState {
 }
 
 class AiChatNotifier extends Notifier<ChatState> {
+  static const List<String> _coordinateKeywords = <String>[
+    'coordenada',
+    'coordenadas',
+    'latitud',
+    'longitud',
+    'ubicación exacta',
+    'ubicacion exacta',
+    'ubicación precisa',
+    'ubicacion precisa',
+    'gps',
+  ];
   late final GeminiChatService _chatService;
   DateFormat? _dateFormat;
   bool _localeReady = false;
@@ -62,7 +73,8 @@ class AiChatNotifier extends Notifier<ChatState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final memoryContext = await _buildMemoryContext();
+      final includeCoordinates = _userRequestedCoordinates(state.messages);
+      final memoryContext = await _buildMemoryContext(includeCoordinates);
       final aiResponse = await _chatService.sendMessage(
         history: state.messages,
         memoryContext: memoryContext,
@@ -89,12 +101,12 @@ class AiChatNotifier extends Notifier<ChatState> {
     }
   }
 
-  Future<String?> _buildMemoryContext() async {
+  Future<String?> _buildMemoryContext(bool includeCoordinates) async {
     try {
       await _ensureLocaleInitialized();
       final memories = await _loadUserMemories();
       if (memories.isEmpty) return null;
-      final summary = _summarizeMemories(memories);
+      final summary = _summarizeMemories(memories, includeCoordinates);
       return summary.isEmpty ? null : summary;
     } catch (error, stack) {
       debugPrint('Error building memory context: $error\n$stack');
@@ -132,24 +144,28 @@ class AiChatNotifier extends Notifier<ChatState> {
     return memories;
   }
 
-  String _summarizeMemories(List<Memory> memories) {
+  String _summarizeMemories(List<Memory> memories, bool includeCoordinates) {
     if (memories.isEmpty) return '';
     final sorted = List<Memory>.of(memories)
       ..sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
 
     final buffer = StringBuffer('Recuerdos recientes del usuario:\n');
     for (final memory in sorted.take(8)) {
-      buffer.writeln(_formatMemoryLine(memory));
+      buffer.writeln(
+        _formatMemoryLine(memory, includeCoordinates: includeCoordinates),
+      );
     }
     return buffer.toString().trim();
   }
 
-  String _formatMemoryLine(Memory memory) {
+  String _formatMemoryLine(Memory memory, {required bool includeCoordinates}) {
     final dateLabel = _memoryDateFormat.format(memory.happenedAt);
     final location = memory.location;
     final locationLabel = location != null
-        ? ' en (${location.latitude.toStringAsFixed(2)}, '
-              '${location.longitude.toStringAsFixed(2)})'
+        ? includeCoordinates
+              ? ' en (${location.latitude.toStringAsFixed(2)}, '
+                    '${location.longitude.toStringAsFixed(2)})'
+              : ' en una ubicación guardada'
         : '';
     final description = memory.description?.trim();
     final descLabel = (description == null || description.isEmpty)
@@ -157,6 +173,20 @@ class AiChatNotifier extends Notifier<ChatState> {
         : ' — ${_truncate(description, 160)}';
 
     return '- $dateLabel • ${memory.title}$locationLabel$descLabel';
+  }
+
+  bool _userRequestedCoordinates(List<ChatMessage> messages) {
+    for (final message in messages.reversed) {
+      if (!message.isUser) continue;
+      final normalized = message.content.toLowerCase();
+      for (final keyword in _coordinateKeywords) {
+        if (normalized.contains(keyword)) {
+          return true;
+        }
+      }
+      break;
+    }
+    return false;
   }
 
   String _truncate(String value, int maxLength) {

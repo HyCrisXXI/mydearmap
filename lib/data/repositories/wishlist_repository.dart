@@ -25,7 +25,7 @@ class WishlistRepository {
   }) async {
     final response = await _client
         .from('wishlists')
-        .insert({'user_id': userId, 'title': title})
+        .insert({'user_id': userId, 'title': title, 'completed': false})
         .select('*, user:users!wishlists_user_id_fkey(*)')
         .single();
 
@@ -34,6 +34,16 @@ class WishlistRepository {
 
   Future<void> deleteWishlist({required String wishlistId}) async {
     await _client.from('wishlists').delete().eq('id', wishlistId);
+  }
+
+  Future<void> updateWishlistCompletion({
+    required String wishlistId,
+    required bool completed,
+  }) async {
+    await _client
+        .from('wishlists')
+        .update({'completed': completed})
+        .eq('id', wishlistId);
   }
 
   Wishlist _mapWishlist(Map<String, dynamic> data) {

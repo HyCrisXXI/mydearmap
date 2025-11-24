@@ -12,8 +12,26 @@ class AiChatView extends ConsumerStatefulWidget {
 }
 
 class _AiChatViewState extends ConsumerState<AiChatView> {
+  static const List<String> _suggestedPrompts = <String>[
+    'Recuérdame un momento especial',
+    'Recomiéndame un lugar para visitar',
+    '¿Qué puedo planear este fin de semana?',
+    'Ayúdame a organizar mis recuerdos',
+    'Sugiere una actividad para hoy',
+    '¿Qué recuerdos tengo en la playa?',
+    'Ayúdame a planear un viaje',
+    'Recomiéndame algo para relajarme',
+  ];
+  late final List<String> _visiblePrompts;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    final prompts = List<String>.from(_suggestedPrompts)..shuffle();
+    _visiblePrompts = prompts.take(5).toList();
+  }
 
   @override
   void dispose() {
@@ -32,6 +50,16 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
         );
       }
     });
+  }
+
+  void _handleSendMessage(String text, AiChatNotifier chatNotifier) {
+    final message = text.trim();
+    if (message.isEmpty) return;
+
+    chatNotifier.addUserMessage(message);
+    _messageController.clear();
+    FocusScope.of(context).unfocus();
+    setState(() {});
   }
 
   @override
@@ -89,6 +117,30 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                             fontSize: 14,
                             color: Colors.grey[500],
                           ),
+                        ),
+                        const SizedBox(height: 24),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.center,
+                          children: _visiblePrompts.map((prompt) {
+                            final primary = Theme.of(context).primaryColor;
+                            return ActionChip(
+                              backgroundColor: primary.withValues(alpha: 0.08),
+                              label: Text(prompt),
+                              avatar: Icon(
+                                Icons.bolt,
+                                size: 16,
+                                color: primary,
+                              ),
+                              onPressed: chatState.isLoading
+                                  ? null
+                                  : () => _handleSendMessage(
+                                      prompt,
+                                      chatNotifier,
+                                    ),
+                            );
+                          }).toList(),
                         ),
                       ],
                     ),
@@ -173,10 +225,8 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                       setState(() {});
                     },
                     onSubmitted: (value) {
-                      if (value.trim().isNotEmpty && !chatState.isLoading) {
-                        chatNotifier.addUserMessage(value.trim());
-                        _messageController.clear();
-                        setState(() {});
+                      if (!chatState.isLoading) {
+                        _handleSendMessage(value, chatNotifier);
                       }
                     },
                   ),
@@ -187,14 +237,10 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                   onPressed:
                       chatState.isLoading || _messageController.text.isEmpty
                       ? null
-                      : () {
-                          final message = _messageController.text.trim();
-                          if (message.isNotEmpty) {
-                            chatNotifier.addUserMessage(message);
-                            _messageController.clear();
-                            setState(() {});
-                          }
-                        },
+                      : () => _handleSendMessage(
+                          _messageController.text,
+                          chatNotifier,
+                        ),
                   child: const Icon(Icons.send),
                 ),
               ],

@@ -161,15 +161,22 @@ class _TimelineEventCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: colorScheme.primary.withValues(alpha: 0.12)),
+            border: Border.all(
+              color: colorScheme.primary.withValues(alpha: 0.12),
+            ),
             boxShadow: const [
-              BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 6)),
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 6),
+              ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment: alignRight
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
@@ -179,13 +186,16 @@ class _TimelineEventCard extends StatelessWidget {
                       ? Image.network(
                           coverUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _TimelineImagePlaceholder(),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const _TimelineImagePlaceholder(),
                           loadingBuilder: (context, child, progress) {
                             if (progress == null) return child;
                             return const Center(
                               child: Padding(
                                 padding: EdgeInsets.all(12),
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             );
                           },
@@ -196,18 +206,17 @@ class _TimelineEventCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 dateLabel,
-                style: Theme.of(context)
-                    .textTheme
-                    .labelMedium
-                    ?.copyWith(color: Colors.grey.shade700),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(color: Colors.grey.shade700),
               ),
               const SizedBox(height: 6),
               Text(
                 title,
                 textAlign: alignRight ? TextAlign.right : TextAlign.left,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               if (desc != null) ...[
                 const SizedBox(height: 8),
@@ -216,10 +225,9 @@ class _TimelineEventCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: alignRight ? TextAlign.right : TextAlign.left,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: Colors.grey.shade800),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade800),
                 ),
               ],
             ],
@@ -253,7 +261,11 @@ class _TimelineConnector extends StatelessWidget {
             color: AppColors.blue,
             shape: BoxShape.circle,
             boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
             ],
           ),
         ),
@@ -336,9 +348,9 @@ class _TimelineEmptyState extends StatelessWidget {
 void _openMemoryDetail(BuildContext context, Memory memory) {
   final id = memory.id;
   if (id == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Recuerdo sin id')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Recuerdo sin id')));
     return;
   }
   Navigator.of(context).push(
@@ -376,11 +388,7 @@ class _TimelineImagePlaceholder extends StatelessWidget {
     return Container(
       color: Colors.grey.shade200,
       alignment: Alignment.center,
-      child: Icon(
-        Icons.photo,
-        color: Colors.grey.shade500,
-        size: 32,
-      ),
+      child: Icon(Icons.photo, color: Colors.grey.shade500, size: 32),
     );
   }
 }
