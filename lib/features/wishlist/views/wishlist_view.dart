@@ -68,11 +68,9 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
                     pendingRemovalWishlists: _pendingRemovalWishlistIds,
                     scrollController: _wishlistScrollController,
                     onRefresh: _refreshWishlists,
-                    onCreateTap: () => _handleCreateWishlist(context),
-                    onToggleWishlist: (wishlist) =>
-                        _handleToggleCompletion(context, wishlist),
-                    onDeleteWishlist: (wishlistId) =>
-                        _handleDeleteWishlist(context, wishlistId),
+                    onCreateTap: _handleCreateWishlist,
+                    onToggleWishlist: _handleToggleCompletion,
+                    onDeleteWishlist: _handleDeleteWishlist,
                   ),
                   loading: () =>
                       const Center(child: CircularProgressIndicator.adaptive()),
@@ -114,7 +112,7 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
                         ),
                       ),
                       textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _handleCreateWishlist(context),
+                      onSubmitted: (_) => _handleCreateWishlist(),
                     ),
                   ),
                   const SizedBox(width: AppSizes.paddingSmall),
@@ -126,9 +124,7 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
                         shape: const CircleBorder(),
                         padding: EdgeInsets.zero,
                       ),
-                      onPressed: _isSaving
-                          ? null
-                          : () => _handleCreateWishlist(context),
+                      onPressed: _isSaving ? null : _handleCreateWishlist,
                       child: Center(
                         child: _isSaving
                             ? const SizedBox(
@@ -160,30 +156,23 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
     return _completionOverrides[wishlist.id] ?? wishlist.completed;
   }
 
-  Future<String?> _requireUserId(
-    BuildContext context,
-    String failureMessage,
-  ) async {
+  Future<String?> _requireUserId(String failureMessage) async {
     final user = await ref.read(currentUserProvider.future);
     if (user != null) return user.id;
-    if (mounted) _showSnack(context, failureMessage);
+    if (mounted) _showSnack(failureMessage);
     return null;
   }
 
-  void _showSnack(BuildContext context, String message) {
+  void _showSnack(String message) {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _handleToggleCompletion(
-    BuildContext context,
-    Wishlist wishlist,
-  ) async {
+  Future<void> _handleToggleCompletion(Wishlist wishlist) async {
     if (_pendingCompletionWishlistIds.contains(wishlist.id)) return;
 
     final userId = await _requireUserId(
-      context,
       'Inicia sesión para actualizar tus deseos.',
     );
     if (userId == null) return;
@@ -208,29 +197,26 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
       updateSucceeded = true;
     } catch (error) {
       if (!mounted) return;
-      _showSnack(context, 'No se pudo actualizar el deseo: $error');
+      _showSnack('No se pudo actualizar el deseo: $error');
       setState(() {
         _completionOverrides.remove(wishlist.id);
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _pendingCompletionWishlistIds.remove(wishlist.id);
-        if (updateSucceeded) {
-          _completionOverrides.remove(wishlist.id);
-        }
-      });
+      if (mounted) {
+        setState(() {
+          _pendingCompletionWishlistIds.remove(wishlist.id);
+          if (updateSucceeded) {
+            _completionOverrides.remove(wishlist.id);
+          }
+        });
+      }
     }
   }
 
-  Future<void> _handleDeleteWishlist(
-    BuildContext context,
-    String wishlistId,
-  ) async {
+  Future<void> _handleDeleteWishlist(String wishlistId) async {
     if (_pendingRemovalWishlistIds.contains(wishlistId)) return;
 
     final userId = await _requireUserId(
-      context,
       'Inicia sesión para poder eliminar tus deseos.',
     );
     if (userId == null) return;
@@ -245,27 +231,27 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
       await _refreshWishlists();
 
       if (!mounted) return;
-      _showSnack(context, 'Deseo eliminado.');
+      _showSnack('Deseo eliminado.');
     } catch (error) {
       if (!mounted) return;
-      _showSnack(context, 'No se pudo eliminar el deseo: $error');
+      _showSnack('No se pudo eliminar el deseo: $error');
     } finally {
-      if (!mounted) return;
-      setState(() => _pendingRemovalWishlistIds.remove(wishlistId));
+      if (mounted) {
+        setState(() => _pendingRemovalWishlistIds.remove(wishlistId));
+      }
     }
   }
 
-  Future<void> _handleCreateWishlist(BuildContext context) async {
+  Future<void> _handleCreateWishlist() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
-      _showSnack(context, 'Ingresa un título para tu deseo.');
+      _showSnack('Ingresa un título para tu deseo.');
       return;
     }
 
     if (_isSaving) return;
 
     final userId = await _requireUserId(
-      context,
       'Inicia sesión para poder guardar tus deseos.',
     );
     if (userId == null) return;
@@ -281,13 +267,14 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
 
       if (!mounted) return;
       FocusScope.of(context).unfocus();
-      _showSnack(context, 'Deseo guardado en tu lista.');
+      _showSnack('Deseo guardado en tu lista.');
     } catch (error) {
       if (!mounted) return;
-      _showSnack(context, 'No se pudo guardar el deseo: $error');
+      _showSnack('No se pudo guardar el deseo: $error');
     } finally {
-      if (!mounted) return;
-      setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 }
@@ -334,7 +321,7 @@ class _WishlistList extends StatelessWidget {
           controller: scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           itemCount: visibleWishlists.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final wishlist = visibleWishlists[index];
             final isCompleted = completionResolver(wishlist);

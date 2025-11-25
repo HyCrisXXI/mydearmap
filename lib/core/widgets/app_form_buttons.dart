@@ -12,8 +12,7 @@ class AppFormButtons extends StatelessWidget {
     this.onSecondaryPressed,
     this.primaryIsCompact = false,
     this.secondaryIsCompact = false,
-    this.secondaryOutlined =
-        true, // new: render secondary as outlined by default
+    this.secondaryOutlined = true,
   });
 
   final String primaryLabel;
@@ -35,14 +34,13 @@ class AppFormButtons extends StatelessWidget {
     disabledForegroundColor: AppColors.buttonForeground.withValues(alpha: .7),
     padding: const EdgeInsets.symmetric(
       horizontal: AppSizes.buttonPaddingHorizontal,
-      vertical: AppSizes.buttonPaddingVertical,
+      vertical: 0, // Reduced to accommodate fixed height
     ),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppSizes.borderRadius),
     ),
   );
 
-  // new: outlined style for secondary
   ButtonStyle _outlinedStyle() => OutlinedButton.styleFrom(
     foregroundColor: AppColors.buttonForeground,
     backgroundColor: Colors.transparent,
@@ -50,7 +48,7 @@ class AppFormButtons extends StatelessWidget {
     side: const BorderSide(color: AppColors.buttonBackground, width: 1.0),
     padding: const EdgeInsets.symmetric(
       horizontal: AppSizes.buttonPaddingHorizontal,
-      vertical: AppSizes.buttonPaddingVertical,
+      vertical: 0, // Reduced to accommodate fixed height
     ),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppSizes.borderRadius),
@@ -76,10 +74,13 @@ class AppFormButtons extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Align(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: _buttonWidth(primaryIsCompact),
+            ),
             child: SizedBox(
-              width: _buttonWidth(primaryIsCompact),
+              width: double.infinity,
+              height: AppSizes.buttonHeight,
               child: FilledButton(
                 onPressed: disablePrimary ? null : onPrimaryPressed,
                 style: _buttonStyle(),
@@ -100,10 +101,13 @@ class AppFormButtons extends StatelessWidget {
         if (secondaryLabel != null) ...[
           const SizedBox(height: AppSizes.buttonSpacing),
           Align(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: _buttonWidth(secondaryIsCompact),
+              ),
               child: SizedBox(
-                width: _buttonWidth(secondaryIsCompact),
+                width: double.infinity,
+                height: AppSizes.buttonHeight,
                 child: secondaryOutlined
                     ? OutlinedButton(
                         onPressed: disableSecondary ? null : onSecondaryPressed,
