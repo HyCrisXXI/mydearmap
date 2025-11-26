@@ -12,26 +12,8 @@ class AiChatView extends ConsumerStatefulWidget {
 }
 
 class _AiChatViewState extends ConsumerState<AiChatView> {
-  static const List<String> _suggestedPrompts = <String>[
-    'Recuérdame un momento especial',
-    'Recomiéndame un lugar para visitar',
-    '¿Qué puedo planear este fin de semana?',
-    'Ayúdame a organizar mis recuerdos',
-    'Sugiere una actividad para hoy',
-    '¿Qué recuerdos tengo en la playa?',
-    'Ayúdame a planear un viaje',
-    'Recomiéndame algo para relajarme',
-  ];
-  late final List<String> _visiblePrompts;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    final prompts = List<String>.from(_suggestedPrompts)..shuffle();
-    _visiblePrompts = prompts.take(5).toList();
-  }
 
   @override
   void dispose() {
@@ -66,6 +48,7 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
   Widget build(BuildContext context) {
     final chatState = ref.watch(aiChatControllerProvider);
     final chatNotifier = ref.read(aiChatControllerProvider.notifier);
+    final suggestionsAsync = ref.watch(chatSuggestionsProvider);
 
     // Scroll automático cuando hay nuevos mensajes
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -74,18 +57,20 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Mapi'),
 
         backgroundColor: Theme.of(context).primaryColor,
         actions: [
-          if (chatState.messages.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () {
-                chatNotifier.clearChat();
-              },
-              tooltip: 'Limpiar chat',
-            ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: chatState.messages.isEmpty
+                ? null
+                : chatNotifier.clearChat,
+            tooltip: chatState.messages.isEmpty
+                ? 'No hay mensajes para limpiar'
+                : 'Limpiar chat',
+          ),
         ],
       ),
       body: Column(
@@ -119,28 +104,12 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.center,
-                          children: _visiblePrompts.map((prompt) {
-                            final primary = Theme.of(context).primaryColor;
-                            return ActionChip(
-                              backgroundColor: primary.withValues(alpha: 0.08),
-                              label: Text(prompt),
-                              avatar: Icon(
-                                Icons.bolt,
-                                size: 16,
-                                color: primary,
-                              ),
-                              onPressed: chatState.isLoading
-                                  ? null
-                                  : () => _handleSendMessage(
-                                      prompt,
-                                      chatNotifier,
-                                    ),
-                            );
-                          }).toList(),
+                        _SuggestionChips(
+                          prompts: suggestionsAsync,
+                          disabled: chatState.isLoading,
+                          onPromptTap: (prompt) =>
+                              _handleSendMessage(prompt, chatNotifier),
+                          onRefresh: () => ref.refresh(chatSuggestionsProvider),
                         ),
                       ],
                     ),
@@ -249,6 +218,80 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
         ],
       ),
       bottomNavigationBar: const AppNavBar(currentIndex: 0),
+    );
+  }
+}
+
+class _SuggestionChips extends StatelessWidget {
+  const _SuggestionChips({
+    required this.prompts,
+    required this.disabled,
+    required this.onPromptTap,
+    required this.onRefresh,
+  });
+
+  final AsyncValue<List<String>> prompts;
+  final bool disabled;
+  final void Function(String prompt) onPromptTap;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return prompts.when(
+      data: (items) {
+        if (items.isEmpty) {
+          return TextButton.icon(
+            onPressed: disabled ? null : onRefresh,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Generar ideas'),
+          );
+        }
+        final chips = items.map((prompt) {
+          final primary = Theme.of(context).primaryColor;
+          return ActionChip(
+            label: Text(prompt),
+            backgroundColor: primary.withValues(alpha: 0.08),
+            onPressed: disabled ? null : () => onPromptTap(prompt),
+          );
+        }).toList();
+
+        return Column(
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: chips,
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: disabled ? null : onRefresh,
+              icon: const Icon(Icons.autorenew),
+              label: const Text('Nuevas ideas'),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (error, _) => Column(
+        children: [
+          Text(
+            'No se pudieron cargar ideas.',
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+          TextButton.icon(
+            onPressed: disabled ? null : onRefresh,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reintentar'),
+          ),
+        ],
+      ),
     );
   }
 }

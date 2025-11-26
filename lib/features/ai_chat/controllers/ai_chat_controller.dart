@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -43,9 +45,20 @@ class AiChatNotifier extends Notifier<ChatState> {
     'ubicacion precisa',
     'gps',
   ];
+  static const List<String> _fallbackPrompts = <String>[
+    'Recuérdame algo emotivo que haya guardado.',
+    'Sugiere un plan rápido para hoy.',
+    '¿Cómo puedo revivir un recuerdo especial?',
+    'Dame ideas para registrar nuevos recuerdos.',
+    '¿Qué playlist o mood me podrías recomendar?',
+    'Ayúdame a organizar mis recuerdos favoritos.',
+    '¿Qué recuerdo debería compartir con alguien hoy?',
+    'Recomiéndame una actividad para relajarme.',
+  ];
   late final GeminiChatService _chatService;
   DateFormat? _dateFormat;
   bool _localeReady = false;
+  final Random _random = Random();
 
   @override
   ChatState build() {
@@ -99,6 +112,18 @@ class AiChatNotifier extends Notifier<ChatState> {
         isLoading: false,
       );
     }
+  }
+
+  Future<List<String>> generateSuggestedPrompts({int count = 5}) async {
+    final prompts = <String>{};
+    while (prompts.length < count) {
+      final fallback =
+          _fallbackPrompts[_random.nextInt(_fallbackPrompts.length)];
+      prompts.add(fallback);
+    }
+
+    final result = prompts.toList()..shuffle(_random);
+    return result.take(count).toList();
   }
 
   Future<String?> _buildMemoryContext(bool includeCoordinates) async {
@@ -167,12 +192,13 @@ class AiChatNotifier extends Notifier<ChatState> {
                     '${location.longitude.toStringAsFixed(2)})'
               : ' en una ubicación guardada'
         : '';
+    final peopleLabel = _formatParticipantsSummary(memory);
     final description = memory.description?.trim();
     final descLabel = (description == null || description.isEmpty)
         ? ''
         : ' — ${_truncate(description, 160)}';
 
-    return '- $dateLabel • ${memory.title}$locationLabel$descLabel';
+    return '- $dateLabel • ${memory.title}$locationLabel$peopleLabel$descLabel';
   }
 
   bool _userRequestedCoordinates(List<ChatMessage> messages) {
@@ -187,6 +213,37 @@ class AiChatNotifier extends Notifier<ChatState> {
       break;
     }
     return false;
+  }
+
+  String _formatParticipantsSummary(Memory memory) {
+    if (memory.participants.isEmpty) return '';
+
+    final visible = memory.participants
+        .take(3)
+        .map(_formatParticipantLabel)
+        .toList();
+    final remaining = memory.participants.length - visible.length;
+    final moreLabel = remaining > 0 ? ' y $remaining más' : '';
+    return ' con ${visible.join(', ')}$moreLabel';
+  }
+
+  String _formatParticipantLabel(UserRole participant) {
+    final name = participant.user.name.trim().isEmpty
+        ? 'Invitado'
+        : participant.user.name.trim();
+    final roleLabel = _roleDisplayName(participant.role);
+    return roleLabel == null ? name : '$name ($roleLabel)';
+  }
+
+  String? _roleDisplayName(MemoryRole role) {
+    switch (role) {
+      case MemoryRole.creator:
+        return 'creador';
+      case MemoryRole.participant:
+        return 'participante';
+      case MemoryRole.guest:
+        return 'invitado';
+    }
   }
 
   String _truncate(String value, int maxLength) {
@@ -226,3 +283,8 @@ final aiChatControllerProvider = NotifierProvider<AiChatNotifier, ChatState>(
     return AiChatNotifier();
   },
 );
+
+final chatSuggestionsProvider = FutureProvider.autoDispose<List<String>>((ref) {
+  final notifier = ref.watch(aiChatControllerProvider.notifier);
+  return notifier.generateSuggestedPrompts();
+});

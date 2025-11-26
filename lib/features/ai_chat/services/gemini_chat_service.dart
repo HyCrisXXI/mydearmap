@@ -18,7 +18,7 @@ class GeminiChatException implements Exception {
 class GeminiChatService {
   GeminiChatService({http.Client? client}) : _client = client ?? http.Client();
 
-  static const String _model = 'models/gemini-2.5-flash';
+  static const String _model = 'models/gemini-2.0-flash';
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta';
   static const double _temperature = 0.4;
@@ -145,7 +145,7 @@ class GeminiChatService {
 
     final result = buffer.toString().trim();
     if (result.isEmpty) {
-      throw GeminiChatException('Gemini devolvió una respuesta vacía.');
+      return 'No pude generar una respuesta útil esta vez, ¿podrías intentar formularlo de otra manera?';
     }
 
     return result;
