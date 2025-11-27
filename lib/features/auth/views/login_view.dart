@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/features/auth/controllers/autosuggestion_controller.dart';
 import 'package:mydearmap/features/auth/controllers/login_view_model.dart';
 import 'package:mydearmap/core/widgets/app_form_buttons.dart';
+import 'package:mydearmap/core/constants/constants.dart';
 
 import 'signup_view.dart';
 
@@ -102,66 +103,76 @@ class _LoginViewState extends ConsumerState<LoginView> {
       ..suggestion = loginState.domainSuggestion;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar Sesión')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                border: const OutlineInputBorder(),
-                errorText: loginState.emailError,
-                prefixIcon: const Icon(Icons.email),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              onChanged: loginNotifier.onEmailChanged,
-              onSubmitted: (_) => _signIn(),
-              style: baseTextStyle,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                labelText: 'Contraseña',
-                border: const OutlineInputBorder(),
-                errorText: loginState.passwordError,
-                prefixIcon: const Icon(Icons.lock),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    loginState.obscurePassword
-                        ? Icons.visibility
-                        : Icons.visibility_off,
-                  ),
-                  onPressed: loginNotifier.togglePasswordVisibility,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 60.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('MyDearMap', style: AppTextStyles.title),
+                const SizedBox(height: 60),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Iniciar sesión', style: AppTextStyles.title),
                 ),
-              ),
-              obscureText: loginState.obscurePassword,
-              onChanged: loginNotifier.onPasswordChanged,
-              onSubmitted: (_) => _signIn(),
+                const SizedBox(height: 30),
+                TextField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Nombre/Email',
+                    errorText: loginState.emailError,
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  onChanged: loginNotifier.onEmailChanged,
+                  onSubmitted: (_) => _signIn(),
+                  style: baseTextStyle,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'Contraseña',
+                    errorText: loginState.passwordError,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        loginState.obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: loginNotifier.togglePasswordVisibility,
+                    ),
+                  ),
+                  obscureText: loginState.obscurePassword,
+                  onChanged: loginNotifier.onPasswordChanged,
+                  onSubmitted: (_) => _signIn(),
+                ),
+                const SizedBox(height: 60),
+                AppFormButtons(
+                  primaryLabel: 'Iniciar sesión',
+                  onPrimaryPressed: loginState.canSubmit ? _signIn : null,
+                  isProcessing: loginState.isSubmitting,
+                  secondaryLabel: 'Registrarse',
+                  onSecondaryPressed: loginState.isSubmitting
+                      ? null
+                      : () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const SignupView(),
+                            ),
+                          );
+                        },
+                  secondaryIsCompact: false,
+                  secondaryOutlined: true,
+                ),
+                const SizedBox(height: 40),
+                const Text(
+                  'Comienza a guardar recuerdos',
+                  style: AppTextStyles.text,
+                ),
+              ],
             ),
-            const SizedBox(height: 30),
-            AppFormButtons(
-              primaryLabel: 'Iniciar Sesión',
-              onPrimaryPressed: loginState.canSubmit ? _signIn : null,
-              isProcessing: loginState.isSubmitting,
-              secondaryLabel: 'Registrarse',
-              onSecondaryPressed: loginState.isSubmitting
-                  ? null
-                  : () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const SignupView(),
-                        ),
-                      );
-                    },
-              secondaryIsCompact: false, // ensure same (large) width as primary
-              secondaryOutlined:
-                  true, // outlined (transparent background + border)
-            ),
-          ],
+          ),
         ),
       ),
     );

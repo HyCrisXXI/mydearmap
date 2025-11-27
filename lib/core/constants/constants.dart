@@ -87,6 +87,24 @@ class AppButtonStyles {
   );
 }
 
+class AppInputStyles {
+  static const InputDecorationTheme defaultInputDecorationTheme =
+      InputDecorationTheme(
+        border: UnderlineInputBorder(
+          borderSide: BorderSide(color: AppColors.textColor),
+        ),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: AppColors.textColor),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: AppColors.textColor, width: 2.0),
+        ),
+        labelStyle: TextStyle(color: AppColors.textColor),
+        floatingLabelStyle: TextStyle(color: AppColors.textColor),
+        contentPadding: EdgeInsets.symmetric(vertical: 8.0),
+      );
+}
+
 // Definición del esquema de colores claro
 const ColorScheme lightColorScheme = ColorScheme(
   brightness: Brightness.light,

@@ -48,6 +48,7 @@ class MyApp extends StatelessWidget {
             textStyle: AppTextStyles.textButton,
           ),
         ),
+        inputDecorationTheme: AppInputStyles.defaultInputDecorationTheme,
       ),
       routes: appRoutes,
       initialRoute: '/auth',

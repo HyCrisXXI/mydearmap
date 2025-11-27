@@ -1,6 +1,7 @@
 // lib/features/auth/views/signup_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/auth/controllers/signup_view_model.dart';
 import 'package:mydearmap/core/widgets/app_form_buttons.dart';
 
@@ -130,23 +131,27 @@ class _SignupViewState extends ConsumerState<SignupView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crear Cuenta'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Image.asset(AppIcons.chevronLeft),
           onPressed: () => Navigator.of(context).pop(),
+          style: AppButtonStyles.circularIconButton,
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 60.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 10),
+            const Align(
+              alignment: Alignment.topCenter,
+              child: Text('Crear Cuenta', style: AppTextStyles.title),
+            ),
+            const SizedBox(height: 40),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: 'Nombre completo *',
-                prefixIcon: const Icon(Icons.person),
-                border: const OutlineInputBorder(),
                 errorText: signupState.nameError,
               ),
               onChanged: signupNotifier.onNameChanged,
@@ -156,8 +161,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
               controller: _emailController,
               decoration: InputDecoration(
                 labelText: 'Email *',
-                prefixIcon: const Icon(Icons.email),
-                border: const OutlineInputBorder(),
                 errorText: signupState.emailError,
               ),
               keyboardType: TextInputType.emailAddress,
@@ -168,8 +171,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
               controller: _passwordController,
               decoration: InputDecoration(
                 labelText: 'Contraseña *',
-                prefixIcon: const Icon(Icons.lock),
-                border: const OutlineInputBorder(),
                 errorText: signupState.passwordError,
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -188,8 +189,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
               controller: _numberController,
               decoration: InputDecoration(
                 labelText: 'Teléfono (opcional)',
-                prefixIcon: const Icon(Icons.phone),
-                border: const OutlineInputBorder(),
                 errorText: signupState.numberError,
               ),
               keyboardType: TextInputType.phone,
@@ -200,8 +199,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
               controller: _birthDateController,
               decoration: InputDecoration(
                 labelText: 'Fecha de nacimiento (opcional) DD/MM/AAAA',
-                prefixIcon: const Icon(Icons.calendar_today),
-                border: const OutlineInputBorder(),
                 errorText: signupState.birthDateError,
               ),
               readOnly: true,
@@ -211,10 +208,7 @@ class _SignupViewState extends ConsumerState<SignupView> {
             DropdownButtonFormField<String?>(
               key: ValueKey(signupState.form.gender),
               initialValue: signupState.form.gender,
-              decoration: const InputDecoration(
-                labelText: 'Género (opcional)',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Género (opcional)'),
               items: const [
                 DropdownMenuItem<String?>(
                   value: null,
@@ -232,7 +226,7 @@ class _SignupViewState extends ConsumerState<SignupView> {
               ],
               onChanged: signupNotifier.onGenderChanged,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 60),
             AppFormButtons(
               primaryLabel: 'Registrarse',
               onPrimaryPressed: signupState.canSubmit ? _signUp : null,
