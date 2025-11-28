@@ -138,7 +138,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         '${memory.happenedAt.day.toString().padLeft(2, '0')}/'
         '${memory.happenedAt.month.toString().padLeft(2, '0')}/'
         '${memory.happenedAt.year}';
-    // Initialize related people from memory participants (exclude creator)
+    // Initializar personas relacionadas desde los participantes del recuerdo (excluir creador)
     _relatedPeople = memory.participants
         .where((p) => p.role != MemoryRole.creator)
         .toList();
