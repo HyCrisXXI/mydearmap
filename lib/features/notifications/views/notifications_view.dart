@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/notifications_provider.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/data/models/app_notification.dart';
+import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 
 class NotificationsView extends ConsumerWidget {
@@ -56,26 +57,50 @@ class _NotificationsContent extends ConsumerWidget {
         .where((notification) => !_shouldHideNotification(notification))
         .toList(growable: false);
 
+    final now = DateTime.now();
+    final cutoff = now.subtract(const Duration(days: 30));
+    final recentNotifications = visibleNotifications
+        .where((notification) => !notification.createdAt.isBefore(cutoff))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    final todayNotifications = recentNotifications
+        .where((notification) => _isSameDay(notification.createdAt, now))
+        .toList(growable: false);
+    final lastThirtyDaysNotifications = recentNotifications
+        .where((notification) => !_isSameDay(notification.createdAt, now))
+        .toList(growable: false);
+
     Future<void> refresh() async {
       ref.invalidate(userNotificationsProvider);
       await ref.read(userNotificationsProvider.future);
     }
 
-    final content = visibleNotifications.isEmpty
+    final hasContent =
+        todayNotifications.isNotEmpty || lastThirtyDaysNotifications.isNotEmpty;
+
+    final content = !hasContent
         ? ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: const [_NotificationsEmptyState()],
           )
-        : ListView.separated(
+        : ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(vertical: 12),
-            itemCount: visibleNotifications.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 6),
-            itemBuilder: (context, index) {
-              final notification = visibleNotifications[index];
-              return _NotificationTile(
-                notification: notification,
-              );
-            },
+            children: [
+              if (todayNotifications.isNotEmpty)
+                ..._notificationSection(
+                  context: context,
+                  title: 'Hoy',
+                  items: todayNotifications,
+                ),
+              if (lastThirtyDaysNotifications.isNotEmpty)
+                ..._notificationSection(
+                  context: context,
+                  title: 'Últimos 30 días',
+                  items: lastThirtyDaysNotifications,
+                ),
+            ],
           );
 
     return _notificationsScaffold(
@@ -178,7 +203,7 @@ class _NotificationsEmptyState extends StatelessWidget {
   }
 }
 
-class _NotificationTile extends StatelessWidget {
+class _NotificationTile extends ConsumerWidget {
   const _NotificationTile({
     required this.notification,
   });
@@ -186,14 +211,24 @@ class _NotificationTile extends StatelessWidget {
   final AppNotification notification;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final unread = !notification.isRead;
     final icon = iconForKind(notification.kind);
     final badgeColor = Theme.of(context).colorScheme.primary;
-    final dateLabel = DateFormat(
-      'd MMM, HH:mm',
-      'es_ES',
-    ).format(notification.createdAt);
+    final relativeTime = _relativeTimeLabel(notification.createdAt);
+    final memoryId = _memoryIdFromMetadata(notification.metadata);
+    String? creatorName;
+    if (memoryId != null) {
+      final memoryAsync = ref.watch(memoryDetailProvider(memoryId));
+      creatorName = memoryAsync.maybeWhen(
+        data: (memory) => _creatorNameFromParticipants(memory.participants),
+        orElse: () => null,
+      );
+    }
+    final actorName =
+        creatorName ?? _actorNameFromMetadata(notification.metadata) ?? 'Alguien';
+    final sharedText =
+        '¡Te han compartido el recuerdo ${notification.title}!';
     final contextLine = _contextLineFrom(notification.metadata);
 
     return Padding(
@@ -203,7 +238,7 @@ class _NotificationTile extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: () => _handleNotificationTap(context, notification),
+          onTap: () => _handleNotificationTap(context, ref, notification),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -219,34 +254,34 @@ class _NotificationTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        relativeTime,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: badgeColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           Expanded(
                             child: Text(
-                              notification.title,
+                              actorName,
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
-                                    fontWeight: unread
-                                        ? FontWeight.w600
-                                        : FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
                                   ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            dateLabel,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Colors.grey.shade600),
-                          ),
                         ],
                       ),
-                      if (notification.message != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          notification.message!,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
+                      const SizedBox(height: 6),
+                      Text(
+                        sharedText,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade700,
+                            ),
+                      ),
                       if (contextLine != null) ...[
                         const SizedBox(height: 4),
                         Text(
@@ -303,19 +338,36 @@ Widget _notificationsScaffold({required Widget body, List<Widget>? actions}) {
   );
 }
 
-void _handleNotificationTap(
+Future<void> _handleNotificationTap(
   BuildContext context,
+  WidgetRef ref,
   AppNotification notification,
-) {
+) async {
   final memoryId = _memoryIdFromMetadata(notification.metadata);
   if (memoryId == null || memoryId.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Esta notificación no tiene un recuerdo asociado.')),
+      const SnackBar(
+        content: Text('Esta notificación no tiene un recuerdo asociado.'),
+      ),
     );
     return;
   }
 
-  Navigator.of(context).push(
+  final controller = ref.read(memoryControllerProvider.notifier);
+  final memory = await controller.getMemoryById(memoryId);
+  if (memory == null) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Este recuerdo ya no está disponible.'),
+      ),
+    );
+    ref.invalidate(memoryDetailProvider(memoryId));
+    return;
+  }
+
+  if (!context.mounted) return;
+  await Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => MemoryDetailView(memoryId: memoryId),
     ),
@@ -324,6 +376,25 @@ void _handleNotificationTap(
 
 bool _shouldHideNotification(AppNotification notification) {
   return _metadataContainsCreatorRole(notification.metadata);
+}
+
+String _relativeTimeLabel(DateTime createdAt) {
+  final now = DateTime.now();
+  final diff = now.difference(createdAt);
+
+  if (diff.inHours == 0) {
+    return 'Ahora';
+  }
+  if (_isSameDay(createdAt, now)) {
+    final hours = diff.inHours.clamp(1, 23);
+    return hours == 1 ? 'Hace 1 hora' : 'Hace $hours horas';
+  }
+  final days = diff.inDays <= 0 ? 1 : diff.inDays;
+  return days == 1 ? 'Hace 1 día' : 'Hace $days días';
+}
+
+bool _isSameDay(DateTime a, DateTime b) {
+  return a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
 bool _metadataContainsCreatorRole(dynamic value) {
@@ -400,4 +471,61 @@ String? _memoryIdFromMetadata(dynamic metadata) {
     }
   }
   return null;
+}
+
+String? _actorNameFromMetadata(Map<String, dynamic> metadata) {
+  const keys = [
+    'actor_name',
+    'actor',
+    'user_name',
+    'user',
+    'sender_name',
+  ];
+
+  for (final key in keys) {
+    final value = metadata[key];
+    if (value == null) continue;
+    final text = value.toString().trim();
+    if (text.isNotEmpty) return text;
+  }
+  return null;
+}
+
+String? _creatorNameFromParticipants(List<UserRole> participants) {
+  for (final participant in participants) {
+    if (participant.role == MemoryRole.creator) {
+      final name = participant.user.name.trim();
+      if (name.isNotEmpty) return name;
+    }
+  }
+  return null;
+}
+
+List<Widget> _notificationSection({
+  required BuildContext context,
+  required String title,
+  required List<AppNotification> items,
+}) {
+  final widgets = <Widget>[
+    Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    ),
+    const SizedBox(height: 8),
+  ];
+
+  for (var index = 0; index < items.length; index++) {
+    widgets.add(_NotificationTile(notification: items[index]));
+    if (index < items.length - 1) {
+      widgets.add(const SizedBox(height: 6));
+    }
+  }
+
+  widgets.add(const SizedBox(height: 18));
+  return widgets;
 }
