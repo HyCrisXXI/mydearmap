@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/notifications_provider.dart';
+import 'package:mydearmap/core/providers/timecapsule_provider.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/data/models/app_notification.dart';
 import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/data/models/timecapsule.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
+import 'package:mydearmap/features/timecapsules/views/timecapsule_view.dart';
+import 'package:mydearmap/features/timecapsules/views/timecapsules_view.dart';
 
 class NotificationsView extends ConsumerWidget {
   const NotificationsView({super.key});
@@ -71,37 +76,52 @@ class _NotificationsContent extends ConsumerWidget {
         .where((notification) => !_isSameDay(notification.createdAt, now))
         .toList(growable: false);
 
+    final capsulesAsync = ref.watch(userTimeCapsulesProvider);
+
     Future<void> refresh() async {
       ref.invalidate(userNotificationsProvider);
       await ref.read(userNotificationsProvider.future);
     }
 
-    final hasContent =
-        todayNotifications.isNotEmpty || lastThirtyDaysNotifications.isNotEmpty;
+    final sectionWidgets = <Widget>[];
+    if (todayNotifications.isNotEmpty) {
+      sectionWidgets.addAll(
+        _notificationSection(
+          context: context,
+          title: 'Hoy',
+          items: todayNotifications,
+        ),
+      );
+    }
+    if (lastThirtyDaysNotifications.isNotEmpty) {
+      sectionWidgets.addAll(
+        _notificationSection(
+          context: context,
+          title: 'Últimos 30 días',
+          items: lastThirtyDaysNotifications,
+        ),
+      );
+    }
 
-    final content = !hasContent
-        ? ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: const [_NotificationsEmptyState()],
-          )
-        : ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            children: [
-              if (todayNotifications.isNotEmpty)
-                ..._notificationSection(
-                  context: context,
-                  title: 'Hoy',
-                  items: todayNotifications,
-                ),
-              if (lastThirtyDaysNotifications.isNotEmpty)
-                ..._notificationSection(
-                  context: context,
-                  title: 'Últimos 30 días',
-                  items: lastThirtyDaysNotifications,
-                ),
-            ],
-          );
+    final capsulesSection = capsulesAsync.when(
+      data: (capsules) => _CapsulesShelf(capsules: capsules),
+      loading: () => const _CapsulesLoadingPlaceholder(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+
+    final listChildren = <Widget>[
+      capsulesSection,
+      if (sectionWidgets.isEmpty)
+        const _NotificationsEmptyState()
+      else
+        ...sectionWidgets,
+    ];
+
+    final content = ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      children: listChildren,
+    );
 
     return _notificationsScaffold(
       body: RefreshIndicator(onRefresh: refresh, child: content),
@@ -499,6 +519,223 @@ String? _creatorNameFromParticipants(List<UserRole> participants) {
     }
   }
   return null;
+}
+
+class _CapsulesShelf extends StatelessWidget {
+  const _CapsulesShelf({required this.capsules});
+
+  final List<TimeCapsule> capsules;
+
+  @override
+  Widget build(BuildContext context) {
+    final upcoming = capsules
+        .where((capsule) => !capsule.isOpen)
+        .toList()
+      ..sort((a, b) => a.openAt.compareTo(b.openAt));
+
+    if (upcoming.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final visibleCapsules = upcoming.take(3).toList(growable: false);
+    final stackHeight = 150 + (visibleCapsules.length - 1) * 16.0;
+    final subtitle = upcoming.length == 1
+        ? '1 cápsula activa'
+        : '${upcoming.length} cápsulas activas';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Cápsulas de tiempo',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const TimeCapsulesView(),
+                    ),
+                  );
+                },
+                child: const Text('Ver todas'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: stackHeight,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                for (var i = 0; i < visibleCapsules.length; i++)
+                  Positioned.fill(
+                    top: (visibleCapsules.length - i - 1) * 14,
+                    child: _CapsuleCard(
+                      capsule: visibleCapsules[i],
+                      isPrimary: i == visibleCapsules.length - 1,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CapsulesLoadingPlaceholder extends StatelessWidget {
+  const _CapsulesLoadingPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      child: Container(
+        height: 150,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(24),
+        ),
+      ),
+    );
+  }
+}
+
+class _CapsuleCard extends StatelessWidget {
+  const _CapsuleCard({
+    required this.capsule,
+    required this.isPrimary,
+  });
+
+  final TimeCapsule capsule;
+  final bool isPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final daysLeft = capsule.daysUntilOpen;
+    final openingLabel = capsule.isOpen
+        ? 'Ya disponible'
+        : daysLeft == 0
+            ? 'Se abre hoy'
+            : 'Se abre en $daysLeft días';
+    final dateLabel = DateFormat('d MMM yyyy', 'es_ES').format(capsule.openAt);
+
+    final gradient = isPrimary
+        ? const LinearGradient(
+            colors: [AppColors.blue, AppColors.accentColor],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : LinearGradient(
+            colors: [
+              Colors.white,
+              Colors.white.withOpacity(0.95),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+
+    final textColor = isPrimary ? Colors.white : AppColors.textColor;
+
+    return Material(
+      color: Colors.transparent,
+      elevation: isPrimary ? 6 : 0,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TimeCapsuleView(capsuleId: capsule.id),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: isPrimary
+                  ? Colors.transparent
+                  : Colors.grey.withOpacity(0.2),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                capsule.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: textColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                capsule.description ?? 'Recuerdos esperando a abrirse.',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: textColor.withOpacity(isPrimary ? 0.9 : 0.7),
+                ),
+              ),
+              const Spacer(),
+              Row(
+                children: [
+                  Icon(
+                    Icons.lock_clock,
+                    size: 16,
+                    color: textColor.withOpacity(0.9),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    openingLabel,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    dateLabel,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: textColor.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 List<Widget> _notificationSection({
