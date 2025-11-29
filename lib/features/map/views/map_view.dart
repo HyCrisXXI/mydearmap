@@ -101,7 +101,6 @@ class _MapViewState extends ConsumerState<MapView> {
 
   @override
   Widget build(BuildContext context) {
-    final userAsync = ref.watch(currentUserProvider);
     final mapState = ref.watch(mapViewModelProvider);
     final memorySuggestions = mapState.memorySuggestions;
     final locationSuggestions = mapState.locationSuggestions;
@@ -213,389 +212,328 @@ class _MapViewState extends ConsumerState<MapView> {
 
     return Scaffold(
       body: SafeArea(
-        child: userAsync.when(
-          data: (user) {
-            String greeting() {
-              final hour = DateTime.now().hour;
-              if (hour >= 6 && hour < 12) return 'Buenos días';
-              if (hour >= 12 && hour < 20) return 'Buenas tardes';
-              return 'Buenas noches';
-            }
-
-            final name = user?.name ?? 'Usuario';
-            const avatarRadius = 25.0;
-
-            final avatarUrl = buildAvatarUrl(user?.profileUrl);
-
-            // Avatar con letra mayúscula si no hay imagen
-            final avatar = GestureDetector(
-              onTap: () {
-                Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => const ProfileView()));
-              },
-              child: CircleAvatar(
-                radius: avatarRadius,
-                backgroundColor: AppColors.primaryColor,
-                backgroundImage: avatarUrl != null
-                    ? NetworkImage(avatarUrl)
-                    : null,
-                child: avatarUrl == null
-                    ? Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : '?',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          color: Color.fromARGB(255, 17, 17, 17),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
-              ),
-            );
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 4.0,
-                    right: 16.0,
-                    top: 8.0,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${greeting()}, $name',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      avatar,
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: searchController,
-                        onChanged: _onSearchQueryChanged,
-                        decoration: InputDecoration(
-                          hintText: currentSearchType == SearchType.memory
-                              ? 'Buscar recuerdos...'
-                              : 'Buscar lugares...',
-                          prefixIcon: Icon(
-                            currentSearchType == SearchType.memory
-                                ? Icons.bookmark
-                                : Icons.search,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.borderRadius,
-                            ),
-                          ),
-                          suffixIcon: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.send),
-                                onPressed: () =>
-                                    _searchAndMove(searchController.text),
-                              ),
-                              PopupMenuButton<SearchType>(
-                                initialValue: currentSearchType,
-                                onSelected: (SearchType result) {
-                                  ref
-                                      .read(mapViewModelProvider.notifier)
-                                      .setSearchType(result);
-                                  // Actualizar sugerencias según el tipo
-                                  if (result == SearchType.memory) {
-                                    ref
-                                        .read(mapViewModelProvider.notifier)
-                                        .updateMemorySuggestions(
-                                          searchController.text,
-                                        );
-                                  } else {
-                                    ref
-                                        .read(mapViewModelProvider.notifier)
-                                        .updateLocationSuggestions(
-                                          searchController.text,
-                                        );
-                                  }
-                                },
-                                itemBuilder: (BuildContext context) =>
-                                    <PopupMenuEntry<SearchType>>[
-                                      const PopupMenuItem<SearchType>(
-                                        value: SearchType.place,
-                                        child: Text('Buscar lugares'),
-                                      ),
-                                      const PopupMenuItem<SearchType>(
-                                        value: SearchType.memory,
-                                        child: Text('Buscar recuerdos'),
-                                      ),
-                                    ],
-                                icon: Icon(
-                                  currentSearchType == SearchType.memory
-                                      ? Icons.bookmark_border
-                                      : Icons.location_on_outlined,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                          ),
-                        ),
-                        onSubmitted: _searchAndMove,
-                      ),
-                      if (currentSearchType == SearchType.memory &&
-                          memorySuggestions.isNotEmpty)
-                        Container(
-                          constraints: const BoxConstraints(maxHeight: 200),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryColor,
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(
-                                AppSizes.borderRadius,
-                              ),
-                              bottomRight: Radius.circular(
-                                AppSizes.borderRadius,
-                              ),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withValues(alpha: .2),
-                                spreadRadius: 2,
-                                blurRadius: 5,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: memorySuggestions.length,
-                            itemBuilder: (context, index) {
-                              final suggestion = memorySuggestions[index];
-                              // Usa color fijo en vez de getStableMemoryPinColor
-                              final suggestionColor = AppColors.primaryColor;
-                              String? imageUrl;
-                              if (suggestion.media.isNotEmpty) {
-                                final images = suggestion.media
-                                    .where(
-                                      (m) =>
-                                          m.type == MediaType.image &&
-                                          m.url != null,
-                                    )
-                                    .toList();
-                                if (images.isNotEmpty) {
-                                  images.sort(
-                                    (a, b) =>
-                                        (a.order ?? 0).compareTo(b.order ?? 0),
-                                  );
-                                  imageUrl = buildMediaPublicUrl(
-                                    images.first.url,
-                                  );
-                                }
-                              }
-                              final avatarSize = 32.0;
-                              return ListTile(
-                                leading: imageUrl != null
-                                    ? Container(
-                                        width: avatarSize,
-                                        height: avatarSize,
-                                        decoration:
-                                            AppDecorations.profileAvatar(
-                                              NetworkImage(imageUrl),
-                                            ),
-                                      )
-                                    : Icon(
-                                        Icons.location_on,
-                                        color: suggestionColor,
-                                        size: avatarSize,
-                                      ),
-                                title: Text(suggestion.title),
-                                onTap: () {
-                                  searchController.text = suggestion.title;
-                                  ref
-                                      .read(mapViewModelProvider.notifier)
-                                      .selectMemorySuggestion();
-                                  _searchAndMove(suggestion.title);
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                      if (currentSearchType == SearchType.place &&
-                          locationSuggestions.isNotEmpty)
-                        Container(
-                          constraints: const BoxConstraints(maxHeight: 200),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryColor,
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(
-                                AppSizes.borderRadius,
-                              ),
-                              bottomRight: Radius.circular(
-                                AppSizes.borderRadius,
-                              ),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withValues(alpha: .2),
-                                spreadRadius: 2,
-                                blurRadius: 5,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: locationSuggestions.length,
-                            itemBuilder: (context, index) {
-                              final suggestion = locationSuggestions[index];
-                              return ListTile(
-                                title: Text(suggestion.name),
-                                onTap: () {
-                                  searchController.text = suggestion.name;
-                                  mapController.move(suggestion.location, 15.0);
-                                  ref
-                                      .read(mapViewModelProvider.notifier)
-                                      .clearLocationSuggestions();
-                                  // Opcional: actualizar searchedLocation para mostrar el marcador
-                                  ref
-                                      .read(mapViewModelProvider.notifier)
-                                      .selectLocationSuggestion(
-                                        suggestion.location,
-                                      );
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: FlutterMap(
-                    mapController: mapController,
-                    options: MapOptions(
-                      initialCenter: LatLng(39.4699, -0.3763), // Valencia
-                      initialZoom: 13,
-                      onLongPress: (tapPosition, latLng) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => MemoryUpsertView.create(
-                              initialLocation: latLng,
-                            ),
-                          ),
-                        );
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Botón "+" arriba a la derecha
+            Padding(
+              padding: const EdgeInsets.only(
+                top: 60.0,
+                left: 36.0,
+                right: 36.0,
+              ), // Más margen arriba y a los lados
+              child: Row(
+                children: [
+                  // Toggle "Lugares"
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        final newType = currentSearchType == SearchType.place
+                            ? SearchType.memory
+                            : SearchType.place;
+                        ref
+                            .read(mapViewModelProvider.notifier)
+                            .setSearchType(newType);
+                        // Actualizar sugerencias según el tipo
+                        if (newType == SearchType.memory) {
+                          ref
+                              .read(mapViewModelProvider.notifier)
+                              .updateMemorySuggestions(searchController.text);
+                        } else {
+                          ref
+                              .read(mapViewModelProvider.notifier)
+                              .updateLocationSuggestions(searchController.text);
+                        }
                       },
-                      minZoom: 3,
-                      maxZoom: 19,
-                      cameraConstraint: CameraConstraint.contain(
-                        bounds: LatLngBounds(
-                          LatLng(-90, -180),
-                          LatLng(90, 180),
-                        ),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Lugares',
+                            style: TextStyle(
+                              color: currentSearchType == SearchType.place
+                                  ? AppColors.accentColor
+                                  : AppColors.textColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          SvgPicture.asset(
+                            currentSearchType == SearchType.place
+                                ? AppIcons.toggleButtonOn
+                                : AppIcons.toggleButtonOff,
+                            width: 32,
+                            height: 20,
+                          ),
+                        ],
                       ),
-                      interactionOptions: InteractionOptions(
-                        flags:
-                            InteractiveFlag.doubleTapZoom |
-                            InteractiveFlag.pinchZoom |
-                            InteractiveFlag.drag |
-                            InteractiveFlag.flingAnimation |
-                            InteractiveFlag.scrollWheelZoom,
-                      ),
-                      onTap: (_, _) {
-                        _popupController.hideAllPopups();
-                      },
                     ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
-                        userAgentPackageName: 'com.mydearmap.app',
-                        tileProvider: kIsWeb ? NetworkTileProvider() : null,
-                        maxNativeZoom: 19,
-                      ),
-                      PopupMarkerLayer(
-                        options: PopupMarkerLayerOptions(
-                          popupController: _popupController,
-                          markers: memoryMarkers,
-                          popupDisplayOptions: PopupDisplayOptions(
-                            builder: (BuildContext context, Marker marker) {
-                              if (marker is MemoryMarker) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryColor,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color:
-                                            Colors.black.withValues(alpha: .3),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    marker.memory.title,
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                            snap: PopupSnap.markerTop,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    style: AppButtonStyles.circularIconButton,
+                    icon: SvgPicture.asset(
+                      AppIcons.plus,
+                      width: 22,
+                      height: 22,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => MemoryUpsertView.create(
+                            initialLocation: LatLng(39.4699, -0.3763),
                           ),
                         ),
-                      ),
-                      if (searchedLocation != null)
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: searchedLocation,
-                              width: 40,
-                              height: 40,
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Colors.red,
-                                size: 40,
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
+                      );
+                    },
                   ),
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => MemoryUpsertView.create(
-                initialLocation: LatLng(39.4699, -0.3763),
+                ],
               ),
             ),
-          );
-        },
-        child: const Icon(Icons.add),
+            const SizedBox(height: 30), // Separación entre botones y buscador
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 42.0,
+              ), // Más margen a los lados
+              child: Column(
+                children: [
+                  TextField(
+                    controller: searchController,
+                    onChanged: _onSearchQueryChanged,
+                    decoration: InputDecoration(
+                      hintText: currentSearchType == SearchType.place
+                          ? 'Buscar lugares'
+                          : 'Buscar recuerdos',
+                      hintStyle: const TextStyle(
+                        color: AppColors.textGray,
+                        fontSize: 16,
+                      ),
+                      border: const UnderlineInputBorder(),
+                      prefixIcon: null,
+                      suffixIcon: IconButton(
+                        icon: SvgPicture.asset(
+                          AppIcons.search,
+                          width: 22,
+                          height: 22,
+                        ),
+                        onPressed: () => _searchAndMove(searchController.text),
+                      ),
+                    ),
+                    onSubmitted: _searchAndMove,
+                  ),
+                  if (currentSearchType == SearchType.memory &&
+                      memorySuggestions.isNotEmpty)
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryColor,
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(AppSizes.borderRadius),
+                          bottomRight: Radius.circular(AppSizes.borderRadius),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withValues(alpha: .2),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: memorySuggestions.length,
+                        itemBuilder: (context, index) {
+                          final suggestion = memorySuggestions[index];
+                          final suggestionColor = AppColors.primaryColor;
+                          String? imageUrl;
+                          if (suggestion.media.isNotEmpty) {
+                            final images = suggestion.media
+                                .where(
+                                  (m) =>
+                                      m.type == MediaType.image &&
+                                      m.url != null,
+                                )
+                                .toList();
+                            if (images.isNotEmpty) {
+                              images.sort(
+                                (a, b) =>
+                                    (a.order ?? 0).compareTo(b.order ?? 0),
+                              );
+                              imageUrl = buildMediaPublicUrl(images.first.url);
+                            }
+                          }
+                          final avatarSize = 32.0;
+                          return ListTile(
+                            leading: imageUrl != null
+                                ? Container(
+                                    width: avatarSize,
+                                    height: avatarSize,
+                                    decoration: AppDecorations.profileAvatar(
+                                      NetworkImage(imageUrl),
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.location_on,
+                                    color: suggestionColor,
+                                    size: avatarSize,
+                                  ),
+                            title: Text(suggestion.title),
+                            onTap: () {
+                              searchController.text = suggestion.title;
+                              ref
+                                  .read(mapViewModelProvider.notifier)
+                                  .selectMemorySuggestion();
+                              _searchAndMove(suggestion.title);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  if (currentSearchType == SearchType.place &&
+                      locationSuggestions.isNotEmpty)
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryColor,
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(AppSizes.borderRadius),
+                          bottomRight: Radius.circular(AppSizes.borderRadius),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withValues(alpha: .2),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: locationSuggestions.length,
+                        itemBuilder: (context, index) {
+                          final suggestion = locationSuggestions[index];
+                          return ListTile(
+                            title: Text(suggestion.name),
+                            onTap: () {
+                              searchController.text = suggestion.name;
+                              mapController.move(suggestion.location, 15.0);
+                              ref
+                                  .read(mapViewModelProvider.notifier)
+                                  .clearLocationSuggestions();
+                              // Opcional: actualizar searchedLocation para mostrar el marcador
+                              ref
+                                  .read(mapViewModelProvider.notifier)
+                                  .selectLocationSuggestion(
+                                    suggestion.location,
+                                  );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18), // Separación entre buscador y mapa
+            Expanded(
+              child: FlutterMap(
+                mapController: mapController,
+                options: MapOptions(
+                  initialCenter: LatLng(39.4699, -0.3763), // Valencia
+                  initialZoom: 13,
+                  onLongPress: (tapPosition, latLng) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            MemoryUpsertView.create(initialLocation: latLng),
+                      ),
+                    );
+                  },
+                  minZoom: 3,
+                  maxZoom: 19,
+                  cameraConstraint: CameraConstraint.contain(
+                    bounds: LatLngBounds(LatLng(-90, -180), LatLng(90, 180)),
+                  ),
+                  interactionOptions: InteractionOptions(
+                    flags:
+                        InteractiveFlag.doubleTapZoom |
+                        InteractiveFlag.pinchZoom |
+                        InteractiveFlag.drag |
+                        InteractiveFlag.flingAnimation |
+                        InteractiveFlag.scrollWheelZoom,
+                  ),
+                  onTap: (_, _) {
+                    _popupController.hideAllPopups();
+                  },
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
+                    userAgentPackageName: 'com.mydearmap.app',
+                    tileProvider: kIsWeb ? NetworkTileProvider() : null,
+                    maxNativeZoom: 19,
+                  ),
+                  PopupMarkerLayer(
+                    options: PopupMarkerLayerOptions(
+                      popupController: _popupController,
+                      markers: memoryMarkers,
+                      popupDisplayOptions: PopupDisplayOptions(
+                        builder: (BuildContext context, Marker marker) {
+                          if (marker is MemoryMarker) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: .3),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                marker.memory.title,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                        snap: PopupSnap.markerTop,
+                      ),
+                    ),
+                  ),
+                  if (searchedLocation != null)
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: searchedLocation,
+                          width: 40,
+                          height: 40,
+                          child: const Icon(
+                            Icons.location_on,
+                            color: Colors.red,
+                            size: 40,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
+      floatingActionButton: null, // Eliminar el FAB de añadir
       bottomNavigationBar: AppNavBar(
         currentIndex: 2, // El índice del mapa
       ),

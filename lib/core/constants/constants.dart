@@ -7,6 +7,7 @@ class AppColors {
   static const accentColor = Color(0xFF5E67F2); // Azul vibrante placeholder?
   static const backgroundColor = Color(0xFFFFF5E5);
   static const textColor = Color(0xFF000000);
+  static const textGray = Color(0xFF686868);
   static const blue = Color(0xFF5E67F2);
   static const yellow = Color(0xFFFFE833);
   static const orange = Color(0xFFFF9312);
