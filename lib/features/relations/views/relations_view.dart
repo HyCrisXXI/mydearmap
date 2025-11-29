@@ -12,6 +12,7 @@ import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/features/relations/views/relation_view.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
 import 'package:mydearmap/features/relations/views/relation_create_view.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class RelationsView extends ConsumerWidget {
   const RelationsView({super.key});
@@ -19,7 +20,7 @@ class RelationsView extends ConsumerWidget {
   PreferredSizeWidget _buildRelationsAppBar(BuildContext context) {
     return AppBar(
       leading: IconButton(
-        icon: Image.asset(AppIcons.chevronLeft),
+        icon: SvgPicture.asset(AppIcons.chevronLeft),
         onPressed: () {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const MemoriesView()),
@@ -33,7 +34,7 @@ class RelationsView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: IconButton(
-            icon: Image.asset(AppIcons.timer),
+            icon: SvgPicture.asset(AppIcons.timer),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const TimeCapsulesView()),
@@ -45,7 +46,13 @@ class RelationsView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: IconButton(
-            icon: Image.asset(AppIcons.heartHandshake, color: AppColors.blue),
+            icon: SvgPicture.asset(
+              AppIcons.heartHandshake,
+              colorFilter: const ColorFilter.mode(
+                AppColors.blue,
+                BlendMode.srcIn,
+              ),
+            ),
             onPressed: () {
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const MemoriesView()),
@@ -58,7 +65,7 @@ class RelationsView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(right: 12.0),
           child: IconButton(
-            icon: Image.asset(AppIcons.plus),
+            icon: SvgPicture.asset(AppIcons.plus),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const RelationCreateView()),

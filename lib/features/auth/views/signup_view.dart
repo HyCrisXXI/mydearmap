@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/auth/controllers/signup_view_model.dart';
 import 'package:mydearmap/core/widgets/app_form_buttons.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class SignupView extends ConsumerStatefulWidget {
   const SignupView({super.key});
@@ -132,7 +133,7 @@ class _SignupViewState extends ConsumerState<SignupView> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Image.asset(AppIcons.chevronLeft),
+          icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () => Navigator.of(context).pop(),
           style: AppButtonStyles.circularIconButton,
         ),

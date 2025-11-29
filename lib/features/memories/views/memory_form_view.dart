@@ -25,6 +25,7 @@ import 'package:mydearmap/features/memories/widgets/memory_media_editor.dart'
 import 'package:mydearmap/features/memories/widgets/memory_media_carousel.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/map/views/map_view.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 final _memoryByIdProvider = FutureProvider.family<Memory, String>((
   ref,
@@ -808,7 +809,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Image.asset(AppIcons.chevronLeft),
+          icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () => Navigator.of(context).pop(),
           style: AppButtonStyles.circularIconButton,
         ),

@@ -13,6 +13,7 @@ import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/memories/widgets/memory_media_carousel.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 final memoryDetailProvider = FutureProvider.family<Memory, String>((
   ref,
@@ -39,7 +40,7 @@ class MemoryDetailView extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Image.asset(AppIcons.chevronLeft),
+          icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () => Navigator.of(context).pop(),
           style: AppButtonStyles.circularIconButton,
         ),

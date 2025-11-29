@@ -7,6 +7,7 @@ import 'package:mydearmap/core/widgets/memory_card.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 typedef MemoryTapCallback = void Function(Memory memory);
 
@@ -131,7 +132,15 @@ class MemoriesGrid extends StatelessWidget {
                     children: [
                       const Text("Destacados", style: AppTextStyles.subtitle),
                       const SizedBox(width: 8),
-                      Image.asset(AppIcons.blackStar, width: 24, height: 24),
+                      SvgPicture.asset(
+                        AppIcons.starFilled,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.accentColor,
+                          BlendMode.srcIn,
+                        ),
+                        width: 24,
+                        height: 24,
+                      ),
                     ],
                   ),
                 ),
@@ -161,7 +170,11 @@ class MemoriesGrid extends StatelessWidget {
                     children: [
                       const Text("Todos", style: AppTextStyles.subtitle),
                       const SizedBox(width: 8),
-                      Image.asset(AppIcons.folderOpen, width: 24, height: 24),
+                      SvgPicture.asset(
+                        AppIcons.folderOpen,
+                        width: 24,
+                        height: 24,
+                      ),
                     ],
                   ),
                 ),
@@ -383,7 +396,7 @@ class _FavoriteMemoryCardState extends State<_FavoriteMemoryCard> {
                       isFavorite: isFavorite,
                     );
                   },
-                  icon: Image.asset(
+                  icon: SvgPicture.asset(
                     isFavorite ? AppIcons.starFilled : AppIcons.star,
                     width: 20,
                     height: 20,

@@ -5,6 +5,7 @@ import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'timecapsule_create_view.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class TimeCapsuleView extends ConsumerWidget {
   const TimeCapsuleView({super.key, required this.capsuleId});
@@ -20,7 +21,7 @@ class TimeCapsuleView extends ConsumerWidget {
         title: const Text('Detalle de Cápsula'),
         actions: [
           IconButton(
-            icon: Image.asset(AppIcons.pencilLine),
+            icon: SvgPicture.asset(AppIcons.pencil),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(

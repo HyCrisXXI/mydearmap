@@ -2,11 +2,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
@@ -21,7 +19,6 @@ class MapViewState {
   final List<Memory> memorySuggestions;
   final String memoryQuery;
   final LatLng? searchedLocation;
-  final String? highlightedMemoryId;
   final List<LocationSuggestion> locationSuggestions;
 
   const MapViewState({
@@ -30,7 +27,6 @@ class MapViewState {
     this.memorySuggestions = const [],
     this.memoryQuery = '',
     this.searchedLocation,
-    this.highlightedMemoryId,
     this.locationSuggestions = const [],
   });
 
@@ -40,9 +36,7 @@ class MapViewState {
     List<Memory>? memorySuggestions,
     String? memoryQuery,
     LatLng? searchedLocation,
-    String? highlightedMemoryId,
     List<LocationSuggestion>? locationSuggestions,
-    bool resetHighlight = false,
   }) {
     return MapViewState(
       memories: memories ?? this.memories,
@@ -50,9 +44,6 @@ class MapViewState {
       memorySuggestions: memorySuggestions ?? this.memorySuggestions,
       memoryQuery: memoryQuery ?? this.memoryQuery,
       searchedLocation: searchedLocation ?? this.searchedLocation,
-      highlightedMemoryId: resetHighlight
-          ? null
-          : (highlightedMemoryId ?? this.highlightedMemoryId),
       locationSuggestions: locationSuggestions ?? this.locationSuggestions,
     );
   }
@@ -67,23 +58,12 @@ class LocationSuggestion {
 }
 
 class MapViewModel extends Notifier<MapViewState> {
-  final Map<String, Color> _memoryPinColorCache = {};
-  int _colorIndex = 0;
-  final List<Color> _memoryPinColors = const [
-    AppColors.blue,
-    AppColors.yellow,
-    AppColors.orange,
-    AppColors.pink,
-    AppColors.green,
-  ];
-
   @override
   MapViewState build() {
     final initialMemories = ref.read(userMemoriesProvider);
 
     ref.onDispose(() {
-      _memoryPinColorCache.clear();
-      _colorIndex = 0;
+      // No hay cache que limpiar
     });
 
     ref.listen<AsyncValue<User?>>(currentUserProvider, (previous, next) {
@@ -91,8 +71,6 @@ class MapViewModel extends Notifier<MapViewState> {
       final nextId = _userIdFromAsync(next);
       if (prevId != nextId) {
         Future.microtask(() {
-          _memoryPinColorCache.clear();
-          _colorIndex = 0;
           state = const MapViewState();
           ref.invalidate(userMemoriesProvider);
         });
@@ -122,26 +100,12 @@ class MapViewModel extends Notifier<MapViewState> {
     return asyncUser?.whenOrNull(data: (user) => user?.id);
   }
 
-  Color getStableMemoryPinColor(String memoryId) {
-    if (_memoryPinColorCache.containsKey(memoryId)) {
-      return _memoryPinColorCache[memoryId]!;
-    }
-    final color = _memoryPinColors[_colorIndex];
-    _colorIndex = (_colorIndex + 1) % _memoryPinColors.length;
-    _memoryPinColorCache[memoryId] = color;
-    return color;
-  }
-
   void setSearchType(SearchType newType) {
-    state = state.copyWith(searchType: newType, resetHighlight: true);
+    state = state.copyWith(searchType: newType);
   }
 
   void clearMemorySuggestions() {
-    state = state.copyWith(
-      memorySuggestions: const [],
-      memoryQuery: '',
-      resetHighlight: true,
-    );
+    state = state.copyWith(memorySuggestions: const [], memoryQuery: '');
   }
 
   void clearLocationSuggestions() {
@@ -194,13 +158,6 @@ class MapViewModel extends Notifier<MapViewState> {
     } catch (_) {
       return null;
     }
-  }
-
-  void highlightMemory(String? memoryId) {
-    state = state.copyWith(
-      highlightedMemoryId: memoryId,
-      resetHighlight: memoryId == null,
-    );
   }
 
   Future<void> searchLocation(String query) async {

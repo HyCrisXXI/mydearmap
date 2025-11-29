@@ -11,6 +11,7 @@ import 'package:mydearmap/features/relations/views/relations_view.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/timeline/view/timeline_view.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class MemoriesView extends ConsumerStatefulWidget {
   const MemoriesView({super.key});
@@ -53,7 +54,7 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
-              icon: Image.asset(AppIcons.timer),
+              icon: SvgPicture.asset(AppIcons.timer),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const TimeCapsulesView()),
@@ -65,7 +66,7 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
-              icon: Image.asset(AppIcons.heartHandshake),
+              icon: SvgPicture.asset(AppIcons.heartHandshake),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const RelationsView()),
@@ -77,7 +78,7 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: IconButton(
-              icon: Image.asset(AppIcons.plus),
+              icon: SvgPicture.asset(AppIcons.plus),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(

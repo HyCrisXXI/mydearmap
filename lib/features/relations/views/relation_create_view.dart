@@ -5,6 +5,7 @@ import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:flutter_svg/flutter_svg.dart';
 
 class RelationCreateView extends ConsumerStatefulWidget {
   const RelationCreateView({super.key});
@@ -122,7 +123,7 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Image.asset(AppIcons.chevronLeft),
+          icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () => Navigator.of(context).pop(),
           style: AppButtonStyles.circularIconButton,
         ),

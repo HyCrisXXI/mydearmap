@@ -8,15 +8,16 @@ import 'package:mydearmap/features/map/models/map_view_model.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/profile/views/profile_view.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -62,8 +63,6 @@ class _MapViewState extends ConsumerState<MapView> {
           matchingMemory.location!.longitude,
         );
         mapController.move(location, 15.0);
-        viewModel.highlightMemory(matchingMemory.id);
-        // Limpiar sugerencias de recuerdos al buscar
         viewModel.selectMemorySuggestion();
       } else {
         if (!mounted) return;
@@ -108,6 +107,109 @@ class _MapViewState extends ConsumerState<MapView> {
     final locationSuggestions = mapState.locationSuggestions;
     final currentSearchType = mapState.searchType;
     final searchedLocation = mapState.searchedLocation;
+
+    // --- lógica para los pins de recuerdos ---
+    List<Marker> memoryMarkers = [];
+    mapState.memories.when(
+      data: (memories) {
+        final withImage = <Memory>[];
+        final withoutImage = <Memory>[];
+        for (final memory in memories) {
+          if (memory.location != null && memory.id != null) {
+            final images = memory.media
+                .where((m) => m.type == MediaType.image && m.url != null)
+                .toList();
+            if (images.isNotEmpty) {
+              withImage.add(memory);
+            } else {
+              withoutImage.add(memory);
+            }
+          }
+        }
+        memoryMarkers.addAll(
+          withoutImage.map((memory) {
+            return MemoryMarker(
+              memory: memory,
+              point: LatLng(
+                memory.location!.latitude,
+                memory.location!.longitude,
+              ),
+              width: 46.0,
+              height: 46.0,
+              child: GestureDetector(
+                onLongPress: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          MemoryDetailView(memoryId: memory.id!),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 46.0,
+                  height: 46.0,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      AppIcons.pin,
+                      width: 32.0,
+                      height: 32.0,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.accentColor,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+        memoryMarkers.addAll(
+          withImage.map((memory) {
+            String? imageUrl;
+            final images = memory.media
+                .where((m) => m.type == MediaType.image && m.url != null)
+                .toList();
+            if (images.isNotEmpty) {
+              images.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
+              imageUrl = buildMediaPublicUrl(images.first.url);
+            }
+            return MemoryMarker(
+              memory: memory,
+              point: LatLng(
+                memory.location!.latitude,
+                memory.location!.longitude,
+              ),
+              width: 56.0,
+              height: 56.0,
+              child: GestureDetector(
+                onLongPress: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          MemoryDetailView(memoryId: memory.id!),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 56.0,
+                  height: 56.0,
+                  decoration: AppDecorations.profileAvatar(
+                    NetworkImage(imageUrl!),
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+      loading: () {},
+      error: (err, stack) {},
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -278,12 +380,8 @@ class _MapViewState extends ConsumerState<MapView> {
                             itemCount: memorySuggestions.length,
                             itemBuilder: (context, index) {
                               final suggestion = memorySuggestions[index];
-                              final suggestionId = suggestion.id;
-                              final suggestionColor = suggestionId != null
-                                  ? ref
-                                        .read(mapViewModelProvider.notifier)
-                                        .getStableMemoryPinColor(suggestionId)
-                                  : AppColors.primaryColor;
+                              // Usa color fijo en vez de getStableMemoryPinColor
+                              final suggestionColor = AppColors.primaryColor;
                               String? imageUrl;
                               if (suggestion.media.isNotEmpty) {
                                 final images = suggestion.media
@@ -388,7 +486,7 @@ class _MapViewState extends ConsumerState<MapView> {
                     options: MapOptions(
                       initialCenter: LatLng(39.4699, -0.3763), // Valencia
                       initialZoom: 13,
-                      onLongPress: (TapPosition tapPosition, LatLng latLng) {
+                      onLongPress: (tapPosition, latLng) {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => MemoryUpsertView.create(
@@ -425,15 +523,41 @@ class _MapViewState extends ConsumerState<MapView> {
                         tileProvider: kIsWeb ? NetworkTileProvider() : null,
                         maxNativeZoom: 19,
                       ),
-                      mapState.memories.when(
-                        data: (memories) =>
-                            _buildMemoriesPopupLayer(memories, mapState),
-                        loading: () => const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.transparent,
+                      PopupMarkerLayer(
+                        options: PopupMarkerLayerOptions(
+                          popupController: _popupController,
+                          markers: memoryMarkers,
+                          popupDisplayOptions: PopupDisplayOptions(
+                            builder: (BuildContext context, Marker marker) {
+                              if (marker is MemoryMarker) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryColor,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            Colors.black.withValues(alpha: .3),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    marker.memory.title,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                            snap: PopupSnap.markerTop,
                           ),
                         ),
-                        error: (err, stack) => const SizedBox.shrink(),
                       ),
                       if (searchedLocation != null)
                         MarkerLayer(
@@ -474,140 +598,6 @@ class _MapViewState extends ConsumerState<MapView> {
       ),
       bottomNavigationBar: AppNavBar(
         currentIndex: 2, // El índice del mapa
-      ),
-    );
-  }
-
-  // Pin del recuerdo en el mapa
-  PopupMarkerLayer _buildMemoriesPopupLayer(
-    List<Memory> memories,
-    MapViewState mapState,
-  ) {
-    final viewModel = ref.read(mapViewModelProvider.notifier);
-    MemoryMarker? highlightedMarker;
-
-    // Separar recuerdos con imagen y sin imagen
-    final withImage = <Memory>[];
-    final withoutImage = <Memory>[];
-    for (final memory in memories) {
-      if (memory.location != null && memory.id != null) {
-        final images = memory.media
-            .where((m) => m.type == MediaType.image && m.url != null)
-            .toList();
-        if (images.isNotEmpty) {
-          withImage.add(memory);
-        } else {
-          withoutImage.add(memory);
-        }
-      }
-    }
-
-    // Primero los marcadores SIN imagen
-    final markerMarkers = withoutImage.map((memory) {
-      final memoryId = memory.id!;
-      final marker = MemoryMarker(
-        memory: memory,
-        point: LatLng(memory.location!.latitude, memory.location!.longitude),
-        child: GestureDetector(
-          onLongPress: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => MemoryDetailView(memoryId: memoryId),
-              ),
-            );
-          },
-          child: Icon(
-            Icons.location_on,
-            color: viewModel.getStableMemoryPinColor(memoryId),
-            size: 35,
-          ),
-        ),
-      );
-      if (memoryId == mapState.highlightedMemoryId) {
-        highlightedMarker = marker;
-      }
-      return marker;
-    });
-
-    // Luego los marcadores CON imagen (por encima)
-    final imageMarkers = withImage.map((memory) {
-      final memoryId = memory.id!;
-      String? imageUrl;
-      final images = memory.media
-          .where((m) => m.type == MediaType.image && m.url != null)
-          .toList();
-      if (images.isNotEmpty) {
-        images.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
-        imageUrl = buildMediaPublicUrl(images.first.url);
-      }
-      final marker = MemoryMarker(
-        memory: memory,
-        point: LatLng(memory.location!.latitude, memory.location!.longitude),
-        child: GestureDetector(
-          onLongPress: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => MemoryDetailView(memoryId: memoryId),
-              ),
-            );
-          },
-          child: Container(
-            width: 48.0,
-            height: 48.0,
-            decoration: AppDecorations.profileAvatar(NetworkImage(imageUrl!)),
-          ),
-        ),
-      );
-      if (memoryId == mapState.highlightedMemoryId) {
-        highlightedMarker = marker;
-      }
-      return marker;
-    });
-
-    // Unir: primero los sin imagen, luego los con imagen
-    final markers = [...markerMarkers, ...imageMarkers].toList();
-
-    if (highlightedMarker != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _popupController.showPopupsOnlyFor([highlightedMarker!]);
-        viewModel.highlightMemory(null);
-      });
-    }
-
-    return PopupMarkerLayer(
-      options: PopupMarkerLayerOptions(
-        popupController: _popupController,
-        markers: markers,
-        popupDisplayOptions: PopupDisplayOptions(
-          builder: (BuildContext context, Marker marker) {
-            if (marker is MemoryMarker) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryColor,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: .3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                // Nombre del recuerdo
-                child: Text(
-                  marker.memory.title,
-                  style: const TextStyle(fontSize: 12),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          },
-          snap: PopupSnap.markerTop,
-        ),
       ),
     );
   }

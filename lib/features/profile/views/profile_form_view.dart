@@ -10,6 +10,7 @@ import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/features/profile/controllers/profile_controller.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:flutter_svg/flutter_svg.dart';
 
 class ProfileEditView extends ConsumerStatefulWidget {
   const ProfileEditView({super.key, required this.user});
@@ -262,7 +263,7 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Image.asset(AppIcons.chevronLeft),
+          icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () => Navigator.of(context).pop(),
           style: AppButtonStyles.circularIconButton,
         ),

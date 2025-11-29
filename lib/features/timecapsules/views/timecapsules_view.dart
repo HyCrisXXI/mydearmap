@@ -7,6 +7,7 @@ import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/memories/views/memories_view.dart';
 import 'package:mydearmap/features/relations/views/relations_view.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class TimeCapsulesView extends ConsumerWidget {
   const TimeCapsulesView({super.key});
@@ -18,7 +19,7 @@ class TimeCapsulesView extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Image.asset(AppIcons.chevronLeft),
+          icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const MemoriesView()),
@@ -32,7 +33,13 @@ class TimeCapsulesView extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
-              icon: Image.asset(AppIcons.timer, color: AppColors.blue),
+              icon: SvgPicture.asset(
+                AppIcons.timer,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.blue,
+                  BlendMode.srcIn,
+                ),
+              ),
               onPressed: () {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const MemoriesView()),
@@ -45,7 +52,7 @@ class TimeCapsulesView extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
-              icon: Image.asset(AppIcons.heartHandshake),
+              icon: SvgPicture.asset(AppIcons.heartHandshake),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const RelationsView()),
@@ -57,7 +64,7 @@ class TimeCapsulesView extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: IconButton(
-              icon: Image.asset(AppIcons.plus),
+              icon: SvgPicture.asset(AppIcons.plus),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(

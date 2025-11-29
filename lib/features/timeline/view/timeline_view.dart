@@ -9,6 +9,7 @@ import 'dart:math' as math;
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class MemoriesTimelineView extends ConsumerWidget {
   const MemoriesTimelineView({super.key});
@@ -53,7 +54,7 @@ class _TimelineBody extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Image.asset(AppIcons.chevronLeft),
+          icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () => Navigator.of(context).pop(),
           style: AppButtonStyles.circularIconButton,
         ),

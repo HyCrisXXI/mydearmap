@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mydearmap/core/constants/constants.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class AppNavBar extends StatefulWidget {
   final int currentIndex;
@@ -58,30 +59,84 @@ class _AppNavBarState extends State<AppNavBar> {
       showUnselectedLabels: false,
       currentIndex: _selectedIndex,
       onTap: _onItemTapped,
-      items: const [
+      items: [
         BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage(AppIcons.ai), size: AppSizes.iconSize),
+          icon: SvgPicture.asset(
+            AppIcons.ai,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+          ),
+          activeIcon: SvgPicture.asset(
+            AppIcons.ai,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter:
+                const ColorFilter.mode(AppColors.accentColor, BlendMode.srcIn),
+          ),
           label: 'Chatbot',
         ),
         BottomNavigationBarItem(
-          icon: ImageIcon(
-            AssetImage(AppIcons.sticker),
-            size: AppSizes.iconSize,
+          icon: SvgPicture.asset(
+            AppIcons.sticker,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+          ),
+          activeIcon: SvgPicture.asset(
+            AppIcons.sticker,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter:
+                const ColorFilter.mode(AppColors.accentColor, BlendMode.srcIn),
           ),
           label: 'Recuerdos',
         ),
         BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage(AppIcons.earth), size: AppSizes.iconSize),
+          icon: SvgPicture.asset(
+            AppIcons.earth,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+          ),
+          activeIcon: SvgPicture.asset(
+            AppIcons.earth,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter:
+                const ColorFilter.mode(AppColors.accentColor, BlendMode.srcIn),
+          ),
           label: 'Mapa',
         ),
         BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage(AppIcons.bell), size: AppSizes.iconSize),
+          icon: SvgPicture.asset(
+            AppIcons.bell,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+          ),
+          activeIcon: SvgPicture.asset(
+            AppIcons.bell,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter:
+                const ColorFilter.mode(AppColors.accentColor, BlendMode.srcIn),
+          ),
           label: 'Notificaciones',
         ),
         BottomNavigationBarItem(
-          icon: ImageIcon(
-            AssetImage(AppIcons.userRound),
-            size: AppSizes.iconSize,
+          icon: SvgPicture.asset(
+            AppIcons.userRound,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+          ),
+          activeIcon: SvgPicture.asset(
+            AppIcons.userRound,
+            width: AppSizes.iconSize,
+            height: AppSizes.iconSize,
+            colorFilter:
+                const ColorFilter.mode(AppColors.accentColor, BlendMode.srcIn),
           ),
           label: 'Perfil',
         ),
