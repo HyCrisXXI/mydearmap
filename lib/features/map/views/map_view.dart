@@ -1,6 +1,5 @@
 // lib/features/map/views/map_view.dart
 import 'package:mydearmap/core/constants/env_constants.dart';
-import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/media.dart';
@@ -14,8 +13,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
-import 'package:mydearmap/features/profile/views/profile_view.dart';
-import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
