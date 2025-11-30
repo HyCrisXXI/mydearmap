@@ -64,10 +64,11 @@ class _NotificationsContent extends ConsumerWidget {
 
     final now = DateTime.now();
     final cutoff = now.subtract(const Duration(days: 30));
-    final recentNotifications = visibleNotifications
-        .where((notification) => !notification.createdAt.isBefore(cutoff))
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final recentNotifications =
+        visibleNotifications
+            .where((notification) => !notification.createdAt.isBefore(cutoff))
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     final todayNotifications = recentNotifications
         .where((notification) => _isSameDay(notification.createdAt, now))
@@ -106,7 +107,7 @@ class _NotificationsContent extends ConsumerWidget {
     final capsulesSection = capsulesAsync.when(
       data: (capsules) => _CapsulesShelf(capsules: capsules),
       loading: () => const _CapsulesLoadingPlaceholder(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
 
     final listChildren = <Widget>[
@@ -224,9 +225,7 @@ class _NotificationsEmptyState extends StatelessWidget {
 }
 
 class _NotificationTile extends ConsumerWidget {
-  const _NotificationTile({
-    required this.notification,
-  });
+  const _NotificationTile({required this.notification});
 
   final AppNotification notification;
 
@@ -246,9 +245,10 @@ class _NotificationTile extends ConsumerWidget {
       );
     }
     final actorName =
-        creatorName ?? _actorNameFromMetadata(notification.metadata) ?? 'Alguien';
-    final sharedText =
-        '¡Te han compartido el recuerdo ${notification.title}!';
+        creatorName ??
+        _actorNameFromMetadata(notification.metadata) ??
+        'Alguien';
+    final sharedText = '¡Te han compartido el recuerdo ${notification.title}!';
     final contextLine = _contextLineFrom(notification.metadata);
 
     return Padding(
@@ -277,9 +277,9 @@ class _NotificationTile extends ConsumerWidget {
                       Text(
                         relativeTime,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: badgeColor,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          color: badgeColor,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Row(
@@ -288,9 +288,7 @@ class _NotificationTile extends ConsumerWidget {
                             child: Text(
                               actorName,
                               style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  ?.copyWith(fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
@@ -299,8 +297,8 @@ class _NotificationTile extends ConsumerWidget {
                       Text(
                         sharedText,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey.shade700,
-                            ),
+                          color: Colors.grey.shade700,
+                        ),
                       ),
                       if (contextLine != null) ...[
                         const SizedBox(height: 4),
@@ -325,9 +323,7 @@ class _NotificationTile extends ConsumerWidget {
                               ),
                               child: Text(
                                 notification.kind.name,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelMedium
+                                style: Theme.of(context).textTheme.labelMedium
                                     ?.copyWith(
                                       color: badgeColor,
                                       fontWeight: FontWeight.w600,
@@ -378,9 +374,7 @@ Future<void> _handleNotificationTap(
   if (memory == null) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Este recuerdo ya no está disponible.'),
-      ),
+      const SnackBar(content: Text('Este recuerdo ya no está disponible.')),
     );
     ref.invalidate(memoryDetailProvider(memoryId));
     return;
@@ -388,9 +382,7 @@ Future<void> _handleNotificationTap(
 
   if (!context.mounted) return;
   await Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => MemoryDetailView(memoryId: memoryId),
-    ),
+    MaterialPageRoute(builder: (_) => MemoryDetailView(memoryId: memoryId)),
   );
 }
 
@@ -494,13 +486,7 @@ String? _memoryIdFromMetadata(dynamic metadata) {
 }
 
 String? _actorNameFromMetadata(Map<String, dynamic> metadata) {
-  const keys = [
-    'actor_name',
-    'actor',
-    'user_name',
-    'user',
-    'sender_name',
-  ];
+  const keys = ['actor_name', 'actor', 'user_name', 'user', 'sender_name'];
 
   for (final key in keys) {
     final value = metadata[key];
@@ -528,9 +514,7 @@ class _CapsulesShelf extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final upcoming = capsules
-        .where((capsule) => !capsule.isOpen)
-        .toList()
+    final upcoming = capsules.where((capsule) => !capsule.isOpen).toList()
       ..sort((a, b) => a.openAt.compareTo(b.openAt));
 
     if (upcoming.isEmpty) {
@@ -556,15 +540,15 @@ class _CapsulesShelf extends StatelessWidget {
                   Text(
                     'Cápsulas de tiempo',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                 ],
               ),
@@ -572,9 +556,7 @@ class _CapsulesShelf extends StatelessWidget {
               TextButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const TimeCapsulesView(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const TimeCapsulesView()),
                   );
                 },
                 child: const Text('Ver todas'),
@@ -623,10 +605,7 @@ class _CapsulesLoadingPlaceholder extends StatelessWidget {
 }
 
 class _CapsuleCard extends StatelessWidget {
-  const _CapsuleCard({
-    required this.capsule,
-    required this.isPrimary,
-  });
+  const _CapsuleCard({required this.capsule, required this.isPrimary});
 
   final TimeCapsule capsule;
   final bool isPrimary;
@@ -638,8 +617,8 @@ class _CapsuleCard extends StatelessWidget {
     final openingLabel = capsule.isOpen
         ? 'Ya disponible'
         : daysLeft == 0
-            ? 'Se abre hoy'
-            : 'Se abre en $daysLeft días';
+        ? 'Se abre hoy'
+        : 'Se abre en $daysLeft días';
     final dateLabel = DateFormat('d MMM yyyy', 'es_ES').format(capsule.openAt);
 
     final gradient = isPrimary
@@ -649,10 +628,7 @@ class _CapsuleCard extends StatelessWidget {
             end: Alignment.bottomRight,
           )
         : LinearGradient(
-            colors: [
-              Colors.white,
-              Colors.white.withOpacity(0.95),
-            ],
+            colors: [Colors.white, Colors.white.withValues(alpha: 0.95)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
@@ -680,7 +656,7 @@ class _CapsuleCard extends StatelessWidget {
             border: Border.all(
               color: isPrimary
                   ? Colors.transparent
-                  : Colors.grey.withOpacity(0.2),
+                  : Colors.grey.withValues(alpha: 0.2),
             ),
           ),
           child: Column(
@@ -702,7 +678,7 @@ class _CapsuleCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: textColor.withOpacity(isPrimary ? 0.9 : 0.7),
+                  color: textColor.withValues(alpha: isPrimary ? 0.9 : 0.7),
                 ),
               ),
               const Spacer(),
@@ -711,7 +687,7 @@ class _CapsuleCard extends StatelessWidget {
                   Icon(
                     Icons.lock_clock,
                     size: 16,
-                    color: textColor.withOpacity(0.9),
+                    color: textColor.withValues(alpha: 0.9),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -725,7 +701,7 @@ class _CapsuleCard extends StatelessWidget {
                   Text(
                     dateLabel,
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: textColor.withOpacity(0.9),
+                      color: textColor.withValues(alpha: 0.9),
                     ),
                   ),
                 ],
@@ -748,9 +724,9 @@ List<Widget> _notificationSection({
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
     ),
     const SizedBox(height: 8),
