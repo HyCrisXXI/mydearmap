@@ -12,6 +12,11 @@ import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/timeline/view/timeline_view.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/data/models/user_relation.dart';
+import 'package:mydearmap/core/providers/current_user_provider.dart';
+import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
+import 'package:mydearmap/features/memories/models/memory_filters.dart';
 
 class MemoriesView extends ConsumerStatefulWidget {
   const MemoriesView({super.key});
@@ -21,10 +26,46 @@ class MemoriesView extends ConsumerStatefulWidget {
 }
 
 class _MemoriesViewState extends ConsumerState<MemoriesView> {
+  MemoryFilterCriteria _filters = MemoryFilterCriteria.empty;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.invalidate(userMemoriesProvider));
+  }
+
+  Future<void> _openFiltersSheet(List<Memory> memories) async {
+    if (memories.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aún no hay recuerdos para filtrar.')),
+      );
+      return;
+    }
+    final currentUser = ref.read(currentUserProvider).value;
+    var relations = <UserRelation>[];
+    if (currentUser != null) {
+      relations = await ref.read(userRelationsProvider(currentUser.id).future);
+    }
+    final userOptions = MemoryFilterUtils.buildUserOptions(
+      memories: memories,
+      currentUser: currentUser,
+      relations: relations,
+    );
+    final updated = await showMemoryFiltersSheet(
+      context: context,
+      initialCriteria: _filters,
+      userOptions: userOptions,
+    );
+    if (!mounted || updated == null) return;
+    setState(() {
+      _filters = updated;
+    });
+  }
+
+  void _clearFilters() {
+    if (!_filters.hasFilters) return;
+    setState(() => _filters = MemoryFilterCriteria.empty);
   }
 
   @override
@@ -35,6 +76,25 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
       appBar: AppBar(
         title: const Text('Mis recuerdos'),
         actions: [
+          IconButton(
+            icon: SvgPicture.asset(
+              AppIcons.listFilter,
+              colorFilter: ColorFilter.mode(
+                _filters.hasFilters
+                    ? AppColors.accentColor
+                    : AppColors.textColor,
+                BlendMode.srcIn,
+              ),
+            ),
+            tooltip: 'Filtros',
+            style: AppButtonStyles.circularIconButton,
+            onPressed: () {
+              final data = memoriesAsync.asData?.value ?? const <Memory>[];
+              _openFiltersSheet(data);
+            },
+          ),
+          if (_filters.hasFilters)
+            TextButton(onPressed: _clearFilters, child: const Text('Quitar')),
           // Botón Timeline a la izquierda de los demás
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
@@ -93,7 +153,6 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
           ),
         ],
       ),
-      // Quita el Padding externo
       body: memoriesAsync.when(
         loading: () =>
             const Center(child: CircularProgressIndicator.adaptive()),
@@ -106,8 +165,23 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
             );
           }
 
+          final filtered = MemoryFilterUtils.applyFilters(memories, _filters);
+          if (filtered.isEmpty) {
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('No hay recuerdos que coincidan con los filtros.'),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _clearFilters,
+                  child: const Text('Limpiar filtros'),
+                ),
+              ],
+            );
+          }
+
           return MemoriesGrid(
-            memories: memories,
+            memories: filtered,
             showFeatured: true,
             onMemoryTap: (memory) {
               final memoryId = memory.id ?? '';
@@ -118,12 +192,11 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
                 ),
               );
             },
-            // Añade padding inferior para el nav bar
             gridPadding: const EdgeInsets.fromLTRB(
               AppSizes.paddingLarge,
               AppSizes.paddingLarge,
               AppSizes.paddingLarge,
-              80, // o el alto de tu nav bar + extra
+              80,
             ),
           );
         },
