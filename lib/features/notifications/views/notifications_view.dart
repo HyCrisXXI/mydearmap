@@ -12,7 +12,6 @@ import 'package:mydearmap/data/models/timecapsule.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/timecapsules/views/timecapsule_view.dart';
-import 'package:mydearmap/features/timecapsules/views/timecapsules_view.dart';
 
 class NotificationsView extends ConsumerWidget {
   const NotificationsView({super.key});
@@ -507,25 +506,37 @@ String? _creatorNameFromParticipants(List<UserRole> participants) {
   return null;
 }
 
-class _CapsulesShelf extends StatelessWidget {
+class _CapsulesShelf extends StatefulWidget {
   const _CapsulesShelf({required this.capsules});
 
   final List<TimeCapsule> capsules;
 
   @override
-  Widget build(BuildContext context) {
-    final upcoming = capsules.where((capsule) => !capsule.isOpen).toList()
-      ..sort((a, b) => a.openAt.compareTo(b.openAt));
+  State<_CapsulesShelf> createState() => _CapsulesShelfState();
+}
 
-    if (upcoming.isEmpty) {
+class _CapsulesShelfState extends State<_CapsulesShelf> {
+  bool _expanded = false;
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final activeCapsules =
+        widget.capsules.where((capsule) => !capsule.isOpen).toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+    if (activeCapsules.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final visibleCapsules = upcoming.take(3).toList(growable: false);
-    final stackHeight = 150 + (visibleCapsules.length - 1) * 16.0;
-    final subtitle = upcoming.length == 1
+    final subtitle = activeCapsules.length == 1
         ? '1 cápsula activa'
-        : '${upcoming.length} cápsulas activas';
+        : '${activeCapsules.length} cápsulas activas';
+    final previewCapsules = activeCapsules.take(3).toList(growable: false);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
@@ -534,50 +545,55 @@ class _CapsulesShelf extends StatelessWidget {
         children: [
           Row(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Cápsulas de tiempo',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cápsulas de tiempo',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade600,
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const Spacer(),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const TimeCapsulesView()),
-                  );
-                },
-                child: const Text('Ver todas'),
+              _CapsuleCountChip(count: activeCapsules.length),
+              IconButton(
+                onPressed: _toggle,
+                icon: Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  color: theme.colorScheme.primary,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            height: stackHeight,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                for (var i = 0; i < visibleCapsules.length; i++)
-                  Positioned.fill(
-                    top: (visibleCapsules.length - i - 1) * 14,
-                    child: _CapsuleCard(
-                      capsule: visibleCapsules[i],
-                      isPrimary: i == visibleCapsules.length - 1,
-                    ),
-                  ),
-              ],
+          GestureDetector(
+            onTap: _toggle,
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 220),
+              crossFadeState: _expanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              firstChild: _CapsuleStackPreview(capsules: previewCapsules),
+              secondChild: Column(
+                children: [
+                  for (var i = 0; i < activeCapsules.length; i++) ...[
+                    _CapsuleExpandedTile(capsule: activeCapsules[i]),
+                    if (i < activeCapsules.length - 1)
+                      const SizedBox(height: 12),
+                  ],
+                ],
+              ),
             ),
           ),
         ],
@@ -593,54 +609,174 @@ class _CapsulesLoadingPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      child: Container(
-        height: 150,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(24),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 160,
+            height: 18,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          Container(
+            height: 170,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _CapsuleCard extends StatelessWidget {
-  const _CapsuleCard({required this.capsule, required this.isPrimary});
+class _CapsuleStackPreview extends StatelessWidget {
+  const _CapsuleStackPreview({required this.capsules});
+
+  final List<TimeCapsule> capsules;
+
+  @override
+  Widget build(BuildContext context) {
+    if (capsules.isEmpty) {
+      return const SizedBox(height: 96);
+    }
+
+    final visible = capsules.length <= 3 ? capsules : capsules.take(3).toList();
+    final stackHeight = 130 + (visible.length - 1) * 12.0;
+
+    return SizedBox(
+      height: stackHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var i = visible.length - 1; i >= 0; i--)
+            Positioned.fill(
+              top: i * 12,
+              child: _CapsulePreviewCard(capsule: visible[i], isTop: i == 0),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CapsulePreviewCard extends StatelessWidget {
+  const _CapsulePreviewCard({required this.capsule, required this.isTop});
 
   final TimeCapsule capsule;
-  final bool isPrimary;
+  final bool isTop;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final daysLeft = capsule.daysUntilOpen;
-    final openingLabel = capsule.isOpen
-        ? 'Ya disponible'
-        : daysLeft == 0
-        ? 'Se abre hoy'
-        : 'Se abre en $daysLeft días';
-    final dateLabel = DateFormat('d MMM yyyy', 'es_ES').format(capsule.openAt);
-
-    final gradient = isPrimary
+    final gradient = isTop
         ? const LinearGradient(
             colors: [AppColors.blue, AppColors.accentColor],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           )
         : LinearGradient(
-            colors: [Colors.white, Colors.white.withValues(alpha: 0.95)],
+            colors: [Colors.white, Colors.white70],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
 
-    final textColor = isPrimary ? Colors.white : AppColors.textColor;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isTop
+              ? Colors.transparent
+              : Colors.grey.withValues(alpha: 0.2),
+        ),
+        boxShadow: isTop
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            capsule.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: isTop ? Colors.white : AppColors.textColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            capsule.description ?? 'Recuerdos esperando a abrirse.',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: (isTop ? Colors.white : AppColors.textColor).withValues(
+                alpha: 0.85,
+              ),
+            ),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              Icon(
+                Icons.lock_clock,
+                size: 16,
+                color: (isTop ? Colors.white : AppColors.textColor).withValues(
+                  alpha: 0.85,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _capsuleCountdownLabel(capsule),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: isTop ? Colors.white : AppColors.textColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                DateFormat('d MMM', 'es_ES').format(capsule.openAt),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: (isTop ? Colors.white : AppColors.textColor)
+                      .withValues(alpha: 0.85),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-    return Material(
-      color: Colors.transparent,
-      elevation: isPrimary ? 6 : 0,
-      borderRadius: BorderRadius.circular(22),
+class _CapsuleExpandedTile extends StatelessWidget {
+  const _CapsuleExpandedTile({required this.capsule});
+
+  final TimeCapsule capsule;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final badgeColor = theme.colorScheme.primary;
+    final description = capsule.description?.trim();
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -648,66 +784,99 @@ class _CapsuleCard extends StatelessWidget {
             ),
           );
         },
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: isPrimary
-                  ? Colors.transparent
-                  : Colors.grey.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Column(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                capsule.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: textColor,
-                  fontWeight: FontWeight.w700,
-                ),
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: badgeColor.withValues(alpha: 0.18),
+                child: Icon(Icons.lock_clock_outlined, color: badgeColor),
               ),
-              const SizedBox(height: 8),
-              Text(
-                capsule.description ?? 'Recuerdos esperando a abrirse.',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: textColor.withValues(alpha: isPrimary ? 0.9 : 0.7),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      capsule.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (description != null && description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: badgeColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            _capsuleCountdownLabel(capsule),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: badgeColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          DateFormat(
+                            'd MMM yyyy',
+                            'es_ES',
+                          ).format(capsule.openAt),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-              const Spacer(),
-              Row(
-                children: [
-                  Icon(
-                    Icons.lock_clock,
-                    size: 16,
-                    color: textColor.withValues(alpha: 0.9),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    openingLabel,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: textColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    dateLabel,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: textColor.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CapsuleCountChip extends StatelessWidget {
+  const _CapsuleCountChip({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final label = count > 9 ? '9+' : count.toString();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -741,4 +910,26 @@ List<Widget> _notificationSection({
 
   widgets.add(const SizedBox(height: 18));
   return widgets;
+}
+
+String _capsuleCountdownLabel(TimeCapsule capsule) {
+  if (capsule.isOpen || !capsule.openAt.isAfter(DateTime.now())) {
+    return 'Lista para abrir';
+  }
+
+  final diff = capsule.openAt.difference(DateTime.now());
+  if (diff.inDays >= 1) {
+    final days = diff.inDays;
+    if (days == 1) return 'Se abre mañana';
+    return 'Se abre en $days días';
+  }
+
+  if (diff.inHours >= 1) {
+    final hours = diff.inHours;
+    if (hours == 1) return 'Se abre en 1 hora';
+    return 'Se abre en $hours horas';
+  }
+
+  final minutes = diff.inMinutes.clamp(1, 59);
+  return 'Se abre en $minutes min';
 }
