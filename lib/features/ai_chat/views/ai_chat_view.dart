@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import '../controllers/ai_chat_controller.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 class AiChatView extends ConsumerStatefulWidget {
   const AiChatView({super.key});
@@ -68,6 +70,9 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
+
+    final canSend =
+        !chatState.isLoading && _messageController.text.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -264,9 +269,39 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                             horizontal: 16,
                             vertical: 14,
                           ),
-                          suffixIcon: _messageController.text.isEmpty
-                              ? null
-                              : null,
+                          suffixIcon: Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(999),
+                              onTap: canSend
+                                  ? () => _handleSendMessage(
+                                      _messageController.text,
+                                      chatNotifier,
+                                    )
+                                  : null,
+                              child: CircleAvatar(
+                                radius: 20,
+                                backgroundColor: canSend
+                                    ? Theme.of(context).primaryColor
+                                    : const Color.fromARGB(255, 255, 255, 255),
+                                child: SvgPicture.asset(
+                                  AppIcons.send,
+                                  width: 18,
+                                  height: 18,
+                                  colorFilter: ColorFilter.mode(
+                                    canSend
+                                        ? Colors.white
+                                        : Colors.grey.shade600,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          suffixIconConstraints: const BoxConstraints(
+                            minHeight: 44,
+                            minWidth: 48,
+                          ),
                         ),
                         onChanged: (value) {
                           setState(() {});
@@ -277,18 +312,6 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                           }
                         },
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    FloatingActionButton(
-                      mini: true,
-                      onPressed:
-                          chatState.isLoading || _messageController.text.isEmpty
-                          ? null
-                          : () => _handleSendMessage(
-                              _messageController.text,
-                              chatNotifier,
-                            ),
-                      child: const Icon(Icons.send),
                     ),
                   ],
                 ),

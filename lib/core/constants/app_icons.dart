@@ -30,6 +30,7 @@ class AppIcons {
   static const String plus = '$_basePath/plus.svg';
   static const String qrCode = '$_basePath/qr-code.svg';
   static const String search = '$_basePath/search.svg';
+  static const String send = '$_basePath/send.svg';
   static const String starFilled = '$_basePath/star-filled.svg';
   static const String star = '$_basePath/star.svg';
   static const String sticker = '$_basePath/sticker.svg';
