@@ -18,6 +18,7 @@ class AppIcons {
   static const String folderOpen = '$_basePath/folder-open.svg';
   static const String heartHandshake = '$_basePath/heart-handshake.svg';
   static const String image = '$_basePath/image.svg';
+  static const String listFilter = '$_basePath/list-filter.svg';
   static const String lockKeyholeOpen = '$_basePath/lock-keyhole-open.svg';
   static const String lockKeyhole = '$_basePath/lock-keyhole.svg';
   static const String messageCircle = '$_basePath/message-circle.svg';
