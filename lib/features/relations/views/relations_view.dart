@@ -29,20 +29,8 @@ class RelationsView extends ConsumerWidget {
         },
         style: AppButtonStyles.circularIconButton,
       ),
-      title: const Text('Tus vínculos'),
+      title: const Text('Vínculos'),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 8.0),
-          child: IconButton(
-            icon: SvgPicture.asset(AppIcons.timer),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TimeCapsulesView()),
-              );
-            },
-            style: AppButtonStyles.circularIconButton,
-          ),
-        ),
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: IconButton(

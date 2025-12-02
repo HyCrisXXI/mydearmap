@@ -15,6 +15,10 @@ import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/providers/current_user_provider.dart';
+import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
+import 'package:mydearmap/data/models/user_relation.dart';
+import 'package:mydearmap/features/memories/models/memory_filters.dart';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -26,7 +30,9 @@ class MapView extends ConsumerStatefulWidget {
 class _MapViewState extends ConsumerState<MapView> {
   final mapController = MapController();
   final searchController = TextEditingController();
-  final _popupController = PopupController();
+  final PopupController _popupController = PopupController();
+
+  MemoryFilterCriteria _activeFilters = MemoryFilterCriteria.empty;
 
   @override
   void dispose() {
@@ -96,6 +102,46 @@ class _MapViewState extends ConsumerState<MapView> {
     }
   }
 
+  Future<void> _openFiltersSheet() async {
+    final memories = ref.read(mapViewModelProvider).memories.asData?.value;
+    if (memories == null || memories.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aún no hay recuerdos para filtrar.')),
+      );
+      return;
+    }
+    final currentUser = ref.read(currentUserProvider).value;
+    var relations = <UserRelation>[];
+    if (currentUser != null) {
+      relations = await ref.read(userRelationsProvider(currentUser.id).future);
+    }
+    final userOptions = MemoryFilterUtils.buildUserOptions(
+      memories: memories,
+      currentUser: currentUser,
+      relations: relations,
+    );
+    if (!mounted) return;
+    final updated = await showMemoryFiltersSheet(
+      context: context,
+      initialCriteria: _activeFilters,
+      userOptions: userOptions,
+      suggestedZoneCenter: _tryGetMapCenter(),
+    );
+    if (!mounted || updated == null) return;
+    setState(() {
+      _activeFilters = updated;
+    });
+  }
+
+  LatLng? _tryGetMapCenter() {
+    try {
+      return mapController.camera.center;
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mapState = ref.watch(mapViewModelProvider);
@@ -108,9 +154,13 @@ class _MapViewState extends ConsumerState<MapView> {
     List<Marker> memoryMarkers = [];
     mapState.memories.when(
       data: (memories) {
+        final filteredMemories = MemoryFilterUtils.applyFilters(
+          memories,
+          _activeFilters,
+        );
         final withImage = <Memory>[];
         final withoutImage = <Memory>[];
-        for (final memory in memories) {
+        for (final memory in filteredMemories) {
           if (memory.location != null && memory.id != null) {
             final images = memory.media
                 .where((m) => m.type == MediaType.image && m.url != null)
@@ -212,18 +262,18 @@ class _MapViewState extends ConsumerState<MapView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Botón "+" arriba a la derecha
+            // Filtros y toggle
             Padding(
               padding: const EdgeInsets.only(
-                top: 60.0,
-                left: 36.0,
+                top: 30.0,
+                left: 44.0,
                 right: 36.0,
-              ), // Más margen arriba y a los lados
+              ),
               child: Row(
                 children: [
-                  // Toggle "Lugares"
+                  // Toggle de lugares
                   Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
+                    padding: const EdgeInsets.only(right: 24.0),
                     child: GestureDetector(
                       onTap: () {
                         final newType = currentSearchType == SearchType.place
@@ -271,6 +321,22 @@ class _MapViewState extends ConsumerState<MapView> {
                   IconButton(
                     style: AppButtonStyles.circularIconButton,
                     icon: SvgPicture.asset(
+                      AppIcons.listFilter,
+                      width: 22,
+                      height: 22,
+                      colorFilter: ColorFilter.mode(
+                        _activeFilters.hasFilters
+                            ? AppColors.accentColor
+                            : AppColors.textColor,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    onPressed: _openFiltersSheet,
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    style: AppButtonStyles.circularIconButton,
+                    icon: SvgPicture.asset(
                       AppIcons.plus,
                       width: 22,
                       height: 22,
@@ -288,7 +354,8 @@ class _MapViewState extends ConsumerState<MapView> {
                 ],
               ),
             ),
-            const SizedBox(height: 30), // Separación entre botones y buscador
+            // Separación vertical entre filtros y búsqueda
+            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 42.0,
@@ -434,7 +501,7 @@ class _MapViewState extends ConsumerState<MapView> {
                 ],
               ),
             ),
-            const SizedBox(height: 18), // Separación entre buscador y mapa
+            const SizedBox(height: 18),
             Expanded(
               child: FlutterMap(
                 mapController: mapController,
@@ -509,6 +576,24 @@ class _MapViewState extends ConsumerState<MapView> {
                       ),
                     ),
                   ),
+                  if (_activeFilters.zone != null)
+                    CircleLayer(
+                      circles: [
+                        CircleMarker(
+                          point: LatLng(
+                            _activeFilters.zone!.center.latitude,
+                            _activeFilters.zone!.center.longitude,
+                          ),
+                          useRadiusInMeter: true,
+                          radius: _activeFilters.zone!.radiusMeters,
+                          color: AppColors.accentColor.withValues(alpha: .12),
+                          borderStrokeWidth: 2,
+                          borderColor: AppColors.accentColor.withValues(
+                            alpha: .6,
+                          ),
+                        ),
+                      ],
+                    ),
                   if (searchedLocation != null)
                     MarkerLayer(
                       markers: [

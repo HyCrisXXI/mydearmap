@@ -47,37 +47,51 @@ class MemoriesGrid extends StatelessWidget {
         return bFav ? 1 : -1;
       });
 
+    const double wrapSpacing = 12;
+    double resolveWidth(BoxConstraints constraints) =>
+        constraints.maxWidth.isFinite
+        ? constraints.maxWidth
+        : MediaQuery.of(context).size.width;
+    double cardWidthFor(double containerWidth) {
+      final usableWidth = containerWidth - gridPadding.horizontal;
+      if (usableWidth <= 0) return containerWidth;
+      final width = (usableWidth - wrapSpacing) / 2;
+      return width > 0 ? width : usableWidth;
+    }
+
     // --- FIX: Only use CustomScrollView if NOT inside another scrollable ---
     // If shrinkWrap is true, always use a Wrap (never CustomScrollView)
     if (shrinkWrap) {
-      return Padding(
-        padding: gridPadding,
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            for (final memory in sortedMemories)
-              SizedBox(
-                width:
-                    (MediaQuery.of(context).size.width -
-                        gridPadding.horizontal -
-                        12) /
-                    2,
-                child: _FavoriteMemoryCard(
-                  memory: memory,
-                  imageUrl:
-                      memory.media.isNotEmpty && memory.media.first.url != null
-                      ? buildMediaPublicUrl(memory.media.first.url)
-                      : null,
-                  onTap: onMemoryTap != null
-                      ? () => onMemoryTap!(memory)
-                      : null,
-                  showFavoriteOverlay: showFavoriteOverlay,
-                  size: MemoryCardSize.standard,
-                ),
-              ),
-          ],
-        ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final cardWidth = cardWidthFor(resolveWidth(constraints));
+          return Padding(
+            padding: gridPadding,
+            child: Wrap(
+              spacing: wrapSpacing,
+              runSpacing: wrapSpacing,
+              children: [
+                for (final memory in sortedMemories)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _FavoriteMemoryCard(
+                      memory: memory,
+                      imageUrl:
+                          memory.media.isNotEmpty &&
+                              memory.media.first.url != null
+                          ? buildMediaPublicUrl(memory.media.first.url)
+                          : null,
+                      onTap: onMemoryTap != null
+                          ? () => onMemoryTap!(memory)
+                          : null,
+                      showFavoriteOverlay: showFavoriteOverlay,
+                      size: MemoryCardSize.standard,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
       );
     }
 
@@ -86,19 +100,16 @@ class MemoriesGrid extends StatelessWidget {
       builder: (context, constraints) {
         // If height is unbounded, fallback to Wrap (prevents error)
         if (!constraints.hasBoundedHeight) {
+          final cardWidth = cardWidthFor(resolveWidth(constraints));
           return Padding(
             padding: gridPadding,
             child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: wrapSpacing,
+              runSpacing: wrapSpacing,
               children: [
                 for (final memory in sortedMemories)
                   SizedBox(
-                    width:
-                        (MediaQuery.of(context).size.width -
-                            gridPadding.horizontal -
-                            12) /
-                        2,
+                    width: cardWidth,
                     child: _FavoriteMemoryCard(
                       memory: memory,
                       imageUrl:
@@ -135,7 +146,7 @@ class MemoriesGrid extends StatelessWidget {
                       SvgPicture.asset(
                         AppIcons.starFilled,
                         colorFilter: const ColorFilter.mode(
-                          AppColors.accentColor,
+                          AppColors.textColor,
                           BlendMode.srcIn,
                         ),
                         width: 24,
