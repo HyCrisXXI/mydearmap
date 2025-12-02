@@ -541,6 +541,24 @@ class _MapViewState extends ConsumerState<MapView> {
                     tileProvider: kIsWeb ? NetworkTileProvider() : null,
                     maxNativeZoom: 19,
                   ),
+                  if (_activeFilters.zone != null)
+                    CircleLayer(
+                      circles: [
+                        CircleMarker(
+                          point: LatLng(
+                            _activeFilters.zone!.center.latitude,
+                            _activeFilters.zone!.center.longitude,
+                          ),
+                          useRadiusInMeter: true,
+                          radius: _activeFilters.zone!.radiusMeters,
+                          color: AppColors.accentColor.withValues(alpha: .12),
+                          borderStrokeWidth: 2,
+                          borderColor: AppColors.accentColor.withValues(
+                            alpha: .6,
+                          ),
+                        ),
+                      ],
+                    ),
                   PopupMarkerLayer(
                     options: PopupMarkerLayerOptions(
                       popupController: _popupController,
@@ -576,24 +594,6 @@ class _MapViewState extends ConsumerState<MapView> {
                       ),
                     ),
                   ),
-                  if (_activeFilters.zone != null)
-                    CircleLayer(
-                      circles: [
-                        CircleMarker(
-                          point: LatLng(
-                            _activeFilters.zone!.center.latitude,
-                            _activeFilters.zone!.center.longitude,
-                          ),
-                          useRadiusInMeter: true,
-                          radius: _activeFilters.zone!.radiusMeters,
-                          color: AppColors.accentColor.withValues(alpha: .12),
-                          borderStrokeWidth: 2,
-                          borderColor: AppColors.accentColor.withValues(
-                            alpha: .6,
-                          ),
-                        ),
-                      ],
-                    ),
                   if (searchedLocation != null)
                     MarkerLayer(
                       markers: [

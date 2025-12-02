@@ -7,7 +7,6 @@ import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/memories/views/memories_view.dart';
-import 'package:mydearmap/features/timecapsules/views/timecapsules_view.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/features/relations/views/relation_view.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';

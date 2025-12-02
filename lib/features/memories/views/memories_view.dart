@@ -46,6 +46,7 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
     if (currentUser != null) {
       relations = await ref.read(userRelationsProvider(currentUser.id).future);
     }
+    if (!mounted) return;
     final userOptions = MemoryFilterUtils.buildUserOptions(
       memories: memories,
       currentUser: currentUser,
