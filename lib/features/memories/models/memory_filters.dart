@@ -461,7 +461,7 @@ Future<MemoryFilterCriteria?> showMemoryFiltersSheet({
                     ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Zona (radio de 1 km aprox.)',
+                    'Zona',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
