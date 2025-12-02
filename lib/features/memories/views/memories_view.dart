@@ -73,28 +73,11 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis recuerdos'),
+        title: const Text('Recuerdos'),
         actions: [
-          IconButton(
-            icon: SvgPicture.asset(
-              AppIcons.listFilter,
-              colorFilter: ColorFilter.mode(
-                _filters.hasFilters
-                    ? AppColors.accentColor
-                    : AppColors.textColor,
-                BlendMode.srcIn,
-              ),
-            ),
-            tooltip: 'Filtros',
-            style: AppButtonStyles.circularIconButton,
-            onPressed: () {
-              final data = memoriesAsync.asData?.value ?? const <Memory>[];
-              _openFiltersSheet(data);
-            },
-          ),
           // Botón Timeline a la izquierda de los demás
           Padding(
-            padding: const EdgeInsets.only(left: 8.0, right: 8.0),
+            padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
               icon: const Icon(Icons.timeline),
               tooltip: 'Ver timeline',
@@ -120,8 +103,25 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
               style: AppButtonStyles.circularIconButton,
             ),
           ),
+          IconButton(
+            icon: SvgPicture.asset(
+              AppIcons.listFilter,
+              colorFilter: ColorFilter.mode(
+                _filters.hasFilters
+                    ? AppColors.accentColor
+                    : AppColors.textColor,
+                BlendMode.srcIn,
+              ),
+            ),
+            tooltip: 'Filtros',
+            style: AppButtonStyles.circularIconButton,
+            onPressed: () {
+              final data = memoriesAsync.asData?.value ?? const <Memory>[];
+              _openFiltersSheet(data);
+            },
+          ),
           Padding(
-            padding: const EdgeInsets.only(right: 12.0),
+            padding: const EdgeInsets.only(left: 8.0, right: 12.0),
             child: IconButton(
               icon: SvgPicture.asset(AppIcons.plus),
               onPressed: () {
