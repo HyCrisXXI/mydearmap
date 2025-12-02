@@ -134,11 +134,6 @@ class _MapViewState extends ConsumerState<MapView> {
     });
   }
 
-  void _clearFilters() {
-    if (!_activeFilters.hasFilters) return;
-    setState(() => _activeFilters = MemoryFilterCriteria.empty);
-  }
-
   LatLng? _tryGetMapCenter() {
     try {
       return mapController.camera.center;
@@ -267,38 +262,18 @@ class _MapViewState extends ConsumerState<MapView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Botón "+" arriba a la derecha
+            // Filtros y toggle
             Padding(
               padding: const EdgeInsets.only(
-                top: 60.0,
-                left: 36.0,
+                top: 30.0,
+                left: 44.0,
                 right: 36.0,
               ),
               child: Row(
                 children: [
-                  IconButton(
-                    style: AppButtonStyles.circularIconButton,
-                    icon: SvgPicture.asset(
-                      AppIcons.listFilter,
-                      width: 22,
-                      height: 22,
-                      colorFilter: ColorFilter.mode(
-                        _activeFilters.hasFilters
-                            ? AppColors.accentColor
-                            : AppColors.textColor,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                    onPressed: _openFiltersSheet,
-                  ),
-                  if (_activeFilters.hasFilters)
-                    TextButton(
-                      onPressed: _clearFilters,
-                      child: const Text('Quitar filtros'),
-                    ),
-                  const SizedBox(width: 12),
+                  // Toggle de lugares
                   Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
+                    padding: const EdgeInsets.only(right: 24.0),
                     child: GestureDetector(
                       onTap: () {
                         final newType = currentSearchType == SearchType.place
@@ -346,6 +321,22 @@ class _MapViewState extends ConsumerState<MapView> {
                   IconButton(
                     style: AppButtonStyles.circularIconButton,
                     icon: SvgPicture.asset(
+                      AppIcons.listFilter,
+                      width: 22,
+                      height: 22,
+                      colorFilter: ColorFilter.mode(
+                        _activeFilters.hasFilters
+                            ? AppColors.accentColor
+                            : AppColors.textColor,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    onPressed: _openFiltersSheet,
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    style: AppButtonStyles.circularIconButton,
+                    icon: SvgPicture.asset(
                       AppIcons.plus,
                       width: 22,
                       height: 22,
@@ -363,7 +354,8 @@ class _MapViewState extends ConsumerState<MapView> {
                 ],
               ),
             ),
-            const SizedBox(height: 30), // Separación entre botones y buscador
+            // Separación vertical entre filtros y búsqueda
+            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 42.0,

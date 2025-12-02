@@ -5,7 +5,6 @@ import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
-import 'package:mydearmap/features/timecapsules/views/timecapsules_view.dart';
 import 'package:mydearmap/core/widgets/memories_grid.dart';
 import 'package:mydearmap/features/relations/views/relations_view.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
@@ -93,11 +92,9 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
               _openFiltersSheet(data);
             },
           ),
-          if (_filters.hasFilters)
-            TextButton(onPressed: _clearFilters, child: const Text('Quitar')),
           // Botón Timeline a la izquierda de los demás
           Padding(
-            padding: const EdgeInsets.only(right: 8.0),
+            padding: const EdgeInsets.only(left: 8.0, right: 8.0),
             child: IconButton(
               icon: const Icon(Icons.timeline),
               tooltip: 'Ver timeline',
@@ -106,18 +103,6 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
                   MaterialPageRoute(
                     builder: (_) => const MemoriesTimelineView(),
                   ),
-                );
-              },
-              style: AppButtonStyles.circularIconButton,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: SvgPicture.asset(AppIcons.timer),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const TimeCapsulesView()),
                 );
               },
               style: AppButtonStyles.circularIconButton,

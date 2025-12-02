@@ -135,7 +135,7 @@ class MemoriesGrid extends StatelessWidget {
                       SvgPicture.asset(
                         AppIcons.starFilled,
                         colorFilter: const ColorFilter.mode(
-                          AppColors.accentColor,
+                          AppColors.textColor,
                           BlendMode.srcIn,
                         ),
                         width: 24,
