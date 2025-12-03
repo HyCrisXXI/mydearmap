@@ -104,25 +104,8 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
               style: AppButtonStyles.circularIconButton,
             ),
           ),
-          IconButton(
-            icon: SvgPicture.asset(
-              AppIcons.listFilter,
-              colorFilter: ColorFilter.mode(
-                _filters.hasFilters
-                    ? AppColors.accentColor
-                    : AppColors.textColor,
-                BlendMode.srcIn,
-              ),
-            ),
-            tooltip: 'Filtros',
-            style: AppButtonStyles.circularIconButton,
-            onPressed: () {
-              final data = memoriesAsync.asData?.value ?? const <Memory>[];
-              _openFiltersSheet(data);
-            },
-          ),
           Padding(
-            padding: const EdgeInsets.only(left: 8.0, right: 12.0),
+            padding: const EdgeInsets.only(right: 12.0),
             child: IconButton(
               icon: SvgPicture.asset(AppIcons.plus),
               onPressed: () {
@@ -169,6 +152,8 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
           return MemoriesGrid(
             memories: filtered,
             showFeatured: true,
+            onFilterTap: () => _openFiltersSheet(memories),
+            filtersActive: _filters.hasFilters,
             onMemoryTap: (memory) {
               final memoryId = memory.id ?? '';
               if (memoryId.isEmpty) return;

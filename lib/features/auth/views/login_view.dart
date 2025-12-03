@@ -120,7 +120,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 TextField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: 'Nombre/Email',
+                    labelText: 'Email',
                     errorText: loginState.emailError,
                   ),
                   keyboardType: TextInputType.emailAddress,

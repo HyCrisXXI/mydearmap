@@ -19,6 +19,8 @@ class MemoriesGrid extends StatelessWidget {
   final bool showFeatured;
   final ScrollPhysics? physics;
   final bool shrinkWrap;
+  final VoidCallback? onFilterTap;
+  final bool filtersActive;
 
   const MemoriesGrid({
     super.key,
@@ -29,6 +31,8 @@ class MemoriesGrid extends StatelessWidget {
     this.showFeatured = false,
     this.physics,
     this.shrinkWrap = false,
+    this.onFilterTap,
+    this.filtersActive = false,
   });
 
   @override
@@ -48,6 +52,8 @@ class MemoriesGrid extends StatelessWidget {
       });
 
     const double wrapSpacing = 12;
+    const double wrapRunSpacing = 20; // Mas espaciado entre filas
+
     double resolveWidth(BoxConstraints constraints) =>
         constraints.maxWidth.isFinite
         ? constraints.maxWidth
@@ -59,7 +65,6 @@ class MemoriesGrid extends StatelessWidget {
       return width > 0 ? width : usableWidth;
     }
 
-    // --- FIX: Only use CustomScrollView if NOT inside another scrollable ---
     // If shrinkWrap is true, always use a Wrap (never CustomScrollView)
     if (shrinkWrap) {
       return LayoutBuilder(
@@ -69,7 +74,7 @@ class MemoriesGrid extends StatelessWidget {
             padding: gridPadding,
             child: Wrap(
               spacing: wrapSpacing,
-              runSpacing: wrapSpacing,
+              runSpacing: wrapRunSpacing, // <-- MÁS ESPACIO ENTRE FILAS
               children: [
                 for (final memory in sortedMemories)
                   SizedBox(
@@ -105,7 +110,7 @@ class MemoriesGrid extends StatelessWidget {
             padding: gridPadding,
             child: Wrap(
               spacing: wrapSpacing,
-              runSpacing: wrapSpacing,
+              runSpacing: wrapRunSpacing,
               children: [
                 for (final memory in sortedMemories)
                   SizedBox(
@@ -181,10 +186,18 @@ class MemoriesGrid extends StatelessWidget {
                     children: [
                       const Text("Todos", style: AppTextStyles.subtitle),
                       const SizedBox(width: 8),
-                      SvgPicture.asset(
-                        AppIcons.folderOpen,
-                        width: 24,
-                        height: 24,
+                      IconButton(
+                        style: AppButtonStyles.circularIconButton,
+                        icon: SvgPicture.asset(
+                          AppIcons.funnel,
+                          colorFilter: ColorFilter.mode(
+                            filtersActive
+                                ? AppColors.accentColor
+                                : AppColors.textColor,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        onPressed: onFilterTap,
                       ),
                     ],
                   ),
@@ -198,7 +211,7 @@ class MemoriesGrid extends StatelessWidget {
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+                  mainAxisSpacing: 20, // Espacio entre filas
                   childAspectRatio: AppCardMemory.aspectRatio,
                 ),
                 delegate: SliverChildBuilderDelegate((context, index) {

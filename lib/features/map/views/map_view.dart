@@ -321,7 +321,7 @@ class _MapViewState extends ConsumerState<MapView> {
                   IconButton(
                     style: AppButtonStyles.circularIconButton,
                     icon: SvgPicture.asset(
-                      AppIcons.listFilter,
+                      AppIcons.funnel,
                       width: 22,
                       height: 22,
                       colorFilter: ColorFilter.mode(
