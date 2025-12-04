@@ -1,5 +1,5 @@
 // lib/core/widgets/auth_gate.dart
-import 'package:mydearmap/features/map/views/map_view.dart';
+import 'package:mydearmap/core/widgets/app_shell.dart';
 import 'package:mydearmap/features/auth/views/login_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,7 +39,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
           return const LoginView();
         }
 
-        return const MapView();
+        return const AppShell(initialIndex: 2); // Start with map
       },
     );
   }

@@ -12,7 +12,6 @@ import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/memories/widgets/memory_media_carousel.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 final memoryDetailProvider = FutureProvider.family<Memory, String>((
@@ -199,7 +198,6 @@ class MemoryDetailView extends ConsumerWidget {
           );
         },
       ),
-      bottomNavigationBar: AppNavBar(currentIndex: 1),
     );
   }
 }

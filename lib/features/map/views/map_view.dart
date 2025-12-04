@@ -1,6 +1,5 @@
 // lib/features/map/views/map_view.dart
 import 'package:mydearmap/core/constants/env_constants.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/media.dart';
 import 'package:mydearmap/features/map/models/map_view_model.dart';
@@ -616,9 +615,6 @@ class _MapViewState extends ConsumerState<MapView> {
         ),
       ),
       floatingActionButton: null, // Eliminar el FAB de añadir
-      bottomNavigationBar: AppNavBar(
-        currentIndex: 2, // El índice del mapa
-      ),
     );
   }
 }

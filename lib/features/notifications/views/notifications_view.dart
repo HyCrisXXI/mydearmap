@@ -5,7 +5,6 @@ import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/notifications_provider.dart';
 import 'package:mydearmap/core/providers/timecapsule_provider.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/data/models/app_notification.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/timecapsule.dart';
@@ -349,7 +348,6 @@ Widget _notificationsScaffold({required Widget body, List<Widget>? actions}) {
   return Scaffold(
     appBar: AppBar(title: const Text('Notificaciones'), actions: actions),
     body: body,
-    bottomNavigationBar: const AppNavBar(currentIndex: 3),
   );
 }
 

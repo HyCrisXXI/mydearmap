@@ -8,7 +8,6 @@ import 'package:mydearmap/core/utils/form_validation_mixin.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/features/profile/controllers/profile_controller.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -398,9 +397,6 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: AppNavBar(
-        currentIndex: 4, // El índice del perfíl
       ),
     );
   }

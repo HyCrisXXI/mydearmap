@@ -7,7 +7,6 @@ import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/achievement_provider.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/features/profile/views/profile_form_view.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:mydearmap/features/wishlist/views/wishlist_view.dart';
 
@@ -196,32 +195,25 @@ class ProfileView extends ConsumerWidget {
                     );
                   },
                 ),
+                const SizedBox(height: AppSizes.paddingLarge),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.paddingLarge,
+                    vertical: AppSizes.paddingLarge,
+                  ),
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Cerrar sesión'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: () => _handleLogout(context, ref),
+                  ),
+                ),
               ],
             ),
-          ),
-          bottomNavigationBar: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingLarge,
-                  vertical: AppSizes.paddingLarge,
-                ),
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Cerrar sesión'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  onPressed: () => _handleLogout(context, ref),
-                ),
-              ),
-              AppNavBar(
-                currentIndex: 4, // El índice del perfíl
-              ),
-            ],
           ),
         );
       },

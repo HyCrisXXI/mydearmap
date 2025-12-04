@@ -4,9 +4,7 @@ import 'package:mydearmap/core/providers/timecapsule_provider.dart';
 import 'timecapsule_view.dart';
 import 'timecapsule_create_view.dart';
 import 'package:mydearmap/core/constants/constants.dart';
-import 'package:mydearmap/features/memories/views/memories_view.dart';
 import 'package:mydearmap/features/relations/views/relations_view.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class TimeCapsulesView extends ConsumerWidget {
@@ -21,10 +19,7 @@ class TimeCapsulesView extends ConsumerWidget {
         leading: IconButton(
           icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const MemoriesView()),
-              (route) => false,
-            );
+            Navigator.of(context).pop();
           },
           style: AppButtonStyles.circularIconButton,
         ),
@@ -41,10 +36,7 @@ class TimeCapsulesView extends ConsumerWidget {
                 ),
               ),
               onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const MemoriesView()),
-                  (route) => false,
-                );
+                Navigator.of(context).pop();
               },
               style: AppButtonStyles.circularIconButton,
             ),
@@ -113,7 +105,6 @@ class TimeCapsulesView extends ConsumerWidget {
                 },
               ),
       ),
-      bottomNavigationBar: AppNavBar(currentIndex: 1),
     );
   }
 }
