@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import '../controllers/ai_chat_controller.dart';
 
 class AiChatView extends ConsumerStatefulWidget {
@@ -320,7 +319,6 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
           ),
         ),
       ),
-      bottomNavigationBar: const AppNavBar(currentIndex: 0),
     );
   }
 }

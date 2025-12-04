@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/core/widgets/memories_grid.dart';
 import 'package:mydearmap/features/relations/views/relations_view.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
@@ -172,7 +171,6 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
           );
         },
       ),
-      bottomNavigationBar: AppNavBar(currentIndex: 1),
     );
   }
 }

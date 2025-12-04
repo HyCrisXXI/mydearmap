@@ -5,7 +5,6 @@ import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
 import 'package:mydearmap/core/widgets/memories_grid.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 
 class RelationDetailView extends ConsumerStatefulWidget {
   const RelationDetailView({
@@ -164,7 +163,6 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                   ],
                 ),
               ),
-              bottomNavigationBar: AppNavBar(currentIndex: 1),
             );
           },
         );

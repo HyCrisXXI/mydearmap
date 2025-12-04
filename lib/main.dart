@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'core/constants/env_constants.dart';
 import 'core/constants/constants.dart';
 import 'routes/app_routes.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +53,13 @@ class MyApp extends StatelessWidget {
       ),
       routes: appRoutes,
       initialRoute: '/auth',
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
+      locale: const Locale('es', 'ES'),
     );
   }
 }

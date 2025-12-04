@@ -6,8 +6,6 @@ import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/core/constants/constants.dart';
-import 'package:mydearmap/features/memories/views/memories_view.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
 import 'package:mydearmap/features/relations/views/relation_view.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
 import 'package:mydearmap/features/relations/views/relation_create_view.dart';
@@ -21,10 +19,7 @@ class RelationsView extends ConsumerWidget {
       leading: IconButton(
         icon: SvgPicture.asset(AppIcons.chevronLeft),
         onPressed: () {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MemoriesView()),
-            (route) => false,
-          );
+          Navigator.of(context).pop();
         },
         style: AppButtonStyles.circularIconButton,
       ),
@@ -41,10 +36,7 @@ class RelationsView extends ConsumerWidget {
               ),
             ),
             onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const MemoriesView()),
-                (route) => false,
-              );
+              Navigator.of(context).pop();
             },
             style: AppButtonStyles.circularIconButton,
           ),
@@ -209,7 +201,6 @@ class RelationsView extends ConsumerWidget {
                         separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemCount: sorted.length,
                       ),
-                bottomNavigationBar: AppNavBar(currentIndex: 1),
               );
             },
           ),

@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mydearmap/core/widgets/auth_gate.dart';
-import 'package:mydearmap/features/ai_chat/views/ai_chat_view.dart';
-import 'package:mydearmap/features/map/views/map_view.dart';
-import 'package:mydearmap/features/memories/views/memories_view.dart';
-import 'package:mydearmap/features/notifications/views/notifications_view.dart';
-import 'package:mydearmap/features/profile/views/profile_view.dart';
+import 'package:mydearmap/core/widgets/app_shell.dart';
 
 final Map<String, WidgetBuilder> appRoutes = {
   '/auth': (context) => AuthGate(),
-  '/chatbot': (context) => AiChatView(),
-  '/memories': (context) => MemoriesView(),
-  '/map': (context) => MapView(),
-  '/notifications': (context) => const NotificationsView(),
-  '/profile': (context) => ProfileView(),
+  '/chatbot': (context) => const AppShell(initialIndex: 0),
+  '/memories': (context) => const AppShell(initialIndex: 1),
+  '/map': (context) => const AppShell(initialIndex: 2),
+  '/notifications': (context) => const AppShell(initialIndex: 3),
+  '/profile': (context) => const AppShell(initialIndex: 4),
 };

@@ -8,15 +8,13 @@ import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
-import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/core/widgets/app_form_buttons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/user.dart';
-import 'package:mydearmap/data/models/user_relation.dart';
-import 'package:mydearmap/features/memories/widgets/memory_form.dart';
+import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/features/memories/widgets/memory_media_editor.dart'
     show
         MemoryMediaEditor,
@@ -26,6 +24,7 @@ import 'package:mydearmap/features/memories/widgets/memory_media_carousel.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/map/views/map_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/data/models/media.dart' show mediaOrderStride;
 
 final _memoryByIdProvider = FutureProvider.family<Memory, String>((
   ref,
@@ -81,6 +80,12 @@ class MemoryUpsertView extends ConsumerStatefulWidget {
 }
 
 class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
+  int _currentStep = 0;
+  static const List<String> _stepLabels = [
+    'Fecha y ubicación',
+    'Multimedia',
+    'Detalles finales',
+  ];
   DateTime? _selectedDate;
   LatLng _currentLocation = _defaultLocation;
   final Set<String> _deletingMediaIds = <String>{};
@@ -135,10 +140,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         ? LatLng(memory.location!.latitude, memory.location!.longitude)
         : _defaultLocation;
     _locationDirty = false;
-    _dateController.text =
-        '${memory.happenedAt.day.toString().padLeft(2, '0')}/'
-        '${memory.happenedAt.month.toString().padLeft(2, '0')}/'
-        '${memory.happenedAt.year}';
+    _dateController.text = _formatDate(memory.happenedAt);
     // Initializar personas relacionadas desde los participantes del recuerdo (excluir creador)
     _relatedPeople = memory.participants
         .where((p) => p.role != MemoryRole.creator)
@@ -166,27 +168,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     );
   }
 
-  void _syncRelatedPeopleFromSelections(List<UserRelation> relations) {
-    final relationUsers = <String, User>{
-      for (final rel in relations) rel.relatedUser.id: rel.relatedUser,
-    };
-
-    final existingUsers = <String, User>{
-      for (final person in _relatedPeople) person.user.id: person.user,
-    };
-
-    final synced = _selectedRelationUserRoles.entries
-        .map((entry) {
-          final user = relationUsers[entry.key] ?? existingUsers[entry.key];
-          if (user == null) return null;
-          return UserRole(user: user, role: _roleFromName(entry.value));
-        })
-        .whereType<UserRole>()
-        .toList();
-
-    _relatedPeople = synced;
-  }
-
   Future<DateTime?> _pickDate() async {
     final now = DateTime.now();
     final initialDate = _selectedDate ?? now;
@@ -198,25 +179,606 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     );
 
     if (picked != null) {
-      setState(() {
-        _selectedDate = picked;
-        _dateController.text =
-            '${picked.day.toString().padLeft(2, '0')}/'
-            '${picked.month.toString().padLeft(2, '0')}/'
-            '${picked.year}';
-      });
+      _updateSelectedDate(picked);
     }
     return picked;
   }
 
-  Future<void> _commitPendingMediaChanges({required String memoryId}) async {
-    if (!_mediaEditorController.hasPendingDrafts) return;
-    setState(() => _committingMedia = true);
-    try {
-      await _mediaEditorController.commitPendingChanges(memoryId: memoryId);
-    } finally {
-      if (mounted) setState(() => _committingMedia = false);
+  void _updateSelectedDate(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+      _dateController.text = _formatDate(date);
+    });
+  }
+
+  String _formatDate(DateTime date) =>
+      '${date.day.toString().padLeft(2, '0')}/'
+      '${date.month.toString().padLeft(2, '0')}/'
+      '${date.year}';
+
+  void _handleManualDateInput(String raw) {
+    FocusScope.of(context).unfocus();
+    final sanitized = raw.trim();
+    if (sanitized.isEmpty) {
+      setState(() => _selectedDate = null);
+      return;
     }
+    final parts = sanitized.split(RegExp(r'[-/\s]+'));
+    if (parts.length != 3) {
+      _showDateError();
+      return;
+    }
+    final day = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (day == null || month == null || year == null) {
+      _showDateError();
+      return;
+    }
+    final parsed = DateTime.tryParse(
+      '${year.toString().padLeft(4, '0')}-'
+      '${month.toString().padLeft(2, '0')}-'
+      '${day.toString().padLeft(2, '0')}',
+    );
+    if (parsed == null || parsed.isAfter(DateTime.now())) {
+      _showDateError();
+      return;
+    }
+    _updateSelectedDate(parsed);
+  }
+
+  void _showDateError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Formato de fecha inválido (dd/mm/aaaa).')),
+    );
+    if (_selectedDate != null) {
+      _dateController.text = _formatDate(_selectedDate!);
+    } else {
+      _dateController.clear();
+    }
+  }
+
+  void _handlePrimaryAction(Memory? memory) {
+    if (_currentStep == 0) {
+      if (_selectedDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Selecciona la fecha del recuerdo')),
+        );
+        return;
+      }
+      setState(() => _currentStep = 1);
+      return;
+    }
+    if (_currentStep == 1) {
+      setState(() => _currentStep = 2);
+      return;
+    }
+    _handleUpsert(memory);
+  }
+
+  void _handleSecondaryAction() {
+    if (_currentStep == 0) {
+      _handleCancel();
+      return;
+    }
+    setState(() => _currentStep -= 1);
+  }
+
+  void _onPendingDraftsChanged(List<PendingMemoryMediaDraft> drafts) {
+    final disallowed = <int>[];
+    for (var i = 0; i < drafts.length; i++) {
+      if (drafts[i].kind == MemoryMediaKind.note) disallowed.add(i);
+    }
+    if (disallowed.isNotEmpty) {
+      for (final index in disallowed.reversed) {
+        _mediaEditorController.removeDraftAt(index);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Las notas no están disponibles en este flujo.'),
+          ),
+        );
+      }
+      return;
+    }
+    if (mounted) {
+      setState(() => _pendingMediaDrafts = drafts);
+    }
+  }
+
+  String _roleDisplayName(MemoryRole role) {
+    switch (role) {
+      case MemoryRole.creator:
+        return 'Creador';
+      case MemoryRole.participant:
+        return 'Participante';
+      case MemoryRole.guest:
+        return 'Invitado';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.mode == MemoryUpsertMode.edit) {
+      final memoryAsync = ref.watch(_memoryByIdProvider(widget.memoryId!));
+      return memoryAsync.when(
+        loading: () => Scaffold(
+          appBar: AppBar(
+            title: const Text('Cargando Recuerdo...'),
+            backgroundColor: AppColors.primaryColor,
+          ),
+          body: const Center(child: CircularProgressIndicator()),
+        ),
+        error: (err, stack) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Error'),
+            backgroundColor: AppColors.primaryColor,
+          ),
+          body: Center(child: Text('Error al cargar el recuerdo: $err')),
+        ),
+        data: (memory) {
+          _initializeControllers(memory);
+          return _buildScaffold(memory: memory);
+        },
+      );
+    }
+
+    return _buildScaffold();
+  }
+
+  Scaffold _buildScaffold({Memory? memory}) {
+    final isEdit = widget.mode == MemoryUpsertMode.edit;
+    final memoryControllerState = ref.watch(memoryControllerProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: SvgPicture.asset(AppIcons.chevronLeft),
+          onPressed: () => Navigator.of(context).pop(),
+          style: AppButtonStyles.circularIconButton,
+        ),
+        title: Text(isEdit ? 'Editar recuerdo' : 'Crear nuevo recuerdo'),
+        backgroundColor: AppColors.primaryColor,
+        actions: isEdit
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.delete_forever),
+                  tooltip: 'Eliminar recuerdo',
+                  onPressed: _handleDelete,
+                ),
+              ]
+            : null,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSizes.paddingLarge),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStepIndicator(),
+              const SizedBox(height: AppSizes.paddingLarge),
+              _buildStepContent(),
+              const SizedBox(height: AppSizes.paddingLarge),
+              AppFormButtons(
+                primaryLabel: _currentStep == 2
+                    ? (isEdit ? 'Guardar cambios' : 'Guardar recuerdo')
+                    : 'Siguiente',
+                onPrimaryPressed: () => _handlePrimaryAction(memory),
+                secondaryLabel: _currentStep == 0 ? 'Cancelar' : 'Anterior',
+                onSecondaryPressed: _handleSecondaryAction,
+                isProcessing:
+                    memoryControllerState.isLoading ||
+                    _committingMedia ||
+                    _reorderingMedia,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepIndicator() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: List.generate(_stepLabels.length, (index) {
+            final active = _currentStep == index;
+            final completed = _currentStep > index;
+            return Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: completed || active
+                          ? AppColors.primaryColor
+                          : AppColors.primaryColor.withValues(alpha: 0.2),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  if (index < _stepLabels.length - 1)
+                    Expanded(
+                      child: Container(
+                        height: 2,
+                        color: completed
+                            ? AppColors.primaryColor
+                            : AppColors.primaryColor.withValues(alpha: 0.3),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: AppSizes.paddingMedium),
+        Text(
+          _stepLabels[_currentStep],
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepContent() {
+    final steps = [
+      _buildSchedulingStep(),
+      _buildMediaStep(),
+      _buildDetailsStep(),
+    ];
+
+    return Stack(
+      children: List.generate(steps.length, (index) {
+        final visible = _currentStep == index;
+        return Offstage(
+          key: ValueKey('step_$index'),
+          offstage: !visible,
+          child: TickerMode(enabled: visible, child: steps[index]),
+        );
+      }),
+    );
+  }
+
+  Widget _buildSchedulingStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Elige cuándo y dónde sucedió el recuerdo',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        const SizedBox(height: AppSizes.paddingMedium),
+        Card(
+          elevation: 0,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSizes.paddingMedium),
+            child: CalendarDatePicker(
+              initialDate: _selectedDate ?? DateTime.now(),
+              firstDate: DateTime(1900),
+              lastDate: DateTime.now(),
+              onDateChanged: _updateSelectedDate,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSizes.paddingSmall),
+        TextFormField(
+          controller: _dateController,
+          keyboardType: TextInputType.datetime,
+          decoration: InputDecoration(
+            labelText: 'Fecha (dd/mm/aaaa)',
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.calendar_today),
+              onPressed: _pickDate,
+            ),
+          ),
+          onEditingComplete: () => _handleManualDateInput(_dateController.text),
+          onFieldSubmitted: _handleManualDateInput,
+        ),
+        const SizedBox(height: AppSizes.paddingLarge),
+        Text(
+          'Ubicación del recuerdo',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 300,
+          child: FlutterMap(
+            key: ValueKey(
+              '${_currentLocation.latitude}_${_currentLocation.longitude}',
+            ),
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _currentLocation,
+              initialZoom: 17,
+              minZoom: 2.0,
+              maxZoom: 18.0,
+              onLongPress: (_, latLng) {
+                setState(() {
+                  _currentLocation = latLng;
+                  _locationDirty = true;
+                });
+              },
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
+                userAgentPackageName: 'com.mydearmap.app',
+                tileProvider: kIsWeb ? NetworkTileProvider() : null,
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _currentLocation,
+                    width: 40,
+                    height: 40,
+                    child: const Icon(
+                      Icons.location_on,
+                      color: Colors.red,
+                      size: 40,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Mantén pulsado sobre el mapa para cambiar la ubicación.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMediaStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Selecciona fotos, vidéos o audios para tu recuerdo',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        const SizedBox(height: AppSizes.paddingMedium),
+        MemoryMediaEditor(
+          memoryId: widget.mode == MemoryUpsertMode.edit
+              ? widget.memoryId!
+              : (_resolvedMemoryId ?? ''),
+          controller: _mediaEditorController,
+          deferUploads: true,
+          onPendingDraftsChanged: _onPendingDraftsChanged,
+        ),
+        const SizedBox(height: AppSizes.paddingSmall),
+        Text(
+          'Las notas no están disponibles. Podrás ordenar los archivos en el último paso.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailsStep() {
+    final mediaAsync =
+        widget.mode == MemoryUpsertMode.edit && widget.memoryId != null
+        ? ref.watch(memoryMediaProvider(widget.memoryId!))
+        : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildMediaSummarySection(mediaAsync),
+        const SizedBox(height: AppSizes.paddingLarge),
+        TextFormField(
+          controller: _titleController,
+          decoration: const InputDecoration(labelText: 'Título'),
+          validator: (value) => (value == null || value.trim().isEmpty)
+              ? 'Ingresa un título'
+              : null,
+        ),
+        const SizedBox(height: AppSizes.paddingMedium),
+        TextFormField(
+          controller: _descriptionController,
+          minLines: 3,
+          maxLines: 5,
+          decoration: const InputDecoration(labelText: 'Descripción'),
+        ),
+        const SizedBox(height: AppSizes.paddingMedium),
+        _buildRelationsSelector(),
+        const SizedBox(height: AppSizes.paddingSmall),
+        _buildSelectedRelationsList(),
+        const SizedBox(height: AppSizes.paddingLarge),
+        _buildReorderSection(mediaAsync),
+      ],
+    );
+  }
+
+  Widget _buildMediaSummarySection(AsyncValue<List<MemoryMedia>>? mediaAsync) {
+    if (mediaAsync == null) {
+      return _buildPendingDraftsPreview();
+    }
+    return mediaAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      error: (error, _) => Text(
+        'No se pudo cargar la galería: $error',
+        style: const TextStyle(color: Colors.redAccent),
+      ),
+      data: (assets) {
+        if (assets.isEmpty && _pendingMediaDrafts.isEmpty) {
+          return _buildPendingDraftsPreview();
+        }
+        final orderedAssets = List<MemoryMedia>.from(assets);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (orderedAssets.isNotEmpty)
+              MemoryMediaCarousel(
+                media: orderedAssets,
+                height: 180,
+                prioritizeImages: true,
+                enableFullScreenPreview: true,
+              ),
+            if (_pendingMediaDrafts.isNotEmpty) ...[
+              const SizedBox(height: AppSizes.paddingMedium),
+              _buildPendingDraftsPreview(),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPendingDraftsPreview() {
+    if (_pendingMediaDrafts.isEmpty) {
+      return Container(
+        height: 140,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+        ),
+        child: const Text(
+          'Añade adjuntos en el paso anterior para verlos aquí.',
+        ),
+      );
+    }
+    return SizedBox(
+      height: 200,
+      child: PageView.builder(
+        controller: PageController(viewportFraction: 0.8),
+        itemCount: _pendingMediaDrafts.length,
+        itemBuilder: (context, index) {
+          final draft = _pendingMediaDrafts[index];
+          Widget preview;
+          switch (draft.kind) {
+            case MemoryMediaKind.image:
+              preview = draft.previewBytes != null
+                  ? Image.memory(draft.previewBytes!, fit: BoxFit.cover)
+                  : const Icon(Icons.image, size: 48, color: Colors.blueGrey);
+              break;
+            case MemoryMediaKind.video:
+              preview = const Icon(
+                Icons.play_circle_outline,
+                size: 64,
+                color: Colors.deepPurple,
+              );
+              break;
+            case MemoryMediaKind.audio:
+              preview = const Icon(
+                Icons.audiotrack,
+                size: 64,
+                color: Colors.teal,
+              );
+              break;
+            case MemoryMediaKind.note:
+            case MemoryMediaKind.unknown:
+              preview = const Icon(
+                Icons.insert_drive_file,
+                size: 64,
+                color: Colors.grey,
+              );
+              break;
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+              child: Container(
+                color: Colors.grey.shade200,
+                alignment: Alignment.center,
+                child: preview,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSelectedRelationsList() {
+    if (_relatedPeople.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: _relatedPeople.map((person) {
+        return Card(
+          margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
+          child: ListTile(
+            dense: true,
+            title: Text(
+              person.user.name.isNotEmpty
+                  ? person.user.name
+                  : person.user.email,
+            ),
+            subtitle: Text(_roleDisplayName(person.role)),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButton<MemoryRole>(
+                  value: person.role,
+                  items: const [
+                    DropdownMenuItem(
+                      value: MemoryRole.participant,
+                      child: Text('Participante'),
+                    ),
+                    DropdownMenuItem(
+                      value: MemoryRole.guest,
+                      child: Text('Invitado'),
+                    ),
+                  ],
+                  onChanged: (role) {
+                    if (role == null) return;
+                    setState(() {
+                      final idx = _relatedPeople.indexWhere(
+                        (element) => element.user.id == person.user.id,
+                      );
+                      if (idx != -1) {
+                        _relatedPeople[idx] = UserRole(
+                          user: person.user,
+                          role: role,
+                        );
+                      }
+                      _selectedRelationUserRoles[person.user.id] = role.name;
+                    });
+                  },
+                ),
+                IconButton(
+                  tooltip: 'Quitar persona',
+                  icon: const Icon(Icons.close, color: Colors.redAccent),
+                  onPressed: () {
+                    setState(() {
+                      _relatedPeople.removeWhere(
+                        (p) => p.user.id == person.user.id,
+                      );
+                      _selectedRelationUserRoles.remove(person.user.id);
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   Widget _buildRelationsSelector() {
@@ -239,7 +801,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () async {
-                    // temp map userId -> roleName
                     final temp = Map<String, String>.from(
                       _selectedRelationUserRoles,
                     );
@@ -313,11 +874,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                                                     },
                                                   )
                                                 : null,
-                                            // show avatar as part of the tile
-                                            dense: false,
-                                            isThreeLine: false,
-                                            // Use a CircleAvatar in the subtitle area
-                                            // (we keep this in the title area via a Row could be heavier; keep simple)
                                           );
                                         }).toList(),
                                       );
@@ -335,7 +891,30 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                                   _selectedRelationUserRoles
                                     ..clear()
                                     ..addAll(temp);
-                                  _syncRelatedPeopleFromSelections(relations);
+                                  // Sync _relatedPeople from selections
+                                  final relationUsers = <String, User>{
+                                    for (final rel in relations)
+                                      rel.relatedUser.id: rel.relatedUser,
+                                  };
+                                  final existingUsers = <String, User>{
+                                    for (final person in _relatedPeople)
+                                      person.user.id: person.user,
+                                  };
+                                  final synced = _selectedRelationUserRoles
+                                      .entries
+                                      .map((entry) {
+                                        final user =
+                                            relationUsers[entry.key] ??
+                                            existingUsers[entry.key];
+                                        if (user == null) return null;
+                                        return UserRole(
+                                          user: user,
+                                          role: _roleFromName(entry.value),
+                                        );
+                                      })
+                                      .whereType<UserRole>()
+                                      .toList();
+                                  _relatedPeople = synced;
                                 });
                                 Navigator.of(ctx).pop();
                               },
@@ -403,12 +982,12 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             );
           },
           loading: () => Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Center(child: CircularProgressIndicator()),
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: const Center(child: CircularProgressIndicator()),
           ),
           error: (e, st) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Text('Error cargando relaciones'),
+            child: const Text('Error cargando relaciones'),
           ),
         );
       },
@@ -417,6 +996,81 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     );
   }
 
+  Widget _buildReorderSection(AsyncValue<List<MemoryMedia>>? mediaAsync) {
+    final hasPending = _pendingMediaDrafts.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Organiza los adjuntos',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: AppSizes.paddingSmall),
+        if (_reorderingMedia)
+          const Padding(
+            padding: EdgeInsets.only(bottom: AppSizes.paddingSmall),
+            child: LinearProgressIndicator(),
+          ),
+        if (!hasPending && mediaAsync == null)
+          const Text(
+            'Añade archivos en el paso anterior para poder organizarlos.',
+            style: TextStyle(color: Colors.black54),
+          ),
+        if (hasPending) ...[
+          const Text('Borradores pendientes'),
+          const SizedBox(height: AppSizes.paddingSmall),
+          ...List.generate(_pendingMediaDrafts.length, _buildPendingDraftTile),
+        ],
+        if (mediaAsync != null)
+          mediaAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.only(top: AppSizes.paddingMedium),
+              child: Center(child: CircularProgressIndicator.adaptive()),
+            ),
+            error: (error, _) => Padding(
+              padding: const EdgeInsets.only(top: AppSizes.paddingMedium),
+              child: Text(
+                'No se pudo cargar la galería: $error',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            ),
+            data: (assets) {
+              if (assets.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.only(top: AppSizes.paddingSmall),
+                  child: Text(
+                    'Todavía no hay archivos adjuntos guardados.',
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                );
+              }
+              final orderedAssets = List<MemoryMedia>.from(assets);
+              return Column(
+                children: List.generate(
+                  orderedAssets.length,
+                  (index) => _buildMediaTile(orderedAssets, index),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  // Fix: bring back helpers used by the 3-step wizard and submission
+  Future<void> _commitPendingMediaChanges({required String memoryId}) async {
+    if (!_mediaEditorController.hasPendingDrafts) return;
+    setState(() => _committingMedia = true);
+    try {
+      await _mediaEditorController.commitPendingChanges(memoryId: memoryId);
+    } finally {
+      if (mounted) setState(() => _committingMedia = false);
+    }
+  }
+
+  // Fix: restore upsert handler from original view (create/edit logic)
   Future<void> _handleUpsert(Memory? originalMemory) async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -434,8 +1088,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-
-      // participants will be synchronized separately via memory_users table
 
       final userAsync = ref.read(currentUserProvider);
       if (userAsync is AsyncLoading) {
@@ -472,10 +1124,10 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             createdMemory?.id ?? newMemory.id ?? _resolvedMemoryId;
         if (createdId != null) {
           _resolvedMemoryId = createdId;
+
           final toUpsert = _relatedPeople
               .where((ur) => ur.user.id.isNotEmpty && ur.user.id != user.id)
               .toList();
-
           if (toUpsert.isNotEmpty) {
             final List<String> failed = [];
             for (final ur in toUpsert) {
@@ -489,7 +1141,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 failed.add(ur.user.id);
               }
             }
-
             if (failed.isNotEmpty && mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -502,13 +1153,12 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             }
           }
 
-          // Commit pending media after participants upsert
           await _mediaEditorController.commitPendingChanges(
             memoryId: createdId,
           );
-          // Añadir participantes seleccionados (con rol seleccionado)
+
           for (final relatedUserId in _selectedRelationUserRoles.keys) {
-            if (relatedUserId == user.id) continue; // evitar duplicados
+            if (relatedUserId == user.id) continue;
             final roleName =
                 _selectedRelationUserRoles[relatedUserId] ??
                 MemoryRole.participant.name;
@@ -557,6 +1207,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       return;
     }
 
+    // Edit flow
     final updatedMemory = originalMemory!.copyWith(
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
@@ -568,9 +1219,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     try {
       await memoryController.updateMemory(updatedMemory);
       await _commitPendingMediaChanges(memoryId: widget.memoryId!);
-      if (mounted) {
-        setState(() => _locationDirty = false);
-      }
+      if (mounted) setState(() => _locationDirty = false);
+
       // Sync participants: add newly selected, remove deselected
       final existingIds = originalMemory.participants
           .map((p) => p.user.id)
@@ -578,6 +1228,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       final currentSelectedIds = _selectedRelationUserRoles.keys.toSet();
       final toAdd = currentSelectedIds.difference(existingIds);
       final toRemove = existingIds.difference(currentSelectedIds);
+
       for (final id in toAdd) {
         if (id == ref.read(currentUserProvider).asData?.value?.id) continue;
         final roleName =
@@ -585,7 +1236,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         await memoryController.addParticipant(widget.memoryId!, id, roleName);
       }
       for (final id in toRemove) {
-        // don't remove creator
         final matches = originalMemory.participants
             .where((p) => p.user.id == id)
             .toList();
@@ -594,16 +1244,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         if (participant.role == MemoryRole.creator) continue;
         await memoryController.removeParticipant(widget.memoryId!, id);
       }
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Recuerdo actualizado correctamente'),
-          backgroundColor: AppColors.accentColor,
-        ),
-      );
-      // Sync participants: compute added, removed, changed roles
+
+      // Sync role changes
       try {
-        // Fetch participants from server to get the most up-to-date 'orig' state
         List<UserRole> serverParticipants = [];
         try {
           final serverMemory = await memoryController.getMemoryById(
@@ -614,37 +1257,30 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         } catch (_) {
           serverParticipants = originalMemory.participants;
         }
-
         final orig = <String, MemoryRole>{};
         for (final p in serverParticipants) {
           if (p.role == MemoryRole.creator) continue;
           orig[p.user.id] = p.role;
         }
-
         final current = <String, MemoryRole>{};
         for (final p in _relatedPeople) {
           if (p.user.id.isEmpty) continue;
           current[p.user.id] = p.role;
         }
-
-        final toAdd = current.keys.where((k) => !orig.containsKey(k));
-        final toRemove = orig.keys.where((k) => !current.containsKey(k));
-        final toMaybeUpdate = current.keys.where((k) => orig.containsKey(k));
-
-        for (final id in toAdd) {
-          final role = current[id]!;
+        final addIds = current.keys.where((k) => !orig.containsKey(k));
+        final removeIds = orig.keys.where((k) => !current.containsKey(k));
+        final maybeUpdateIds = current.keys.where((k) => orig.containsKey(k));
+        for (final id in addIds) {
           await memoryController.addParticipant(
             widget.memoryId!,
             id,
-            role.name,
+            current[id]!.name,
           );
         }
-
-        for (final id in toRemove) {
+        for (final id in removeIds) {
           await memoryController.removeParticipant(widget.memoryId!, id);
         }
-
-        for (final id in toMaybeUpdate) {
+        for (final id in maybeUpdateIds) {
           final newRole = current[id]!;
           final oldRole = orig[id]!;
           if (newRole != oldRole) {
@@ -661,6 +1297,12 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         ref.invalidate(_memoryByIdProvider(widget.memoryId!));
       }
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Recuerdo actualizado correctamente'),
+          backgroundColor: AppColors.accentColor,
+        ),
+      );
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -672,6 +1314,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       );
     }
   }
+
+  void _handleCancel() => Navigator.of(context).pop();
 
   Future<void> _handleDelete() async {
     final memoryController = ref.read(memoryControllerProvider.notifier);
@@ -705,7 +1349,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             backgroundColor: AppColors.accentColor,
           ),
         );
-        Navigator.pop(context); // cerrar diálogo
+        Navigator.pop(context);
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const MapView()),
@@ -722,24 +1366,16 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     }
   }
 
-  void _handleCancel() {
-    Navigator.of(context).pop();
-  }
-
   Future<void> _deleteMediaAsset(MemoryMedia asset) async {
     setState(() => _deletingMediaIds.add(asset.id));
     try {
       final client = Supabase.instance.client;
-
       if ((asset.storagePath ?? '').isNotEmpty) {
         await client.storage.from('media').remove([asset.storagePath!]);
       }
-
       await client.from('media').delete().eq('id', asset.id);
-
       ref.invalidate(memoryMediaProvider(widget.memoryId!));
       ref.invalidate(userMemoriesProvider);
-
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -771,279 +1407,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       case MemoryMediaKind.unknown:
         return 'Archivo';
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.mode == MemoryUpsertMode.edit) {
-      final memoryAsync = ref.watch(_memoryByIdProvider(widget.memoryId!));
-      return memoryAsync.when(
-        loading: () => Scaffold(
-          appBar: AppBar(
-            title: const Text('Cargando Recuerdo...'),
-            backgroundColor: AppColors.primaryColor,
-          ),
-          body: const Center(child: CircularProgressIndicator()),
-        ),
-        error: (err, stack) => Scaffold(
-          appBar: AppBar(
-            title: const Text('Error'),
-            backgroundColor: AppColors.primaryColor,
-          ),
-          body: Center(child: Text('Error al cargar el recuerdo: $err')),
-        ),
-        data: (memory) {
-          _initializeControllers(memory);
-          return _buildScaffold(memory: memory);
-        },
-      );
-    }
-
-    return _buildScaffold();
-  }
-
-  Scaffold _buildScaffold({Memory? memory}) {
-    final isEdit = widget.mode == MemoryUpsertMode.edit;
-    final memoryControllerState = ref.watch(memoryControllerProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: SvgPicture.asset(AppIcons.chevronLeft),
-          onPressed: () => Navigator.of(context).pop(),
-          style: AppButtonStyles.circularIconButton,
-        ),
-        title: Text(isEdit ? 'Editar recuerdo' : 'Crear nuevo recuerdo'),
-        backgroundColor: AppColors.primaryColor,
-        actions: isEdit
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.delete_forever),
-                  tooltip: 'Eliminar recuerdo',
-                  onPressed: _handleDelete,
-                ),
-              ]
-            : null,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSizes.paddingLarge),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              MemoryForm(
-                titleController: _titleController,
-                descriptionController: _descriptionController,
-                dateController: _dateController,
-                readOnly: false,
-                onPickDate: _pickDate,
-                titleValidator: (value) => (value == null || value.isEmpty)
-                    ? 'Ingresa un título'
-                    : null,
-                dateValidator: (_) => _selectedDate == null
-                    ? 'Selecciona la fecha del recuerdo'
-                    : null,
-                participants: _relatedPeople,
-                onRemoveParticipant: (p) => setState(() {
-                  _relatedPeople.removeWhere((x) => x.user.id == p.user.id);
-                  _selectedRelationUserRoles.remove(p.user.id);
-                }),
-                onChangeRole: (p) => setState(() {
-                  final idx = _relatedPeople.indexWhere(
-                    (x) => x.user.id == p.user.id,
-                  );
-                  if (idx != -1) _relatedPeople[idx] = p;
-                  _selectedRelationUserRoles[p.user.id] = p.role.name;
-                }),
-              ),
-              const SizedBox(height: AppSizes.paddingMedium),
-              // Selector de personas relacionadas
-              _buildRelationsSelector(),
-              const SizedBox(height: AppSizes.paddingLarge),
-              Text(
-                'Ubicación del recuerdo',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 300,
-                child: FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _currentLocation,
-                    initialZoom: 17,
-                    minZoom: 2.0,
-                    maxZoom: 18.0,
-                    onLongPress: (tapPosition, latLng) {
-                      setState(() {
-                        _currentLocation = latLng;
-                        _locationDirty = true;
-                      });
-                    },
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
-                      userAgentPackageName: 'com.mydearmap.app',
-                      tileProvider: kIsWeb ? NetworkTileProvider() : null,
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: _currentLocation,
-                          width: 40,
-                          height: 40,
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.red,
-                            size: 40,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Mantén pulsado sobre el mapa para cambiar la ubicación.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-              ),
-              if (isEdit) ...[
-                const SizedBox(height: AppSizes.paddingLarge),
-                Text(
-                  'Archivos adjuntos',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppSizes.paddingMedium),
-                Consumer(
-                  builder: (context, ref, _) {
-                    final mediaAsync = ref.watch(
-                      memoryMediaProvider(widget.memoryId!),
-                    );
-                    return mediaAsync.when(
-                      loading: () => const Padding(
-                        padding: EdgeInsets.only(
-                          top: AppSizes.paddingMedium,
-                          bottom: AppSizes.paddingLarge,
-                        ),
-                        child: Center(
-                          child: CircularProgressIndicator.adaptive(),
-                        ),
-                      ),
-                      error: (error, _) => Padding(
-                        padding: const EdgeInsets.only(
-                          top: AppSizes.paddingMedium,
-                          bottom: AppSizes.paddingLarge,
-                        ),
-                        child: Text(
-                          'No se pudo cargar la galería: $error',
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
-                      ),
-                      data: (assets) {
-                        if (assets.isEmpty) {
-                          return const Padding(
-                            padding: EdgeInsets.only(
-                              top: AppSizes.paddingSmall,
-                              bottom: AppSizes.paddingLarge,
-                            ),
-                            child: Text(
-                              'Todavía no hay archivos adjuntos.',
-                              style: TextStyle(color: Colors.black54),
-                            ),
-                          );
-                        }
-
-                        final orderedAssets = List<MemoryMedia>.from(assets);
-
-                        return Column(
-                          children: [
-                            MemoryMediaCarousel(
-                              media: orderedAssets,
-                              height: 180,
-                              prioritizeImages: true,
-                              enableFullScreenPreview: true,
-                            ),
-                            const SizedBox(height: AppSizes.paddingMedium),
-                            if (_reorderingMedia)
-                              const Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: AppSizes.paddingMedium,
-                                ),
-                                child: LinearProgressIndicator(),
-                              ),
-                            ...List.generate(
-                              orderedAssets.length,
-                              (index) => _buildMediaTile(orderedAssets, index),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: AppSizes.paddingLarge),
-              ],
-              if (_pendingMediaDrafts.isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Adjuntos pendientes (${_pendingMediaDrafts.length})',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.paddingSmall),
-                    Text(
-                      'Los archivos se subirán al guardar. Ajusta el orden antes de continuar.',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: AppSizes.paddingSmall),
-                    ...List.generate(
-                      _pendingMediaDrafts.length,
-                      _buildPendingDraftTile,
-                    ),
-                    const SizedBox(height: AppSizes.paddingMedium),
-                  ],
-                ),
-              MemoryMediaEditor(
-                memoryId: widget.mode == MemoryUpsertMode.edit
-                    ? widget.memoryId!
-                    : (_resolvedMemoryId ?? ''),
-                controller: _mediaEditorController,
-                deferUploads: true,
-                onPendingDraftsChanged: (drafts) {
-                  if (!mounted) return;
-                  setState(() => _pendingMediaDrafts = drafts);
-                },
-              ),
-              const SizedBox(height: AppSizes.paddingLarge),
-              AppFormButtons(
-                primaryLabel: isEdit ? 'Guardar cambios' : 'Guardar recuerdo',
-                onPrimaryPressed: () => _handleUpsert(memory),
-                secondaryLabel: 'Cancelar',
-                onSecondaryPressed: _handleCancel,
-                isProcessing:
-                    memoryControllerState.isLoading ||
-                    (isEdit ? (_committingMedia || _reorderingMedia) : false),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   GeoPoint _resolveUpdatedLocation(Memory original) {
@@ -1234,20 +1597,23 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     }
   }
 
-  int _orderBaseForKind(MemoryMediaKind kind) {
+  int _kindPriorityIndex(MemoryMediaKind kind) {
     switch (kind) {
       case MemoryMediaKind.image:
         return 0;
       case MemoryMediaKind.video:
-        return 100000;
+        return 1;
       case MemoryMediaKind.audio:
-        return 200000;
+        return 2;
       case MemoryMediaKind.note:
-        return 300000;
+        return 3;
       case MemoryMediaKind.unknown:
-        return 400000;
+        return 4;
     }
   }
+
+  int _orderBaseForKind(MemoryMediaKind kind) =>
+      mediaOrderStride * _kindPriorityIndex(kind);
 
   int _indexWithinKind(List<MemoryMedia> assets, MemoryMedia target) {
     var index = 0;
