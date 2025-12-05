@@ -41,6 +41,7 @@ class AppSizes {
 
   static const double memoryRadiusTop = 22.0;
   static const double memoryFooterHeight = 46.0;
+  static const double appBarHeight = 80.0;
 }
 
 class AppTextStyles {

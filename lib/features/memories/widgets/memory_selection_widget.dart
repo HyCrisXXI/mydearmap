@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
-import 'package:mydearmap/core/widgets/memory_card.dart';
+import 'package:mydearmap/features/memories/widgets/memory_card.dart';
 
 typedef MemoryOverlayBuilder =
     Widget Function(

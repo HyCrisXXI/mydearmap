@@ -8,7 +8,7 @@ import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
-import 'package:mydearmap/core/widgets/app_form_buttons.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
@@ -266,23 +266,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   }
 
   void _onPendingDraftsChanged(List<PendingMemoryMediaDraft> drafts) {
-    final disallowed = <int>[];
-    for (var i = 0; i < drafts.length; i++) {
-      if (drafts[i].kind == MemoryMediaKind.note) disallowed.add(i);
-    }
-    if (disallowed.isNotEmpty) {
-      for (final index in disallowed.reversed) {
-        _mediaEditorController.removeDraftAt(index);
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Las notas no están disponibles en este flujo.'),
-          ),
-        );
-      }
-      return;
-    }
     if (mounted) {
       setState(() => _pendingMediaDrafts = drafts);
     }
@@ -331,25 +314,84 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   Scaffold _buildScaffold({Memory? memory}) {
     final isEdit = widget.mode == MemoryUpsertMode.edit;
     final memoryControllerState = ref.watch(memoryControllerProvider);
+    final isProcessing =
+        memoryControllerState.isLoading || _committingMedia || _reorderingMedia;
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: SvgPicture.asset(AppIcons.chevronLeft),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _handleSecondaryAction,
           style: AppButtonStyles.circularIconButton,
         ),
         title: Text(isEdit ? 'Editar recuerdo' : 'Crear nuevo recuerdo'),
         backgroundColor: AppColors.primaryColor,
-        actions: isEdit
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.delete_forever),
-                  tooltip: 'Eliminar recuerdo',
-                  onPressed: _handleDelete,
-                ),
-              ]
-            : null,
+        actions: [
+          if (isEdit)
+            IconButton(
+              icon: const Icon(Icons.delete_forever),
+              tooltip: 'Eliminar recuerdo',
+              onPressed: _handleDelete,
+            ),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSizes.paddingMedium),
+            child: _currentStep < 2
+                ? OutlinedButton(
+                    onPressed: isProcessing
+                        ? null
+                        : () => _handlePrimaryAction(memory),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.buttonBackground,
+                      side: const BorderSide(
+                        color: AppColors.buttonBackground,
+                        width: 1.0,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.borderRadius,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.buttonPaddingHorizontal,
+                      ),
+                    ),
+                    child: const Text(
+                      'Siguiente',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  )
+                : FilledButton(
+                    onPressed: isProcessing
+                        ? null
+                        : () => _handlePrimaryAction(memory),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.buttonBackground,
+                      foregroundColor: AppColors.buttonForeground,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.borderRadius,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.buttonPaddingHorizontal,
+                      ),
+                    ),
+                    child: isProcessing
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.buttonForeground,
+                            ),
+                          )
+                        : Text(
+                            isEdit ? 'Guardar' : 'Crear',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                  ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSizes.paddingLarge),
@@ -361,19 +403,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
               _buildStepIndicator(),
               const SizedBox(height: AppSizes.paddingLarge),
               _buildStepContent(),
-              const SizedBox(height: AppSizes.paddingLarge),
-              AppFormButtons(
-                primaryLabel: _currentStep == 2
-                    ? (isEdit ? 'Guardar cambios' : 'Guardar recuerdo')
-                    : 'Siguiente',
-                onPrimaryPressed: () => _handlePrimaryAction(memory),
-                secondaryLabel: _currentStep == 0 ? 'Cancelar' : 'Anterior',
-                onSecondaryPressed: _handleSecondaryAction,
-                isProcessing:
-                    memoryControllerState.isLoading ||
-                    _committingMedia ||
-                    _reorderingMedia,
-              ),
             ],
           ),
         ),
@@ -553,7 +582,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Selecciona fotos, vidéos o audios para tu recuerdo',
+          'Selecciona fotos, vídeos o audios para tu recuerdo',
           style: Theme.of(context).textTheme.bodyLarge,
         ),
         const SizedBox(height: AppSizes.paddingMedium),
@@ -566,12 +595,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           onPendingDraftsChanged: _onPendingDraftsChanged,
         ),
         const SizedBox(height: AppSizes.paddingSmall),
-        Text(
-          'Las notas no están disponibles. Podrás ordenar los archivos en el último paso.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-        ),
+        const SizedBox(height: AppSizes.paddingSmall),
       ],
     );
   }
@@ -688,8 +712,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 color: Colors.teal,
               );
               break;
-            case MemoryMediaKind.note:
             case MemoryMediaKind.unknown:
+            default:
               preview = const Icon(
                 Icons.insert_drive_file,
                 size: 64,
@@ -1402,9 +1426,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         return 'Video';
       case MemoryMediaKind.audio:
         return 'Audio';
-      case MemoryMediaKind.note:
-        return 'Nota';
       case MemoryMediaKind.unknown:
+      default:
         return 'Archivo';
     }
   }
@@ -1590,9 +1613,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         return 'Prioridad: Video';
       case MemoryMediaKind.audio:
         return 'Prioridad: Audio';
-      case MemoryMediaKind.note:
-        return 'Prioridad: Nota';
       case MemoryMediaKind.unknown:
+      default:
         return 'Prioridad: Archivo';
     }
   }
@@ -1605,9 +1627,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         return 1;
       case MemoryMediaKind.audio:
         return 2;
-      case MemoryMediaKind.note:
-        return 3;
       case MemoryMediaKind.unknown:
+      default:
         return 4;
     }
   }
@@ -1646,25 +1667,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           ),
         );
         break;
-      case MemoryMediaKind.note:
-        showDialog<void>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Nota'),
-            content: Text(
-              asset.content?.trim().isNotEmpty == true
-                  ? asset.content!.trim()
-                  : 'Nota sin contenido.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cerrar'),
-              ),
-            ],
-          ),
-        );
-        break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1684,11 +1686,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         return 'Toca para abrir o copiar el enlace desde la galería';
       case MemoryMediaKind.audio:
         return 'Audio adjunto';
-      case MemoryMediaKind.note:
-        return asset.content?.trim().isNotEmpty == true
-            ? asset.content!.trim()
-            : 'Nota sin contenido.';
       case MemoryMediaKind.unknown:
+      default:
         return 'Contenido adjunto';
     }
   }
@@ -1720,20 +1719,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       case MemoryMediaKind.audio:
         preview = const Icon(Icons.graphic_eq, size: 48, color: Colors.teal);
         break;
-      case MemoryMediaKind.note:
-        preview = Container(
-          width: 72,
-          height: 72,
-          alignment: Alignment.center,
-          color: Colors.yellow.shade100,
-          child: const Icon(
-            Icons.sticky_note_2_outlined,
-            size: 40,
-            color: Colors.orange,
-          ),
-        );
-        break;
       case MemoryMediaKind.unknown:
+      default:
         preview = const Icon(
           Icons.insert_drive_file,
           size: 48,
@@ -1762,25 +1749,14 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
-                  if (draft.kind == MemoryMediaKind.note &&
-                      (draft.noteContent?.isNotEmpty ?? false))
-                    Text(
-                      draft.noteContent!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                    )
-                  else
-                    Text(
-                      draft.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                    ),
+                  Text(
+                    draft.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  ),
                 ],
               ),
             ),
@@ -1853,17 +1829,8 @@ class _MediaThumbnail extends StatelessWidget {
           size: 56,
         );
         break;
-      case MemoryMediaKind.note:
-        thumbnail = Container(
-          color: Colors.yellow.shade100,
-          child: const Icon(
-            Icons.sticky_note_2_outlined,
-            color: Colors.orange,
-            size: 56,
-          ),
-        );
-        break;
       case MemoryMediaKind.unknown:
+      default:
         thumbnail = const Icon(
           Icons.insert_drive_file,
           color: Colors.grey,

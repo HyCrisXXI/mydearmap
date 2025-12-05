@@ -5,7 +5,7 @@ import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/timecapsule_provider.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/timecapsules/controllers/timecapsule_controller.dart';
-import 'package:mydearmap/core/widgets/memory_selection_widget.dart';
+import 'package:mydearmap/features/memories/widgets/memory_selection_widget.dart';
 
 class TimeCapsuleCreateView extends ConsumerStatefulWidget {
   const TimeCapsuleCreateView({super.key, this.capsuleId});

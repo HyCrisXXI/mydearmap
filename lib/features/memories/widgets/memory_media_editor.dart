@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
@@ -15,13 +16,11 @@ class PendingMemoryMediaDraft {
     required this.label,
     required Future<void> Function(String memoryId) uploader,
     this.previewBytes,
-    this.noteContent,
   }) : _uploader = uploader;
 
   final MemoryMediaKind kind;
   final String label;
   final Uint8List? previewBytes;
-  final String? noteContent;
   final Future<void> Function(String memoryId) _uploader;
 
   Future<void> upload(String memoryId) => _uploader(memoryId);
@@ -142,7 +141,6 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     required String label,
     required Future<void> Function(String memoryId) uploader,
     Uint8List? previewBytes,
-    String? noteContent,
   }) async {
     if (!widget.deferUploads) {
       await uploader(widget.memoryId);
@@ -154,7 +152,6 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
         label: label,
         uploader: uploader,
         previewBytes: previewBytes,
-        noteContent: noteContent,
       ),
     );
   }
@@ -175,19 +172,21 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     );
   }
 
-  Future<void> _handleNoteSubmission(String note) async {
-    final trimmed = note.trim();
-    final label = trimmed.isEmpty
-        ? 'Nota'
-        : trimmed.length > 16
-        ? '${trimmed.substring(0, 16)}…'
-        : trimmed;
+  Future<void> _handlePickedXFile(
+    MemoryMediaKind kind,
+    Future<XFile?> Function() picker,
+  ) async {
+    final file = await picker();
+    if (file == null) return;
+
+    final bytes = await file.readAsBytes();
+    final name = file.name;
 
     await _uploadOrDefer(
-      kind: MemoryMediaKind.note,
-      label: label,
-      uploader: (memoryId) => _uploadNote(note, memoryId),
-      noteContent: note,
+      kind: kind,
+      label: name,
+      uploader: (memoryId) => _uploadPickedXFile(kind, file, bytes, memoryId),
+      previewBytes: kind == MemoryMediaKind.image ? bytes : null,
     );
   }
 
@@ -200,9 +199,29 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     if (bytes == null) {
       throw Exception('No se pudo leer el archivo seleccionado.');
     }
+    await _performUpload(kind, file.name, file.extension, bytes, memoryId);
+  }
 
+  Future<void> _uploadPickedXFile(
+    MemoryMediaKind kind,
+    XFile file,
+    Uint8List bytes,
+    String memoryId,
+  ) async {
+    final name = file.name;
+    final ext = name.split('.').last;
+    await _performUpload(kind, name, ext, bytes, memoryId);
+  }
+
+  Future<void> _performUpload(
+    MemoryMediaKind kind,
+    String fileName,
+    String? fileExtension,
+    Uint8List bytes,
+    String memoryId,
+  ) async {
     final client = Supabase.instance.client;
-    final sanitizedName = _buildSanitizedFileName(file);
+    final sanitizedName = _buildSanitizedFileName(fileName, fileExtension);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final folder = kindToStorageSegment(kind);
     final storagePath =
@@ -236,9 +255,9 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
       ref.invalidate(userMemoriesProvider);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${file.name} subido correctamente')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('$fileName subido correctamente')));
     } on PostgrestException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -254,9 +273,9 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     }
   }
 
-  String _buildSanitizedFileName(PlatformFile file) {
-    final original = file.name.trim();
-    final ext = file.extension ?? '';
+  String _buildSanitizedFileName(String fileName, String? extension) {
+    final original = fileName.trim();
+    final ext = extension ?? '';
     String namePart;
     if (original.isEmpty) {
       namePart = 'file';
@@ -293,39 +312,6 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
         : trimmedUnderscore;
     if (result.isEmpty) return result;
     return result.length > 96 ? result.substring(0, 96) : result;
-  }
-
-  Future<void> _uploadNote(String note, String memoryId) async {
-    final client = Supabase.instance.client;
-
-    try {
-      setState(() => _isUploading = true);
-      final nextOrder = await _nextOrderValue(memoryId, MemoryMediaKind.note);
-      await client.from('media').insert({
-        'memory_id': memoryId,
-        'media_type': kindToDatabaseValue(MemoryMediaKind.note),
-        'content': note,
-        'order': nextOrder,
-      });
-      ref.invalidate(memoryMediaProvider(memoryId));
-      ref.invalidate(userMemoriesProvider);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nota añadida correctamente')),
-      );
-    } on PostgrestException catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_friendlyPostgrestMessage(error))));
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo guardar la nota: $error')),
-      );
-    } finally {
-      if (mounted) setState(() => _isUploading = false);
-    }
   }
 
   Future<int> _nextOrderValue(String memoryId, MemoryMediaKind kind) async {
@@ -367,9 +353,8 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
         return mediaTypeOrderBase(MediaType.video);
       case MemoryMediaKind.audio:
         return mediaTypeOrderBase(MediaType.audio);
-      case MemoryMediaKind.note:
-        return mediaTypeOrderBase(MediaType.note);
       case MemoryMediaKind.unknown:
+      default:
         return mediaTypeOrderBase(MediaType.note) + mediaOrderStride;
     }
   }
@@ -406,14 +391,9 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
             label: 'Imagen',
             onPressed: _isUploading
                 ? null
-                : () => _handlePickedFile(
+                : () => _handlePickedXFile(
                     MemoryMediaKind.image,
-                    () => FilePicker.platform.pickFiles(
-                      allowMultiple: false,
-                      type: FileType.custom,
-                      allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-                      withData: true,
-                    ),
+                    () => ImagePicker().pickImage(source: ImageSource.gallery),
                   ),
           ),
           _MediaButton(
@@ -421,14 +401,9 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
             label: 'Video',
             onPressed: _isUploading
                 ? null
-                : () => _handlePickedFile(
+                : () => _handlePickedXFile(
                     MemoryMediaKind.video,
-                    () => FilePicker.platform.pickFiles(
-                      allowMultiple: false,
-                      type: FileType.custom,
-                      allowedExtensions: ['mp4', 'mov', 'mkv', 'avi'],
-                      withData: true,
-                    ),
+                    () => ImagePicker().pickVideo(source: ImageSource.gallery),
                   ),
           ),
           _MediaButton(
@@ -445,46 +420,6 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
                       withData: true,
                     ),
                   ),
-          ),
-          _MediaButton(
-            icon: Icons.note_alt,
-            label: 'Nota',
-            onPressed: _isUploading
-                ? null
-                : () async {
-                    final controller = TextEditingController();
-
-                    final note = await showDialog<String?>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Añadir nota'),
-                        content: TextField(
-                          controller: controller,
-                          maxLines: 6,
-                          decoration: const InputDecoration(
-                            hintText: 'Escribe aquí tus palabras...',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(null),
-                            child: const Text('Cancelar'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.of(
-                              context,
-                            ).pop(controller.text.trim()),
-                            child: const Text('Guardar'),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (note == null || note.isEmpty) return;
-
-                    _handleNoteSubmission(note);
-                  },
           ),
         ],
       ),
@@ -535,9 +470,8 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
         return 'Video';
       case MemoryMediaKind.audio:
         return 'Audio';
-      case MemoryMediaKind.note:
-        return 'Nota';
       case MemoryMediaKind.unknown:
+      default:
         return 'Archivo';
     }
   }

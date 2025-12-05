@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
-import 'package:mydearmap/core/widgets/memories_grid.dart';
+import 'package:mydearmap/features/memories/widgets/memories_grid.dart';
 import 'package:mydearmap/features/relations/views/relations_view.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/timeline/view/timeline_view.dart';
@@ -73,6 +73,7 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: AppSizes.appBarHeight,
         title: const Text('Recuerdos'),
         actions: [
           // Botón Timeline a la izquierda de los demás

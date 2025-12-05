@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/core/constants/constants.dart';
-import 'package:mydearmap/core/widgets/memory_card.dart';
+import 'package:mydearmap/features/memories/widgets/memory_card.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
