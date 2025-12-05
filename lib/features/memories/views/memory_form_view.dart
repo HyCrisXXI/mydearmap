@@ -319,12 +319,20 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: SvgPicture.asset(AppIcons.chevronLeft),
-          onPressed: _handleSecondaryAction,
-          style: AppButtonStyles.circularIconButton,
+        toolbarHeight:
+            AppSizes.appBarHeight, // Separacion respecto al borde superior
+        leading: Padding(
+          padding: const EdgeInsets.only(left: AppSizes.paddingMedium),
+          child: Center(
+            child: IconButton(
+              icon: SvgPicture.asset(AppIcons.chevronLeft),
+              onPressed: _handleSecondaryAction,
+              style: AppButtonStyles.circularIconButton,
+            ),
+          ),
         ),
-        title: Text(isEdit ? 'Editar recuerdo' : 'Crear nuevo recuerdo'),
+        leadingWidth: 70, // Adjust width to accommodate padding/centering
+        title: null, // Removed title
         backgroundColor: AppColors.primaryColor,
         actions: [
           if (isEdit)
@@ -336,28 +344,28 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           Padding(
             padding: const EdgeInsets.only(right: AppSizes.paddingMedium),
             child: _currentStep < 2
-                ? OutlinedButton(
+                ? TextButton(
                     onPressed: isProcessing
                         ? null
                         : () => _handlePrimaryAction(memory),
-                    style: OutlinedButton.styleFrom(
+                    style: TextButton.styleFrom(
                       foregroundColor: AppColors.buttonBackground,
-                      side: const BorderSide(
-                        color: AppColors.buttonBackground,
-                        width: 1.0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.buttonPaddingHorizontal,
+                        vertical: 12, // Match height of filled button roughly
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(
                           AppSizes.borderRadius,
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.buttonPaddingHorizontal,
-                      ),
                     ),
                     child: const Text(
                       'Siguiente',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: AppSizes.textButton,
+                      ),
                     ),
                   )
                 : FilledButton(
