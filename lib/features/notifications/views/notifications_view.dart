@@ -4,13 +4,17 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
+import 'package:mydearmap/core/providers/memory_media_provider.dart';
 import 'package:mydearmap/core/providers/notifications_provider.dart';
 import 'package:mydearmap/core/providers/timecapsule_provider.dart';
+import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:mydearmap/data/models/app_notification.dart';
+import 'package:mydearmap/data/models/media.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/timecapsule.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
+import 'package:mydearmap/features/timecapsules/views/timecapsule_create_view.dart';
 import 'package:mydearmap/features/timecapsules/views/timecapsule_view.dart';
 
 class NotificationsView extends ConsumerWidget {
@@ -104,7 +108,12 @@ class _NotificationsContent extends ConsumerWidget {
     }
 
     final capsulesSection = capsulesAsync.when(
-      data: (capsules) => _CapsulesShelf(capsules: capsules),
+      data: (capsules) => _CapsulesShelf(
+        capsules: capsules,
+        onCapsuleCreated: () {
+          ref.invalidate(userTimeCapsulesProvider);
+        },
+      ),
       loading: () => const _CapsulesLoadingPlaceholder(),
       error: (_, _) => const SizedBox.shrink(),
     );
@@ -129,16 +138,30 @@ class _NotificationsContent extends ConsumerWidget {
   }
 }
 
-class _NotificationsLoading extends StatelessWidget {
-  const _NotificationsLoading();
+class _NotificationsEmptyState extends StatelessWidget {
+  const _NotificationsEmptyState();
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: 4,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) => const _LoadingCard(),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.inbox_outlined,
+            size: 72,
+            color: AppColors.textColor,
+          ),
+          const SizedBox(height: 16),
+          Text('Estás al día', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            'Te avisaremos cuando tengas novedades de tus recuerdos y vínculos.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -195,30 +218,16 @@ class _LoadingCard extends StatelessWidget {
   }
 }
 
-class _NotificationsEmptyState extends StatelessWidget {
-  const _NotificationsEmptyState();
+class _NotificationsLoading extends StatelessWidget {
+  const _NotificationsLoading();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.inbox_outlined,
-            size: 72,
-            color: AppColors.textColor,
-          ),
-          const SizedBox(height: 16),
-          Text('Estás al día', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(
-            'Te avisaremos cuando tengas novedades de tus recuerdos y vínculos.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: 4,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) => const _LoadingCard(),
     );
   }
 }
@@ -230,24 +239,55 @@ class _NotificationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final icon = iconForKind(notification.kind);
-    final badgeColor = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final badgeColor = theme.colorScheme.primary;
     final relativeTime = _relativeTimeLabel(notification.createdAt);
     final memoryId = _memoryIdFromMetadata(notification.metadata);
+
+    AsyncValue<Memory>? memoryAsync;
+    AsyncValue<List<MemoryMedia>>? mediaAsync;
+    Memory? memory;
+    List<MemoryMedia>? mediaAssets;
     String? creatorName;
+    String? previewImageUrl;
+
     if (memoryId != null) {
-      final memoryAsync = ref.watch(memoryDetailProvider(memoryId));
-      creatorName = memoryAsync.maybeWhen(
-        data: (memory) => _creatorNameFromParticipants(memory.participants),
+      memoryAsync = ref.watch(memoryDetailProvider(memoryId));
+      mediaAsync = ref.watch(memoryMediaProvider(memoryId));
+      memory = memoryAsync?.maybeWhen(
+        data: (value) => value,
         orElse: () => null,
       );
+      mediaAssets = mediaAsync?.maybeWhen(
+        data: (value) => value,
+        orElse: () => null,
+      );
+
+      if (memory != null) {
+        creatorName = _creatorNameFromParticipants(memory.participants);
+      }
+
+      previewImageUrl = _notificationPreviewUrl(
+        memory: memory,
+        mediaAssets: mediaAssets,
+      );
     }
+
     final actorName =
         creatorName ??
         _actorNameFromMetadata(notification.metadata) ??
         'Alguien';
     final sharedText = '¡Te han compartido el recuerdo ${notification.title}!';
     final contextLine = _contextLineFrom(notification.metadata);
+    final hasMemoryPreview = memoryId != null;
+    final isPreviewLoading =
+        (memoryAsync?.isLoading ?? false) || (mediaAsync?.isLoading ?? false);
+    final previewWidget = hasMemoryPreview
+        ? _NotificationMemoryThumbnail(
+            imageUrl: previewImageUrl,
+            isLoading: isPreviewLoading,
+          )
+        : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -262,39 +302,28 @@ class _NotificationTile extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: badgeColor.withValues(alpha: 0.18),
-                  child: Icon(icon, color: badgeColor),
-                ),
-                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         relativeTime,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        style: theme.textTheme.labelLarge?.copyWith(
                           color: badgeColor,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              actorName,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        actorName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         sharedText,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.grey.shade700,
                         ),
                       ),
@@ -302,43 +331,100 @@ class _NotificationTile extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Text(
                           contextLine,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey.shade700),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade700,
+                          ),
                         ),
                       ],
                       if (notification.kind != NotificationKind.custom) ...[
                         const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: badgeColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Text(
-                                notification.kind.name,
-                                style: Theme.of(context).textTheme.labelMedium
-                                    ?.copyWith(
-                                      color: badgeColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: badgeColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            notification.kind.name,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: badgeColor,
+                              fontWeight: FontWeight.w600,
                             ),
-                            const Spacer(),
-                          ],
+                          ),
                         ),
                       ],
                     ],
                   ),
                 ),
+                if (previewWidget != null) ...[
+                  const SizedBox(width: 12),
+                  previewWidget,
+                ],
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NotificationMemoryThumbnail extends StatelessWidget {
+  const _NotificationMemoryThumbnail({
+    required this.imageUrl,
+    required this.isLoading,
+  });
+
+  final String? imageUrl;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget child;
+    if (isLoading) {
+      child = const Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+        ),
+      );
+    } else if (imageUrl != null) {
+      child = Image.network(
+        imageUrl!,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, widget, progress) {
+          if (progress == null) return widget;
+          return const Center(
+            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => _thumbnailPlaceholder(),
+      );
+    } else {
+      child = _thumbnailPlaceholder();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 92,
+        height: 92,
+        color: Colors.grey.shade200,
+        child: child,
+      ),
+    );
+  }
+
+  Widget _thumbnailPlaceholder() {
+    return Center(
+      child: Icon(
+        Icons.photo_outlined,
+        color: Colors.grey.shade500,
+        size: 28,
       ),
     );
   }
@@ -505,9 +591,10 @@ String? _creatorNameFromParticipants(List<UserRole> participants) {
 }
 
 class _CapsulesShelf extends StatefulWidget {
-  const _CapsulesShelf({required this.capsules});
+  const _CapsulesShelf({required this.capsules, this.onCapsuleCreated});
 
   final List<TimeCapsule> capsules;
+  final VoidCallback? onCapsuleCreated;
 
   @override
   State<_CapsulesShelf> createState() => _CapsulesShelfState();
@@ -518,6 +605,17 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
 
   void _toggle() {
     setState(() => _expanded = !_expanded);
+  }
+
+  Future<void> _openCreateCapsule() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const TimeCapsuleCreateView(),
+      ),
+    );
+    if (created == true) {
+      widget.onCapsuleCreated?.call();
+    }
   }
 
   @override
@@ -542,6 +640,7 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Column(
@@ -563,6 +662,16 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
                   ],
                 ),
               ),
+              TextButton.icon(
+                onPressed: _openCreateCapsule,
+                icon: const Icon(Icons.add),
+                label: const Text('Crear'),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+              const SizedBox(width: 8),
               _CapsuleCountChip(count: activeCapsules.length),
               IconButton(
                 onPressed: _toggle,
@@ -574,24 +683,19 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
             ],
           ),
           const SizedBox(height: 12),
-          GestureDetector(
-            onTap: _toggle,
-            behavior: HitTestBehavior.opaque,
-            child: AnimatedCrossFade(
-              duration: const Duration(milliseconds: 220),
-              crossFadeState: _expanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              firstChild: _CapsuleStackPreview(capsules: previewCapsules),
-              secondChild: Column(
-                children: [
-                  for (var i = 0; i < activeCapsules.length; i++) ...[
-                    _CapsuleExpandedTile(capsule: activeCapsules[i]),
-                    if (i < activeCapsules.length - 1)
-                      const SizedBox(height: 12),
-                  ],
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 220),
+            crossFadeState:
+                _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            firstChild: _CapsuleStackPreview(capsules: previewCapsules),
+            secondChild: Column(
+              children: [
+                for (var i = 0; i < activeCapsules.length; i++) ...[
+                  _CapsuleExpandedTile(capsule: activeCapsules[i]),
+                  if (i < activeCapsules.length - 1)
+                    const SizedBox(height: 12),
                 ],
-              ),
+              ],
             ),
           ),
         ],
@@ -640,127 +744,39 @@ class _CapsuleStackPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (capsules.isEmpty) {
-      return const SizedBox(height: 96);
+      return const SizedBox.shrink();
     }
 
-    final visible = capsules.length <= 3 ? capsules : capsules.take(3).toList();
-    final stackHeight = 130 + (visible.length - 1) * 12.0;
-
-    return SizedBox(
-      height: stackHeight,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          for (var i = visible.length - 1; i >= 0; i--)
-            Positioned.fill(
-              top: i * 12,
-              child: _CapsulePreviewCard(capsule: visible[i], isTop: i == 0),
-            ),
-        ],
-      ),
+    final nextCapsule = capsules.reduce(
+      (current, candidate) => candidate.openAt.isBefore(current.openAt)
+          ? candidate
+          : current,
     );
-  }
-}
 
-class _CapsulePreviewCard extends StatelessWidget {
-  const _CapsulePreviewCard({required this.capsule, required this.isTop});
-
-  final TimeCapsule capsule;
-  final bool isTop;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gradient = isTop
-        ? const LinearGradient(
-            colors: [AppColors.blue, AppColors.accentColor],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          )
-        : LinearGradient(
-            colors: [Colors.white, Colors.white70],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          );
-    final fadedColor =
-        (isTop ? Colors.white : AppColors.textColor).withValues(alpha: 0.85);
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isTop
-              ? Colors.transparent
-              : Colors.grey.withValues(alpha: 0.2),
-        ),
-        boxShadow: isTop
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ]
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            capsule.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: isTop ? Colors.white : AppColors.textColor,
-              fontWeight: FontWeight.w700,
-            ),
+    return _CapsuleExpandedTile(
+      capsule: nextCapsule,
+      readOnly: true,
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => TimeCapsuleView(capsuleId: nextCapsule.id),
           ),
-          const SizedBox(height: 6),
-          Text(
-            capsule.description ?? 'Recuerdos esperando a abrirse.',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: fadedColor,
-            ),
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              SvgPicture.asset(
-                AppIcons.lock,
-                width: 16,
-                height: 16,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                _capsuleCountdownLabel(capsule),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: isTop ? Colors.white : AppColors.textColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                DateFormat('d MMM', 'es_ES').format(capsule.openAt),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: fadedColor,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _CapsuleExpandedTile extends StatelessWidget {
-  const _CapsuleExpandedTile({required this.capsule});
+  const _CapsuleExpandedTile({
+    required this.capsule,
+    this.readOnly = false,
+    this.onTap,
+  });
 
   final TimeCapsule capsule;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -768,91 +784,120 @@ class _CapsuleExpandedTile extends StatelessWidget {
     final badgeColor = theme.colorScheme.primary;
     final description = capsule.description?.trim();
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => TimeCapsuleView(capsuleId: capsule.id),
+    final content = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Image.asset(
+                AppIcons.lock,
+                width: 108,
+                height: 108,
+                fit: BoxFit.contain,
+              ),
             ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 52,
-                child: Center(
-                  child: SvgPicture.asset(
-                    AppIcons.lock,
-                    width: 24,
-                    height: 24,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  capsule.title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) * 1.5,
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      capsule.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                if (description != null && description.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize:
+                          (theme.textTheme.bodySmall?.fontSize ?? 14) * 1.1,
                     ),
-                    if (description != null && description.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
+                  ),
+                ],
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
                       ),
-                    ],
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+                      decoration: BoxDecoration(
+                        color: badgeColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SvgPicture.asset(
+                            AppIcons.timer,
+                            width: 16,
+                            height: 16,
+                            colorFilter: ColorFilter.mode(
+                              badgeColor,
+                              BlendMode.srcIn,
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: badgeColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
+                          const SizedBox(width: 6),
+                          Text(
                             _capsuleCountdownLabel(capsule),
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: badgeColor,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          DateFormat(
-                            'd MMM yyyy',
-                            'es_ES',
-                          ).format(capsule.openAt),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      DateFormat(
+                        'd MMM yyyy',
+                        'es_ES',
+                      ).format(capsule.openAt),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
+    );
+
+    final effectiveOnTap = onTap ?? () {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TimeCapsuleView(capsuleId: capsule.id),
+        ),
+      );
+    };
+
+    final child = readOnly
+      ? GestureDetector(onTap: onTap, child: content)
+      : InkWell(
+        borderRadius: BorderRadius.circular(20),
+            onTap: effectiveOnTap,
+        child: content,
+        );
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: child,
     );
   }
 }
@@ -912,6 +957,57 @@ List<Widget> _notificationSection({
   return widgets;
 }
 
+String? _notificationPreviewUrl({
+  Memory? memory,
+  List<MemoryMedia>? mediaAssets,
+}) {
+  final memoryUrl = memory != null ? _memoryPreviewImageUrl(memory) : null;
+  if (memoryUrl != null) return memoryUrl;
+
+  if (mediaAssets == null || mediaAssets.isEmpty) return null;
+
+  for (final asset in mediaAssets) {
+    final url = asset.publicUrl;
+    if (asset.kind == MemoryMediaKind.image && url != null && url.isNotEmpty) {
+      return url;
+    }
+  }
+
+  for (final asset in mediaAssets) {
+    final url = asset.publicUrl;
+    if (url != null && url.isNotEmpty) {
+      return url;
+    }
+  }
+
+  return null;
+}
+
+String? _memoryPreviewImageUrl(Memory memory) {
+  Media? primaryImage;
+  for (final media in memory.media) {
+    final url = media.url;
+    if (url == null || url.isEmpty) continue;
+    if (media.type == MediaType.image) {
+      primaryImage = media;
+      break;
+    }
+  }
+
+  if (primaryImage != null) {
+    return buildMediaPublicUrl(primaryImage.url);
+  }
+
+  for (final media in memory.media) {
+    final url = media.url;
+    if (url != null && url.isNotEmpty) {
+      return buildMediaPublicUrl(url);
+    }
+  }
+
+  return null;
+}
+
 String _capsuleCountdownLabel(TimeCapsule capsule) {
   if (capsule.isOpen || !capsule.openAt.isAfter(DateTime.now())) {
     return 'Lista para abrir';
@@ -920,16 +1016,16 @@ String _capsuleCountdownLabel(TimeCapsule capsule) {
   final diff = capsule.openAt.difference(DateTime.now());
   if (diff.inDays >= 1) {
     final days = diff.inDays;
-    if (days == 1) return 'Se abre mañana';
-    return 'Se abre en $days días';
+    if (days == 1) return 'Mañana';
+    return '$days días';
   }
 
   if (diff.inHours >= 1) {
     final hours = diff.inHours;
-    if (hours == 1) return 'Se abre en 1 hora';
-    return 'Se abre en $hours horas';
+    if (hours == 1) return '1 hora';
+    return '$hours horas';
   }
 
   final minutes = diff.inMinutes.clamp(1, 59);
-  return 'Se abre en $minutes min';
+  return '$minutes min';
 }
