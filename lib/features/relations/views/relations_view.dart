@@ -11,8 +11,37 @@ import 'package:mydearmap/features/relations/controllers/relations_controller.da
 import 'package:mydearmap/features/relations/views/relation_create_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class RelationsView extends ConsumerWidget {
+class RelationsView extends ConsumerStatefulWidget {
   const RelationsView({super.key});
+
+  @override
+  ConsumerState<RelationsView> createState() => _RelationsViewState();
+}
+
+class _RelationsViewState extends ConsumerState<RelationsView> {
+  late final TextEditingController _searchController;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _searchController.addListener(_handleSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController
+      ..removeListener(_handleSearchChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleSearchChanged() {
+    final nextQuery = _searchController.text.trim();
+    if (nextQuery == _searchQuery) return;
+    setState(() => _searchQuery = nextQuery);
+  }
 
   PreferredSizeWidget _buildRelationsAppBar(BuildContext context) {
     return AppBar(
@@ -57,8 +86,20 @@ class RelationsView extends ConsumerWidget {
     );
   }
 
+  List<UserRelation> _applySearchFilter(List<UserRelation> relations) {
+    if (_searchQuery.isEmpty) return relations;
+    final query = _searchQuery.toLowerCase();
+    return relations
+        .where(
+          (relation) => _relationDisplayName(relation)
+              .toLowerCase()
+              .contains(query),
+        )
+        .toList();
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final userAsync = ref.watch(currentUserProvider);
 
     return userAsync.when(
@@ -106,17 +147,52 @@ class RelationsView extends ConsumerWidget {
                   ).compareTo(_relationDisplayName(b)),
                 );
 
+              final filtered = _applySearchFilter(sorted);
+
               return Scaffold(
                 appBar: _buildRelationsAppBar(context),
                 body: sorted.isEmpty
                     ? const Center(child: Text('Aún no has creado vinculos.'))
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
-                        ),
-                        itemBuilder: (context, index) {
-                          final relation = sorted[index];
+                    : Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Buscar vínculos',
+                                suffixIcon: Padding(
+                                  padding: const EdgeInsets.only(bottom: 0),
+                                  child: const Icon(Icons.search),
+                                ),
+                                suffixIconConstraints: const BoxConstraints(
+                                  minHeight: 24,
+                                  minWidth: 40,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 20,
+                                ),
+                              ),
+                              textAlignVertical: TextAlignVertical.center,
+                            ),
+                          ),
+                          Expanded(
+                            child: filtered.isEmpty
+                                ? const Center(
+                                    child: Text('No se encontraron vínculos.'),
+                                  )
+                                : ListView.separated(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 8,
+                                    ),
+                                    itemBuilder: (context, index) {
+                                      final relation = filtered[index];
                           final shared = sharedMemoriesForRelation(
                             allMemories: memories,
                             currentUserId: user.id,
@@ -198,8 +274,12 @@ class RelationsView extends ConsumerWidget {
                             ),
                           );
                         },
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemCount: sorted.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(height: 12),
+                                    itemCount: filtered.length,
+                                  ),
+                          ),
+                        ],
                       ),
               );
             },
@@ -219,5 +299,5 @@ String _relationDisplayName(UserRelation relation) {
 }
 
 String _sharedMemoriesLabel(int count) {
-  return '$count recuerdos en común';
+  return '$count recuerdos';
 }
