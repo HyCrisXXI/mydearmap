@@ -1,4 +1,5 @@
 // lib/features/memories/views/memory_form_view.dart
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -382,7 +383,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           ),
         ),
         leadingWidth: isEdit
-            ? 120
+            ? 140
             : 70, // Adjust width for 2 buttons if editing
         title: null, // Removed title
         backgroundColor: Colors.transparent,
@@ -391,20 +392,20 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           Padding(
             padding: const EdgeInsets.only(right: AppSizes.paddingMedium),
             child: _currentStep < 2
-                ? TextButton(
+                ? FilledButton(
                     onPressed: isProcessing
                         ? null
                         : () => _handlePrimaryAction(memory),
-                    style: TextButton.styleFrom(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.buttonForeground,
                       foregroundColor: AppColors.buttonBackground,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.buttonPaddingHorizontal,
-                        vertical: 12, // Match height of filled button roughly
-                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(
                           AppSizes.borderRadius,
                         ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.buttonPaddingHorizontal,
                       ),
                     ),
                     child: const Text(
@@ -505,18 +506,21 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           style: Theme.of(context).textTheme.bodyLarge,
         ),
         const SizedBox(height: AppSizes.paddingMedium),
-        Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSizes.paddingMedium),
-            child: CalendarDatePicker(
-              initialDate: _selectedDate ?? DateTime.now(),
-              firstDate: DateTime(1900),
-              lastDate: DateTime.now(),
-              onDateChanged: _updateSelectedDate,
+        AspectRatio(
+          aspectRatio: 1.0,
+          child: Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingMedium),
+              child: CalendarDatePicker(
+                initialDate: _selectedDate ?? DateTime.now(),
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now(),
+                onDateChanged: _updateSelectedDate,
+              ),
             ),
           ),
         ),
@@ -542,10 +546,10 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: SizedBox(
-            height: 300,
+        AspectRatio(
+          aspectRatio: 1.0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
             child: FlutterMap(
               key: ValueKey(
                 '${_currentLocation.latitude}_${_currentLocation.longitude}',
@@ -1014,18 +1018,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   }
 
   Widget _buildReorderSection(AsyncValue<List<MemoryMedia>>? mediaAsync) {
-    // Only show if we simply have server media or if we have pending drafts (since they are now merged in logic,
-    // but the reordering list below currently only takes 'mediaAsync'.
-    // To support reordering drafts alongside server media, we need a unified list here too.
-    // For now, let's keep it simple: Show server reorder list if available.
-
-    // NOTE: In a perfect world, we'd unified `assets` and `_pendingMediaDrafts` into one list state
-    // that the reorderable list reads from.
-    // Given the constraints and the previous "split" logic, we might just show server assets for reordering
-    // or we can try to merge them. The user asked to merge them in the CAROUSEL.
-    // If they want to reorder PENDING items, that's trickier without a unified state.
-    // Let's assume reordering applies to the provided list.
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1472,12 +1464,14 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
               ),
             ),
             MediaActionButtons(
-              onMoveUp: (!_reorderingMedia && canMoveUp)
-                  ? () => _reorderMediaAsset(assets, index, index - 1)
-                  : null,
-              onMoveDown: (!_reorderingMedia && canMoveDown)
-                  ? () => _reorderMediaAsset(assets, index, index + 1)
-                  : null,
+              onMoveUp: _reorderingMedia
+                  ? null
+                  : () => _reorderMediaAsset(assets, index, index - 1),
+              showMoveUp: canMoveUp,
+              onMoveDown: _reorderingMedia
+                  ? null
+                  : () => _reorderMediaAsset(assets, index, index + 1),
+              showMoveDown: canMoveDown,
               onDelete: () => _deleteMediaAsset(asset),
               isDeleting: deleting,
             ),
@@ -1591,12 +1585,24 @@ class _MediaThumbnail extends StatelessWidget {
         if (asset.previewBytes != null) {
           thumbnail = Image.memory(asset.previewBytes!, fit: BoxFit.cover);
         } else if (asset.publicUrl != null) {
-          thumbnail = Image.network(
-            asset.publicUrl!,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.image_not_supported, color: Colors.redAccent),
-          );
+          final url = asset.publicUrl!;
+          if (url.startsWith('file://')) {
+            thumbnail = Image.file(
+              File(Uri.parse(url).toFilePath()),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.broken_image, color: Colors.redAccent),
+            );
+          } else {
+            thumbnail = Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                Icons.image_not_supported,
+                color: Colors.redAccent,
+              ),
+            );
+          }
         } else {
           thumbnail = const Icon(Icons.image, color: Colors.grey);
         }
