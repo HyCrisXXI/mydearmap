@@ -18,6 +18,17 @@ class TimeCapsuleView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: BackButton(
+          onPressed: () {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+            } else {
+              Navigator.of(context, rootNavigator: true)
+                  .pushReplacementNamed('/notifications');
+            }
+          },
+        ),
         title: const Text('Detalle de Cápsula'),
         actions: [
           IconButton(
