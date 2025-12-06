@@ -16,6 +16,7 @@ import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
+import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/features/memories/widgets/memory_media_editor.dart'
     show
         MemoryMediaEditor,
@@ -580,10 +581,24 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                       point: _currentLocation,
                       width: 40,
                       height: 40,
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 40,
+                      child: Container(
+                        width: 46.0,
+                        height: 46.0,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: SvgPicture.asset(
+                            AppIcons.pin,
+                            width: 32.0,
+                            height: 32.0,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.accentColor,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -649,12 +664,14 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           controller: _descriptionController,
           minLines: 3,
           maxLines: 5,
-          decoration: const InputDecoration(labelText: 'Descripción'),
+          decoration: const InputDecoration(
+            labelText: 'Descripción',
+            alignLabelWithHint: true,
+            border: OutlineInputBorder(),
+          ),
         ),
         const SizedBox(height: AppSizes.paddingMedium),
-        _buildRelationsSelector(),
-        const SizedBox(height: AppSizes.paddingSmall),
-        _buildSelectedRelationsList(),
+        _buildRelatedPeopleSection(),
         const SizedBox(height: AppSizes.paddingLarge),
         _buildReorderSection(mediaAsync),
       ],
@@ -734,75 +751,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     );
   }
 
-  Widget _buildSelectedRelationsList() {
-    if (_relatedPeople.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: _relatedPeople.map((person) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
-          child: ListTile(
-            dense: true,
-            title: Text(
-              person.user.name.isNotEmpty
-                  ? person.user.name
-                  : person.user.email,
-            ),
-            subtitle: Text(_roleDisplayName(person.role)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButton<MemoryRole>(
-                  value: person.role,
-                  items: const [
-                    DropdownMenuItem(
-                      value: MemoryRole.participant,
-                      child: Text('Participante'),
-                    ),
-                    DropdownMenuItem(
-                      value: MemoryRole.guest,
-                      child: Text('Invitado'),
-                    ),
-                  ],
-                  onChanged: (role) {
-                    if (role == null) return;
-                    setState(() {
-                      final idx = _relatedPeople.indexWhere(
-                        (element) => element.user.id == person.user.id,
-                      );
-                      if (idx != -1) {
-                        _relatedPeople[idx] = UserRole(
-                          user: person.user,
-                          role: role,
-                        );
-                      }
-                      _selectedRelationUserRoles[person.user.id] = role.name;
-                    });
-                  },
-                ),
-                IconButton(
-                  tooltip: 'Quitar persona',
-                  icon: const Icon(Icons.close, color: Colors.redAccent),
-                  onPressed: () {
-                    setState(() {
-                      _relatedPeople.removeWhere(
-                        (p) => p.user.id == person.user.id,
-                      );
-                      _selectedRelationUserRoles.remove(person.user.id);
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildRelationsSelector() {
+  Widget _buildRelatedPeopleSection() {
     final currentUserAsync = ref.watch(currentUserProvider);
     return currentUserAsync.when(
       data: (user) {
@@ -810,7 +759,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         final relationsAsync = ref.watch(userRelationsProvider(user.id));
         return relationsAsync.when(
           data: (relations) {
-            if (relations.isEmpty) return const SizedBox.shrink();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -820,201 +768,391 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () async {
-                    final temp = Map<String, String>.from(
-                      _selectedRelationUserRoles,
-                    );
-                    await showDialog<void>(
-                      context: context,
-                      builder: (ctx) {
-                        return AlertDialog(
-                          title: const Text(
-                            'Seleccionar personas relacionadas',
-                          ),
-                          content: SizedBox(
-                            width: double.maxFinite,
-                            child: StatefulBuilder(
-                              builder: (context, setStateDialog) {
-                                return relations.isEmpty
-                                    ? const Text(
-                                        'No hay relaciones disponibles',
-                                      )
-                                    : ListView(
-                                        shrinkWrap: true,
-                                        children: relations.map((r) {
-                                          final related = r.relatedUser;
-                                          final id = related.id;
-                                          final selected = temp.containsKey(id);
-                                          return ListTile(
-                                            leading: Checkbox(
-                                              value: selected,
-                                              onChanged: (v) {
-                                                setStateDialog(() {
-                                                  if (v == true) {
-                                                    temp[id] = MemoryRole
-                                                        .participant
-                                                        .name;
-                                                  } else {
-                                                    temp.remove(id);
-                                                  }
-                                                });
-                                              },
-                                            ),
-                                            title: Text(
-                                              related.name.isNotEmpty
-                                                  ? related.name
-                                                  : related.email,
-                                            ),
-                                            trailing: selected
-                                                ? DropdownButton<String>(
-                                                    value: temp[id],
-                                                    items: [
-                                                      DropdownMenuItem(
-                                                        value: MemoryRole
-                                                            .participant
-                                                            .name,
-                                                        child: const Text(
-                                                          'Participante',
-                                                        ),
-                                                      ),
-                                                      DropdownMenuItem(
-                                                        value: MemoryRole
-                                                            .guest
-                                                            .name,
-                                                        child: const Text(
-                                                          'Invitado',
-                                                        ),
-                                                      ),
-                                                    ],
-                                                    onChanged: (val) {
-                                                      if (val == null) return;
-                                                      setStateDialog(() {
-                                                        temp[id] = val;
-                                                      });
-                                                    },
-                                                  )
-                                                : null,
-                                          );
-                                        }).toList(),
-                                      );
-                              },
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _selectedRelationUserRoles
-                                    ..clear()
-                                    ..addAll(temp);
-                                  // Sync _relatedPeople from selections
-                                  final relationUsers = <String, User>{
-                                    for (final rel in relations)
-                                      rel.relatedUser.id: rel.relatedUser,
-                                  };
-                                  final existingUsers = <String, User>{
-                                    for (final person in _relatedPeople)
-                                      person.user.id: person.user,
-                                  };
-                                  final synced = _selectedRelationUserRoles
-                                      .entries
-                                      .map((entry) {
-                                        final user =
-                                            relationUsers[entry.key] ??
-                                            existingUsers[entry.key];
-                                        if (user == null) return null;
-                                        return UserRole(
-                                          user: user,
-                                          role: _roleFromName(entry.value),
-                                        );
-                                      })
-                                      .whereType<UserRole>()
-                                      .toList();
-                                  _relatedPeople = synced;
-                                });
-                                Navigator.of(ctx).pop();
-                              },
-                              child: const Text('Aceptar'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 14,
-                      ),
-                      suffixIcon: const Icon(Icons.arrow_drop_down),
-                    ),
-                    child: _selectedRelationUserRoles.isEmpty
-                        ? const Text('Ninguna seleccionada')
-                        : Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: relations
-                                .where(
-                                  (r) => _selectedRelationUserRoles.containsKey(
-                                    r.relatedUser.id,
+                SizedBox(
+                  height: 90,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      // Add Button
+                      GestureDetector(
+                        onTap: () => _showAddPeopleDialog(relations),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 1,
                                   ),
-                                )
-                                .map((r) {
-                                  final role =
-                                      _selectedRelationUserRoles[r
-                                          .relatedUser
-                                          .id];
-                                  return Chip(
-                                    label: Column(
-                                      mainAxisSize: MainAxisSize.min,
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                                child: const Icon(
+                                  Icons.add,
+                                  color: AppColors.textColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Selected People
+                      ..._relatedPeople.map((person) {
+                        return GestureDetector(
+                          onTap: () => _showEditPersonDialog(person),
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 50,
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 1,
+                                        ),
+                                        image:
+                                            person.user.profileUrl != null &&
+                                                person
+                                                    .user
+                                                    .profileUrl!
+                                                    .isNotEmpty
+                                            ? DecorationImage(
+                                                image: NetworkImage(
+                                                  'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/${person.user.profileUrl!}',
+                                                ),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                        color: Colors.grey[200],
+                                      ),
+                                      child:
+                                          person.user.profileUrl == null ||
+                                              person.user.profileUrl!.isEmpty
+                                          ? Center(
+                                              child: Text(
+                                                person.user.name.isNotEmpty
+                                                    ? person.user.name[0]
+                                                          .toUpperCase()
+                                                    : '?',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          r.relatedUser.name.isNotEmpty
-                                              ? r.relatedUser.name
-                                              : r.relatedUser.email,
-                                        ),
-                                        if (role != null)
-                                          Text(
-                                            role,
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodySmall,
+                                          person.user.name.isNotEmpty
+                                              ? person.user.name
+                                              : person.user.email,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
                                           ),
+                                        ),
+                                        Text(
+                                          _roleDisplayName(person.role),
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                  );
-                                })
-                                .toList(),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
+                        );
+                      }),
+                    ],
                   ),
                 ),
               ],
             );
           },
-          loading: () => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: const Center(child: CircularProgressIndicator()),
+          loading: () => const SizedBox(
+            height: 90,
+            child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, st) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: const Text('Error cargando relaciones'),
-          ),
+          error: (e, st) => const Text('Error cargando relaciones'),
         );
       },
       loading: () => const SizedBox.shrink(),
       error: (e, st) => const SizedBox.shrink(),
     );
+  }
+
+  Future<void> _showAddPeopleDialog(List<UserRelation> relations) async {
+    final temp = Map<String, String>.from(_selectedRelationUserRoles);
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Seleccionar personas'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return relations.isEmpty
+                    ? const Text('No hay relaciones disponibles')
+                    : ListView(
+                        shrinkWrap: true,
+                        children: relations.map((r) {
+                          final related = r.relatedUser;
+                          final id = related.id;
+                          final selected = temp.containsKey(id);
+                          return InkWell(
+                            onTap: () {
+                              setStateDialog(() {
+                                if (selected) {
+                                  temp.remove(id);
+                                } else {
+                                  temp[id] =
+                                      temp[id] ?? MemoryRole.participant.name;
+                                }
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8.0,
+                                horizontal: 4.0,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Avatar
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                        width: 1,
+                                      ),
+                                      image:
+                                          related.profileUrl != null &&
+                                              related.profileUrl!.isNotEmpty
+                                          ? DecorationImage(
+                                              image: NetworkImage(
+                                                'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/${related.profileUrl!}',
+                                              ),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null,
+                                      color: Colors.grey[200],
+                                    ),
+                                    child:
+                                        related.profileUrl == null ||
+                                            related.profileUrl!.isEmpty
+                                        ? Center(
+                                            child: Text(
+                                              related.name.isNotEmpty
+                                                  ? related.name[0]
+                                                        .toUpperCase()
+                                                  : '?',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Name
+                                  Expanded(
+                                    child: Text(
+                                      related.name.isNotEmpty
+                                          ? related.name
+                                          : related.email,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  // Custom Checkbox
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: selected
+                                          ? AppColors.accentColor
+                                          : Colors.transparent,
+                                      border: selected
+                                          ? null
+                                          : Border.all(
+                                              color: Colors.grey,
+                                              width: 2,
+                                            ),
+                                    ),
+                                    child: selected
+                                        ? Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: SvgPicture.asset(
+                                              AppIcons.check,
+                                              colorFilter:
+                                                  const ColorFilter.mode(
+                                                    Colors.white,
+                                                    BlendMode.srcIn,
+                                                  ),
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _applyPeopleSelection(temp, relations);
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('Aceptar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _applyPeopleSelection(
+    Map<String, String> temp,
+    List<UserRelation> relations,
+  ) {
+    setState(() {
+      _selectedRelationUserRoles.clear();
+      _selectedRelationUserRoles.addAll(temp);
+
+      final relationUsers = <String, User>{
+        for (final rel in relations) rel.relatedUser.id: rel.relatedUser,
+      };
+
+      // Preserve existing users that might not be in relations anymore but were added
+      final existingUsers = <String, User>{
+        for (final person in _relatedPeople) person.user.id: person.user,
+      };
+
+      final synced = _selectedRelationUserRoles.entries
+          .map((entry) {
+            final user = relationUsers[entry.key] ?? existingUsers[entry.key];
+            if (user == null) return null;
+            return UserRole(user: user, role: _roleFromName(entry.value));
+          })
+          .whereType<UserRole>()
+          .toList();
+
+      _relatedPeople = synced;
+    });
+  }
+
+  Future<void> _showEditPersonDialog(UserRole person) async {
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                person.user.name.isNotEmpty
+                    ? person.user.name
+                    : person.user.email,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.person),
+                title: const Text('Participante'),
+                trailing: person.role == MemoryRole.participant
+                    ? const Icon(Icons.check, color: AppColors.accentColor)
+                    : null,
+                onTap: () {
+                  _updatePersonRole(person, MemoryRole.participant);
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Invitado'),
+                trailing: person.role == MemoryRole.guest
+                    ? const Icon(Icons.check, color: AppColors.accentColor)
+                    : null,
+                onTap: () {
+                  _updatePersonRole(person, MemoryRole.guest);
+                  Navigator.pop(ctx);
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.redAccent),
+                title: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+                onTap: () {
+                  _removePerson(person);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _updatePersonRole(UserRole person, MemoryRole newRole) {
+    setState(() {
+      final idx = _relatedPeople.indexWhere((p) => p.user.id == person.user.id);
+      if (idx != -1) {
+        _relatedPeople[idx] = UserRole(user: person.user, role: newRole);
+        _selectedRelationUserRoles[person.user.id] = newRole.name;
+      }
+    });
+  }
+
+  void _removePerson(UserRole person) {
+    setState(() {
+      _relatedPeople.removeWhere((p) => p.user.id == person.user.id);
+      _selectedRelationUserRoles.remove(person.user.id);
+    });
   }
 
   Widget _buildReorderSection(AsyncValue<List<MemoryMedia>>? mediaAsync) {
@@ -1432,7 +1570,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     final canMoveDown = index < assets.length - 1;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
+      margin: const EdgeInsets.only(bottom: 4.0),
       color: Colors.transparent,
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingMedium),
