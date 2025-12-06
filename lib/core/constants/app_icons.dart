@@ -40,4 +40,14 @@ class AppIcons {
   static const String userRound = '$_basePath/user-round.svg';
   static const String usersRound = '$_basePath/users-round.svg';
   static const String x = '$_basePath/x.svg';
+
+  // Miscellaneous (BG es background)
+  static const String _bgPath = 'assets/background';
+
+  static const String aiBG = '$_bgPath/ai_bg.png';
+  static const String authBG = '$_bgPath/auth_bg.png';
+  static const String initWorldBG = '$_bgPath/init_world_bg.png';
+  static const String initWorld = '$_bgPath/init_world.png';
+  static const String mainBG = '$_bgPath/main_bg.png';
+  static const String profileBG = '$_bgPath/profile_bg.png';
 }

@@ -257,6 +257,7 @@ class _MapViewState extends ConsumerState<MapView> {
     );
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

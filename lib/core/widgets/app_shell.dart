@@ -81,6 +81,7 @@ class AppShellState extends State<AppShell> {
         }
       },
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         body: PageView(
           controller: _pageController,
           physics:

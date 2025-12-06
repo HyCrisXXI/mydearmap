@@ -23,6 +23,64 @@ Future<void> main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
+// Esta es la lógica que permite un main background para toda la app (salvo en las pantallas
+// que se diga lo contrario)
+class AppBackground extends StatefulWidget {
+  final Widget child;
+  final String? backgroundImage;
+  const AppBackground({required this.child, this.backgroundImage, super.key});
+
+  @override
+  State<AppBackground> createState() => _AppBackgroundState();
+}
+
+class _AppBackgroundState extends State<AppBackground> {
+  final ScrollController _bgScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _bgScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is ScrollUpdateNotification ||
+            notification is ScrollStartNotification ||
+            notification is ScrollEndNotification) {
+          if (notification.metrics.axis == Axis.vertical) {
+            if (_bgScrollController.hasClients) {
+              _bgScrollController.jumpTo(notification.metrics.pixels);
+            }
+          }
+        }
+        return false;
+      },
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: SingleChildScrollView(
+                controller: _bgScrollController,
+                physics: const NeverScrollableScrollPhysics(),
+                child: Image.asset(
+                  widget.backgroundImage ?? AppIcons.mainBG,
+                  fit: BoxFit.fitWidth,
+                  alignment: Alignment.topCenter,
+                  width: MediaQuery.of(context).size.width,
+                ),
+              ),
+            ),
+          ),
+          widget.child,
+        ],
+      ),
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -33,16 +91,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: lightColorScheme,
-        scaffoldBackgroundColor: AppColors.primaryColor, // Este se ve mejor
+        scaffoldBackgroundColor: AppColors.primaryColor,
         fontFamily: 'TikTokSans',
-
         textTheme: ThemeData.light().textTheme.copyWith(
           titleLarge: AppTextStyles.title,
           titleMedium: AppTextStyles.subtitle,
           bodyMedium: AppTextStyles.text,
           labelLarge: AppTextStyles.textButton,
         ),
-
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: AppColors.accentColor,
@@ -60,6 +116,9 @@ class MyApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
       locale: const Locale('es', 'ES'),
+      builder: (context, child) {
+        return AppBackground(child: child ?? const SizedBox());
+      },
     );
   }
 }

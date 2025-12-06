@@ -25,11 +25,18 @@ class MemoriesView extends ConsumerStatefulWidget {
 
 class _MemoriesViewState extends ConsumerState<MemoriesView> {
   MemoryFilterCriteria _filters = MemoryFilterCriteria.empty;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.invalidate(userMemoriesProvider));
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _openFiltersSheet(List<Memory> memories) async {
@@ -72,7 +79,10 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
     final memoriesAsync = ref.watch(userMemoriesProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         toolbarHeight: AppSizes.appBarHeight,
         title: const Text('Recuerdos'),
         actions: [

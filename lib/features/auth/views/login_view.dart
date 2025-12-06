@@ -46,26 +46,25 @@ class _LoginViewState extends ConsumerState<LoginView> {
     await ref.read(loginViewModelProvider.notifier).signIn();
   }
 
-  void _syncControllers(LoginViewState state) {
-    if (_emailController.text != state.emailInput) {
-      _emailController.value = TextEditingValue(
-        text: state.emailInput,
-        selection: TextSelection.collapsed(offset: state.emailInput.length),
-      );
-    }
-
-    if (_passwordController.text != state.password) {
-      _passwordController.value = TextEditingValue(
-        text: state.password,
-        selection: TextSelection.collapsed(offset: state.password.length),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.listen<LoginViewState>(loginViewModelProvider, (prev, next) {
       if (!mounted) return;
+
+      // Sync controllers
+      if (_emailController.text != next.emailInput) {
+        _emailController.value = TextEditingValue(
+          text: next.emailInput,
+          selection: TextSelection.collapsed(offset: next.emailInput.length),
+        );
+      }
+      if (_passwordController.text != next.password) {
+        _passwordController.value = TextEditingValue(
+          text: next.password,
+          selection: TextSelection.collapsed(offset: next.password.length),
+        );
+      }
+
       if (prev?.snackbarKey != next.snackbarKey &&
           next.snackbarMessage != null) {
         final messenger = ScaffoldMessenger.of(context);
@@ -85,8 +84,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final loginState = ref.watch(loginViewModelProvider);
     final loginNotifier = ref.read(loginViewModelProvider.notifier);
 
-    _syncControllers(loginState);
-
     final theme = Theme.of(context);
 
     final baseTextStyle = TextStyle(
@@ -103,77 +100,87 @@ class _LoginViewState extends ConsumerState<LoginView> {
       ..suggestion = loginState.domainSuggestion;
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 60.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('MyDearMap', style: AppTextStyles.title),
-                const SizedBox(height: 60),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Iniciar sesión', style: AppTextStyles.title),
-                ),
-                const SizedBox(height: 30),
-                TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    errorText: loginState.emailError,
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  onChanged: loginNotifier.onEmailChanged,
-                  onSubmitted: (_) => _signIn(),
-                  style: baseTextStyle,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    errorText: loginState.passwordError,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        loginState.obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                      onPressed: loginNotifier.togglePasswordVisibility,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(AppIcons.authBG, fit: BoxFit.cover),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 60.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('MyDearMap', style: AppTextStyles.title),
+                    const SizedBox(height: 60),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Iniciar sesión', style: AppTextStyles.title),
                     ),
-                  ),
-                  obscureText: loginState.obscurePassword,
-                  onChanged: loginNotifier.onPasswordChanged,
-                  onSubmitted: (_) => _signIn(),
+                    const SizedBox(height: 30),
+                    TextField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        errorText: loginState.emailError,
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      onChanged: loginNotifier.onEmailChanged,
+                      onSubmitted: (_) => _signIn(),
+                      style: baseTextStyle,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Contraseña',
+                        errorText: loginState.passwordError,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            loginState.obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: loginState.passwordError != null
+                                ? theme.colorScheme.error
+                                : AppColors.textColor,
+                          ),
+                          onPressed: loginNotifier.togglePasswordVisibility,
+                        ),
+                      ),
+                      obscureText: loginState.obscurePassword,
+                      onChanged: loginNotifier.onPasswordChanged,
+                      onSubmitted: (_) => _signIn(),
+                    ),
+                    const SizedBox(height: 60),
+                    AppFormButtons(
+                      primaryLabel: 'Iniciar sesión',
+                      onPrimaryPressed: loginState.canSubmit ? _signIn : null,
+                      isProcessing: loginState.isSubmitting,
+                      secondaryLabel: 'Registrarse',
+                      onSecondaryPressed: loginState.isSubmitting
+                          ? null
+                          : () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const SignupView(),
+                                ),
+                              );
+                            },
+                      secondaryIsCompact: false,
+                      secondaryOutlined: true,
+                    ),
+                    const SizedBox(height: 40),
+                    const Text(
+                      'Comienza a guardar recuerdos',
+                      style: AppTextStyles.text,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 60),
-                AppFormButtons(
-                  primaryLabel: 'Iniciar sesión',
-                  onPrimaryPressed: loginState.canSubmit ? _signIn : null,
-                  isProcessing: loginState.isSubmitting,
-                  secondaryLabel: 'Registrarse',
-                  onSecondaryPressed: loginState.isSubmitting
-                      ? null
-                      : () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const SignupView(),
-                            ),
-                          );
-                        },
-                  secondaryIsCompact: false,
-                  secondaryOutlined: true,
-                ),
-                const SizedBox(height: 40),
-                const Text(
-                  'Comienza a guardar recuerdos',
-                  style: AppTextStyles.text,
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

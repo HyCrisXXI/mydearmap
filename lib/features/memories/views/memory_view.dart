@@ -37,7 +37,10 @@ class MemoryDetailView extends ConsumerWidget {
     final mapMemoriesAsync = ref.watch(userMemoriesProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () => Navigator.of(context).pop(),

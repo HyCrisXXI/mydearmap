@@ -318,6 +318,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         memoryControllerState.isLoading || _committingMedia || _reorderingMedia;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         toolbarHeight:
             AppSizes.appBarHeight, // Separacion respecto al borde superior
@@ -333,7 +334,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         ),
         leadingWidth: 70, // Adjust width to accommodate padding/centering
         title: null, // Removed title
-        backgroundColor: AppColors.primaryColor,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           if (isEdit)
             IconButton(

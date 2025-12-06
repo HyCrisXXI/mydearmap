@@ -50,46 +50,6 @@ class _SignupViewState extends ConsumerState<SignupView> {
     }
   }
 
-  void _syncControllers(SignupViewState state) {
-    if (_nameController.text != state.form.name) {
-      _nameController.value = TextEditingValue(
-        text: state.form.name,
-        selection: TextSelection.collapsed(offset: state.form.name.length),
-      );
-    }
-
-    if (_emailController.text != state.form.email) {
-      _emailController.value = TextEditingValue(
-        text: state.form.email,
-        selection: TextSelection.collapsed(offset: state.form.email.length),
-      );
-    }
-
-    if (_passwordController.text != state.form.password) {
-      _passwordController.value = TextEditingValue(
-        text: state.form.password,
-        selection: TextSelection.collapsed(offset: state.form.password.length),
-      );
-    }
-
-    final numberText = state.form.number ?? '';
-    if (_numberController.text != numberText) {
-      _numberController.value = TextEditingValue(
-        text: numberText,
-        selection: TextSelection.collapsed(offset: numberText.length),
-      );
-    }
-
-    if (_birthDateController.text != state.birthDateDisplay) {
-      _birthDateController.value = TextEditingValue(
-        text: state.birthDateDisplay,
-        selection: TextSelection.collapsed(
-          offset: state.birthDateDisplay.length,
-        ),
-      );
-    }
-  }
-
   Future<void> _selectBirthDate(SignupViewState state) async {
     final now = DateTime.now();
     final initialDate =
@@ -109,6 +69,42 @@ class _SignupViewState extends ConsumerState<SignupView> {
   Widget build(BuildContext context) {
     ref.listen<SignupViewState>(signupViewModelProvider, (prev, next) {
       if (!mounted) return;
+
+      // Sync controllers
+      if (_nameController.text != next.form.name) {
+        _nameController.value = TextEditingValue(
+          text: next.form.name,
+          selection: TextSelection.collapsed(offset: next.form.name.length),
+        );
+      }
+      if (_emailController.text != next.form.email) {
+        _emailController.value = TextEditingValue(
+          text: next.form.email,
+          selection: TextSelection.collapsed(offset: next.form.email.length),
+        );
+      }
+      if (_passwordController.text != next.form.password) {
+        _passwordController.value = TextEditingValue(
+          text: next.form.password,
+          selection: TextSelection.collapsed(offset: next.form.password.length),
+        );
+      }
+      final numberText = next.form.number ?? '';
+      if (_numberController.text != numberText) {
+        _numberController.value = TextEditingValue(
+          text: numberText,
+          selection: TextSelection.collapsed(offset: numberText.length),
+        );
+      }
+      if (_birthDateController.text != next.birthDateDisplay) {
+        _birthDateController.value = TextEditingValue(
+          text: next.birthDateDisplay,
+          selection: TextSelection.collapsed(
+            offset: next.birthDateDisplay.length,
+          ),
+        );
+      }
+
       if (prev?.snackbarKey != next.snackbarKey &&
           next.snackbarMessage != null) {
         final messenger = ScaffoldMessenger.of(context);
@@ -128,120 +124,137 @@ class _SignupViewState extends ConsumerState<SignupView> {
     final signupState = ref.watch(signupViewModelProvider);
     final signupNotifier = ref.read(signupViewModelProvider.notifier);
 
-    _syncControllers(signupState);
-
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: SvgPicture.asset(AppIcons.chevronLeft),
           onPressed: () => Navigator.of(context).pop(),
           style: AppButtonStyles.circularIconButton,
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 60.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 10),
-            const Align(
-              alignment: Alignment.topCenter,
-              child: Text('Crear Cuenta', style: AppTextStyles.title),
-            ),
-            const SizedBox(height: 40),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Nombre completo *',
-                errorText: signupState.nameError,
-              ),
-              onChanged: signupNotifier.onNameChanged,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(
-                labelText: 'Email *',
-                errorText: signupState.emailError,
-              ),
-              keyboardType: TextInputType.emailAddress,
-              onChanged: signupNotifier.onEmailChanged,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                labelText: 'Contraseña *',
-                errorText: signupState.passwordError,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    signupState.obscurePassword
-                        ? Icons.visibility
-                        : Icons.visibility_off,
-                  ),
-                  onPressed: signupNotifier.togglePasswordVisibility,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(AppIcons.authBG, fit: BoxFit.cover),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 60.0),
+              child: SafeArea(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 10),
+                    const Align(
+                      alignment: Alignment.topCenter,
+                      child: Text('Crear Cuenta', style: AppTextStyles.title),
+                    ),
+                    const SizedBox(height: 40),
+                    TextField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Nombre completo *',
+                        errorText: signupState.nameError,
+                      ),
+                      onChanged: signupNotifier.onNameChanged,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email *',
+                        errorText: signupState.emailError,
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      onChanged: signupNotifier.onEmailChanged,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Contraseña *',
+                        errorText: signupState.passwordError,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            signupState.obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: signupNotifier.togglePasswordVisibility,
+                        ),
+                      ),
+                      obscureText: signupState.obscurePassword,
+                      onChanged: signupNotifier.onPasswordChanged,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _numberController,
+                      decoration: InputDecoration(
+                        labelText: 'Teléfono (opcional)',
+                        errorText: signupState.numberError,
+                      ),
+                      keyboardType: TextInputType.phone,
+                      onChanged: signupNotifier.onNumberChanged,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _birthDateController,
+                      decoration: InputDecoration(
+                        labelText: 'Fecha de nacimiento (opcional) DD/MM/AAAA',
+                        errorText: signupState.birthDateError,
+                      ),
+                      readOnly: true,
+                      onTap: () => _selectBirthDate(signupState),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String?>(
+                      key: ValueKey(signupState.form.gender),
+                      initialValue: signupState.form.gender,
+                      decoration: const InputDecoration(
+                        labelText: 'Género (opcional)',
+                      ),
+                      items: const [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Sin especificar'),
+                        ),
+                        DropdownMenuItem<String?>(
+                          value: 'male',
+                          child: Text('Masculino'),
+                        ),
+                        DropdownMenuItem<String?>(
+                          value: 'female',
+                          child: Text('Femenino'),
+                        ),
+                        DropdownMenuItem<String?>(
+                          value: 'other',
+                          child: Text('Otro'),
+                        ),
+                      ],
+                      onChanged: signupNotifier.onGenderChanged,
+                    ),
+                    const SizedBox(height: 60),
+                    AppFormButtons(
+                      primaryLabel: 'Registrarse',
+                      onPrimaryPressed: signupState.canSubmit ? _signUp : null,
+                      isProcessing: signupState.isSubmitting,
+                      secondaryLabel: 'Iniciar Sesión',
+                      onSecondaryPressed: signupState.isSubmitting
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      secondaryIsCompact: false, // same width as primary
+                      secondaryOutlined:
+                          true, // outlined (transparent background + border)
+                    ),
+                  ],
                 ),
               ),
-              obscureText: signupState.obscurePassword,
-              onChanged: signupNotifier.onPasswordChanged,
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _numberController,
-              decoration: InputDecoration(
-                labelText: 'Teléfono (opcional)',
-                errorText: signupState.numberError,
-              ),
-              keyboardType: TextInputType.phone,
-              onChanged: signupNotifier.onNumberChanged,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _birthDateController,
-              decoration: InputDecoration(
-                labelText: 'Fecha de nacimiento (opcional) DD/MM/AAAA',
-                errorText: signupState.birthDateError,
-              ),
-              readOnly: true,
-              onTap: () => _selectBirthDate(signupState),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String?>(
-              key: ValueKey(signupState.form.gender),
-              initialValue: signupState.form.gender,
-              decoration: const InputDecoration(labelText: 'Género (opcional)'),
-              items: const [
-                DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('Sin especificar'),
-                ),
-                DropdownMenuItem<String?>(
-                  value: 'male',
-                  child: Text('Masculino'),
-                ),
-                DropdownMenuItem<String?>(
-                  value: 'female',
-                  child: Text('Femenino'),
-                ),
-                DropdownMenuItem<String?>(value: 'other', child: Text('Otro')),
-              ],
-              onChanged: signupNotifier.onGenderChanged,
-            ),
-            const SizedBox(height: 60),
-            AppFormButtons(
-              primaryLabel: 'Registrarse',
-              onPrimaryPressed: signupState.canSubmit ? _signUp : null,
-              isProcessing: signupState.isSubmitting,
-              secondaryLabel: 'Iniciar Sesión',
-              onSecondaryPressed: signupState.isSubmitting
-                  ? null
-                  : () => Navigator.of(context).pop(),
-              secondaryIsCompact: false, // same width as primary
-              secondaryOutlined:
-                  true, // outlined (transparent background + border)
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

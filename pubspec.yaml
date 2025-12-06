@@ -81,6 +81,7 @@ flutter:
   assets:
     - .env
     - assets/icons/
+    - assets/background/
     
   fonts:
     - family: TikTokSans
