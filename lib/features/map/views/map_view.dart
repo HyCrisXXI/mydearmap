@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
+import 'package:mydearmap/features/memories/views/create_join_memory.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -344,9 +345,7 @@ class _MapViewState extends ConsumerState<MapView> {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => MemoryUpsertView.create(
-                            initialLocation: LatLng(39.4699, -0.3763),
-                          ),
+                          builder: (context) => const CreateJoinMemoryView(),
                         ),
                       );
                     },

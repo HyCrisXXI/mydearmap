@@ -64,7 +64,7 @@ class AppShellState extends State<AppShell> {
     // Animate to the selected page
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
     );
   }

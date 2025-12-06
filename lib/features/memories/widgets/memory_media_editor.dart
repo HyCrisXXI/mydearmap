@@ -70,6 +70,7 @@ class MemoryMediaEditor extends ConsumerStatefulWidget {
 
 class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
   bool _isUploading = false;
+  bool _isPicking = false;
   final List<PendingMemoryMediaDraft> _pendingDrafts =
       <PendingMemoryMediaDraft>[];
 
@@ -160,34 +161,50 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     MemoryMediaKind kind,
     Future<FilePickerResult?> Function() picker,
   ) async {
-    final result = await picker();
-    final file = result?.files.first;
-    if (file == null) return;
+    if (_isPicking) return;
+    try {
+      setState(() => _isPicking = true);
+      final result = await picker();
+      if (!mounted) return;
 
-    await _uploadOrDefer(
-      kind: kind,
-      label: file.name,
-      uploader: (memoryId) => _uploadPickedFile(kind, file, memoryId),
-      previewBytes: kind == MemoryMediaKind.image ? file.bytes : null,
-    );
+      final file = result?.files.first;
+      if (file == null) return;
+
+      await _uploadOrDefer(
+        kind: kind,
+        label: file.name,
+        uploader: (memoryId) => _uploadPickedFile(kind, file, memoryId),
+        previewBytes: kind == MemoryMediaKind.image ? file.bytes : null,
+      );
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
   }
 
   Future<void> _handlePickedXFile(
     MemoryMediaKind kind,
     Future<XFile?> Function() picker,
   ) async {
-    final file = await picker();
-    if (file == null) return;
+    if (_isPicking) return;
+    try {
+      setState(() => _isPicking = true);
+      final file = await picker();
+      if (!mounted) return;
 
-    final bytes = await file.readAsBytes();
-    final name = file.name;
+      if (file == null) return;
 
-    await _uploadOrDefer(
-      kind: kind,
-      label: name,
-      uploader: (memoryId) => _uploadPickedXFile(kind, file, bytes, memoryId),
-      previewBytes: kind == MemoryMediaKind.image ? bytes : null,
-    );
+      final bytes = await file.readAsBytes();
+      final name = file.name;
+
+      await _uploadOrDefer(
+        kind: kind,
+        label: name,
+        uploader: (memoryId) => _uploadPickedXFile(kind, file, bytes, memoryId),
+        previewBytes: kind == MemoryMediaKind.image ? bytes : null,
+      );
+    } finally {
+      if (mounted) setState(() => _isPicking = false);
+    }
   }
 
   Future<void> _uploadPickedFile(
@@ -385,11 +402,12 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
       Wrap(
         spacing: AppSizes.paddingMedium,
         runSpacing: AppSizes.paddingMedium,
+        alignment: WrapAlignment.center,
         children: [
           _MediaButton(
-            icon: Icons.image,
+            icon: Icons.image_outlined,
             label: 'Imagen',
-            onPressed: _isUploading
+            onPressed: (_isUploading || _isPicking)
                 ? null
                 : () => _handlePickedXFile(
                     MemoryMediaKind.image,
@@ -397,9 +415,9 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
                   ),
           ),
           _MediaButton(
-            icon: Icons.play_circle_fill,
+            icon: Icons.play_circle_outline,
             label: 'Video',
-            onPressed: _isUploading
+            onPressed: (_isUploading || _isPicking)
                 ? null
                 : () => _handlePickedXFile(
                     MemoryMediaKind.video,
@@ -409,7 +427,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
           _MediaButton(
             icon: Icons.graphic_eq,
             label: 'Audio',
-            onPressed: _isUploading
+            onPressed: (_isUploading || _isPicking)
                 ? null
                 : () => _handlePickedFile(
                     MemoryMediaKind.audio,
@@ -427,13 +445,6 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
         const SizedBox(height: AppSizes.paddingMedium),
         const LinearProgressIndicator(),
       ],
-      const SizedBox(height: AppSizes.paddingMedium),
-      Text(
-        'Los archivos se guardan en Supabase dentro de la carpeta media/memories.',
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
-      ),
     ];
 
     if (_hasPendingDrafts) {
@@ -456,9 +467,12 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: children,
+      ),
     );
   }
 
@@ -489,11 +503,39 @@ class _MediaButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   @override
+  @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      icon: Icon(icon),
-      label: Text(label),
-      onPressed: onPressed,
+    return SizedBox(
+      width: 132,
+      height: 121,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+            side: const BorderSide(color: Colors.transparent),
+          ),
+          padding: EdgeInsets.zero,
+        ),
+        onPressed: onPressed,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: Colors.black),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

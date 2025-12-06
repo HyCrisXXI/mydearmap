@@ -16,6 +16,7 @@ import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
+import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/features/memories/widgets/memory_media_editor.dart'
     show
         MemoryMediaEditor,
@@ -85,8 +86,8 @@ class MemoryUpsertView extends ConsumerStatefulWidget {
 class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   int _currentStep = 0;
   static const List<String> _stepLabels = [
-    'Fecha y ubicación',
     'Multimedia',
+    'Selecciona la fecha',
     'Detalles finales',
   ];
   DateTime? _selectedDate;
@@ -171,22 +172,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     );
   }
 
-  Future<DateTime?> _pickDate() async {
-    final now = DateTime.now();
-    final initialDate = _selectedDate ?? now;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(1900),
-      lastDate: now,
-    );
-
-    if (picked != null) {
-      _updateSelectedDate(picked);
-    }
-    return picked;
-  }
-
   void _updateSelectedDate(DateTime date) {
     setState(() {
       _selectedDate = date;
@@ -245,16 +230,16 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   void _handlePrimaryAction(Memory? memory) {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     if (_currentStep == 0) {
+      setState(() => _currentStep = 1);
+      return;
+    }
+    if (_currentStep == 1) {
       if (_selectedDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Selecciona la fecha del recuerdo')),
         );
         return;
       }
-      setState(() => _currentStep = 1);
-      return;
-    }
-    if (_currentStep == 1) {
       setState(() => _currentStep = 2);
       return;
     }
@@ -357,110 +342,123 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        toolbarHeight:
-            AppSizes.appBarHeight, // Separacion respecto al borde superior
-        leading: Padding(
-          padding: const EdgeInsets.only(left: AppSizes.paddingMedium),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: SvgPicture.asset(AppIcons.chevronLeft),
-                onPressed: _handleSecondaryAction,
-                style: AppButtonStyles.circularIconButton,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSizes.upperPadding,
+                left: AppSizes.paddingMedium,
+                right: AppSizes.paddingMedium,
+                bottom: 8.0,
               ),
-              if (isEdit) ...[
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: SvgPicture.asset(AppIcons.trash),
-                  tooltip: 'Eliminar recuerdo',
-                  onPressed: _handleDelete,
-                  style: AppButtonStyles.circularIconButton,
-                ),
-              ],
-            ],
-          ),
-        ),
-        leadingWidth: isEdit
-            ? 140
-            : 70, // Adjust width for 2 buttons if editing
-        title: null, // Removed title
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppSizes.paddingMedium),
-            child: _currentStep < 2
-                ? FilledButton(
-                    onPressed: isProcessing
-                        ? null
-                        : () => _handlePrimaryAction(memory),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.buttonForeground,
-                      foregroundColor: AppColors.buttonBackground,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.borderRadius,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Leading buttons (Back/Close + Delete)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: SvgPicture.asset(
+                          _currentStep == 0 ? AppIcons.x : AppIcons.chevronLeft,
                         ),
+                        onPressed: _handleSecondaryAction,
+                        style: AppButtonStyles.circularIconButton,
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.buttonPaddingHorizontal,
-                      ),
-                    ),
-                    child: const Text(
-                      'Siguiente',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: AppSizes.textButton,
-                      ),
-                    ),
-                  )
-                : FilledButton(
-                    onPressed: isProcessing
-                        ? null
-                        : () => _handlePrimaryAction(memory),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.buttonBackground,
-                      foregroundColor: AppColors.buttonForeground,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.borderRadius,
+                      if (isEdit) ...[
+                        const SizedBox(width: 16),
+                        IconButton(
+                          icon: SvgPicture.asset(AppIcons.trash),
+                          tooltip: 'Eliminar recuerdo',
+                          onPressed: _handleDelete,
+                          style: AppButtonStyles.circularIconButton,
                         ),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.buttonPaddingHorizontal,
-                      ),
-                    ),
-                    child: isProcessing
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.buttonForeground,
-                            ),
-                          )
-                        : Text(
-                            isEdit ? 'Guardar' : 'Crear',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                      ],
+                    ],
                   ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSizes.paddingLarge),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildStepIndicator(),
-              const SizedBox(height: AppSizes.paddingLarge),
-              _buildStepContent(),
-            ],
-          ),
+                  // Action button (Next / Create / Save)
+                  _currentStep < 2
+                      ? SizedBox(
+                          width: 115,
+                          height: AppSizes.buttonHeight,
+                          child: FilledButton(
+                            onPressed: isProcessing
+                                ? null
+                                : () => _handlePrimaryAction(memory),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.buttonForeground,
+                              foregroundColor: AppColors.buttonBackground,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppSizes.borderRadius,
+                                ),
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: const Text(
+                              'Siguiente',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: AppSizes.textButton,
+                              ),
+                            ),
+                          ),
+                        )
+                      : SizedBox(
+                          width: 115,
+                          height: AppSizes.buttonHeight,
+                          child: FilledButton(
+                            onPressed: isProcessing
+                                ? null
+                                : () => _handlePrimaryAction(memory),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.buttonBackground,
+                              foregroundColor: AppColors.buttonForeground,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppSizes.borderRadius,
+                                ),
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: isProcessing
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.buttonForeground,
+                                    ),
+                                  )
+                                : Text(
+                                    isEdit ? 'Guardar' : 'Crear',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildStepIndicator(),
+                      const SizedBox(height: AppSizes.paddingLarge),
+                      _buildStepContent(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -471,17 +469,15 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       child: Text(
         _stepLabels[_currentStep],
         textAlign: TextAlign.center,
-        style: Theme.of(
-          context,
-        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        style: AppTextStyles.title,
       ),
     );
   }
 
   Widget _buildStepContent() {
     final steps = [
-      _buildSchedulingStep(),
       _buildMediaStep(),
+      _buildSchedulingStep(),
       _buildDetailsStep(),
     ];
 
@@ -497,132 +493,165 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     );
   }
 
+  Widget _buildStandardTextField({
+    required TextEditingController controller,
+    required String label,
+    bool isSubtitle = false,
+    TextInputType? keyboardType,
+    int minLines = 1,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+    void Function()? onEditingComplete,
+    void Function(String)? onFieldSubmitted,
+  }) {
+    return SizedBox(
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        minLines: minLines,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: isSubtitle ? AppTextStyles.subtitle : null,
+          alignLabelWithHint: minLines > 1,
+        ),
+        validator: validator,
+        onEditingComplete: onEditingComplete,
+        onFieldSubmitted: onFieldSubmitted,
+      ),
+    );
+  }
+
   Widget _buildSchedulingStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Elige cuándo y dónde sucedió el recuerdo',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-        const SizedBox(height: AppSizes.paddingMedium),
-        AspectRatio(
-          aspectRatio: 1.0,
-          child: Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 42.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: AppSizes.paddingMedium),
+          AspectRatio(
+            aspectRatio: 1.0,
+            child: Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                child: CalendarDatePicker(
+                  initialDate: _selectedDate ?? DateTime.now(),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                  onDateChanged: _updateSelectedDate,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.paddingLarge),
+          _buildStandardTextField(
+            controller: _dateController,
+            label: 'Fecha (dd/mm/aaaa)',
+            isSubtitle: true,
+            keyboardType: TextInputType.datetime,
+            onEditingComplete: () =>
+                _handleManualDateInput(_dateController.text),
+            onFieldSubmitted: _handleManualDateInput,
+          ),
+          const SizedBox(height: 50),
+          const Center(
+            child: Text('Ubicación del recuerdo', style: AppTextStyles.title),
+          ),
+          const SizedBox(height: AppSizes.paddingSmall),
+          const Text(
+            'Pulsar el mapa para cambiar la ubicación',
+            style: AppTextStyles.subtitle,
+          ),
+          const SizedBox(height: AppSizes.paddingMedium),
+          AspectRatio(
+            aspectRatio: 1.0,
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(30),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSizes.paddingMedium),
-              child: CalendarDatePicker(
-                initialDate: _selectedDate ?? DateTime.now(),
-                firstDate: DateTime(1900),
-                lastDate: DateTime.now(),
-                onDateChanged: _updateSelectedDate,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSizes.paddingSmall),
-        TextFormField(
-          controller: _dateController,
-          keyboardType: TextInputType.datetime,
-          decoration: InputDecoration(
-            labelText: 'Fecha (dd/mm/aaaa)',
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.calendar_today),
-              onPressed: _pickDate,
-            ),
-          ),
-          onEditingComplete: () => _handleManualDateInput(_dateController.text),
-          onFieldSubmitted: _handleManualDateInput,
-        ),
-        const SizedBox(height: AppSizes.paddingLarge),
-        Text(
-          'Ubicación del recuerdo',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        AspectRatio(
-          aspectRatio: 1.0,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: FlutterMap(
-              key: ValueKey(
-                '${_currentLocation.latitude}_${_currentLocation.longitude}',
-              ),
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: _currentLocation,
-                initialZoom: 17,
-                minZoom: 2.0,
-                maxZoom: 18.0,
-                onLongPress: (_, latLng) {
-                  setState(() {
-                    _currentLocation = latLng;
-                    _locationDirty = true;
-                  });
-                },
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate:
-                      'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
-                  userAgentPackageName: 'com.mydearmap.app',
-                  tileProvider: kIsWeb ? NetworkTileProvider() : null,
+              child: FlutterMap(
+                key: ValueKey(
+                  '${_currentLocation.latitude}_${_currentLocation.longitude}',
                 ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _currentLocation,
-                      width: 40,
-                      height: 40,
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 40,
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: _currentLocation,
+                  initialZoom: 17,
+                  minZoom: 2.0,
+                  maxZoom: 18.0,
+                  onLongPress: (_, latLng) {
+                    setState(() {
+                      _currentLocation = latLng;
+                      _locationDirty = true;
+                    });
+                  },
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
+                    userAgentPackageName: 'com.mydearmap.app',
+                    tileProvider: kIsWeb ? NetworkTileProvider() : null,
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _currentLocation,
+                        width: 40,
+                        height: 40,
+                        child: Container(
+                          width: 46.0,
+                          height: 46.0,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: SvgPicture.asset(
+                              AppIcons.pin,
+                              width: 32.0,
+                              height: 32.0,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.accentColor,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Mantén pulsado sobre el mapa para cambiar la ubicación.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-        ),
-      ],
+          const SizedBox(height: 42.0),
+        ],
+      ),
     );
   }
 
   Widget _buildMediaStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Selecciona fotos, vídeos o audios para tu recuerdo',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-        const SizedBox(height: AppSizes.paddingMedium),
-        MemoryMediaEditor(
-          memoryId: widget.mode == MemoryUpsertMode.edit
-              ? widget.memoryId!
-              : (_resolvedMemoryId ?? ''),
-          controller: _mediaEditorController,
-          deferUploads: true,
-          onPendingDraftsChanged: _onPendingDraftsChanged,
-        ),
-        const SizedBox(height: AppSizes.paddingSmall),
-        const SizedBox(height: AppSizes.paddingSmall),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 60.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: AppSizes.paddingMedium),
+          MemoryMediaEditor(
+            memoryId: widget.mode == MemoryUpsertMode.edit
+                ? widget.memoryId!
+                : (_resolvedMemoryId ?? ''),
+            controller: _mediaEditorController,
+            deferUploads: true,
+            onPendingDraftsChanged: _onPendingDraftsChanged,
+          ),
+          const SizedBox(height: AppSizes.paddingSmall),
+          const SizedBox(height: AppSizes.paddingSmall),
+        ],
+      ),
     );
   }
 
@@ -632,32 +661,36 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         ? ref.watch(memoryMediaProvider(widget.memoryId!))
         : null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildMediaSummarySection(mediaAsync),
-        const SizedBox(height: AppSizes.paddingLarge),
-        TextFormField(
-          controller: _titleController,
-          decoration: const InputDecoration(labelText: 'Título'),
-          validator: (value) => (value == null || value.trim().isEmpty)
-              ? 'Ingresa un título'
-              : null,
-        ),
-        const SizedBox(height: AppSizes.paddingMedium),
-        TextFormField(
-          controller: _descriptionController,
-          minLines: 3,
-          maxLines: 5,
-          decoration: const InputDecoration(labelText: 'Descripción'),
-        ),
-        const SizedBox(height: AppSizes.paddingMedium),
-        _buildRelationsSelector(),
-        const SizedBox(height: AppSizes.paddingSmall),
-        _buildSelectedRelationsList(),
-        const SizedBox(height: AppSizes.paddingLarge),
-        _buildReorderSection(mediaAsync),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 60.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: AppSizes.paddingMedium),
+          _buildMediaSummarySection(mediaAsync),
+          const SizedBox(height: 32.0),
+          const Text('Datos básicos', style: AppTextStyles.subtitle),
+          const SizedBox(height: 12.0),
+          _buildStandardTextField(
+            controller: _titleController,
+            label: 'Ponle título a tu recuerdo',
+            validator: (value) => (value == null || value.trim().isEmpty)
+                ? 'Ingresa un título'
+                : null,
+          ),
+          const SizedBox(height: 32.0),
+          _buildStandardTextField(
+            controller: _descriptionController,
+            label: 'Descripción (Opcional)',
+            minLines: 1,
+            maxLines: 5,
+          ),
+          const SizedBox(height: 32.0),
+          _buildRelatedPeopleSection(),
+          const SizedBox(height: 42.0),
+          _buildReorderSection(mediaAsync),
+        ],
+      ),
     );
   }
 
@@ -734,75 +767,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     );
   }
 
-  Widget _buildSelectedRelationsList() {
-    if (_relatedPeople.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: _relatedPeople.map((person) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
-          child: ListTile(
-            dense: true,
-            title: Text(
-              person.user.name.isNotEmpty
-                  ? person.user.name
-                  : person.user.email,
-            ),
-            subtitle: Text(_roleDisplayName(person.role)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButton<MemoryRole>(
-                  value: person.role,
-                  items: const [
-                    DropdownMenuItem(
-                      value: MemoryRole.participant,
-                      child: Text('Participante'),
-                    ),
-                    DropdownMenuItem(
-                      value: MemoryRole.guest,
-                      child: Text('Invitado'),
-                    ),
-                  ],
-                  onChanged: (role) {
-                    if (role == null) return;
-                    setState(() {
-                      final idx = _relatedPeople.indexWhere(
-                        (element) => element.user.id == person.user.id,
-                      );
-                      if (idx != -1) {
-                        _relatedPeople[idx] = UserRole(
-                          user: person.user,
-                          role: role,
-                        );
-                      }
-                      _selectedRelationUserRoles[person.user.id] = role.name;
-                    });
-                  },
-                ),
-                IconButton(
-                  tooltip: 'Quitar persona',
-                  icon: const Icon(Icons.close, color: Colors.redAccent),
-                  onPressed: () {
-                    setState(() {
-                      _relatedPeople.removeWhere(
-                        (p) => p.user.id == person.user.id,
-                      );
-                      _selectedRelationUserRoles.remove(person.user.id);
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildRelationsSelector() {
+  Widget _buildRelatedPeopleSection() {
     final currentUserAsync = ref.watch(currentUserProvider);
     return currentUserAsync.when(
       data: (user) {
@@ -810,206 +775,138 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         final relationsAsync = ref.watch(userRelationsProvider(user.id));
         return relationsAsync.when(
           data: (relations) {
-            if (relations.isEmpty) return const SizedBox.shrink();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 12),
-                Text(
-                  'Personas relacionadas',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                const Text('Vínculos', style: AppTextStyles.subtitle),
                 const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () async {
-                    final temp = Map<String, String>.from(
-                      _selectedRelationUserRoles,
-                    );
-                    await showDialog<void>(
-                      context: context,
-                      builder: (ctx) {
-                        return AlertDialog(
-                          title: const Text(
-                            'Seleccionar personas relacionadas',
-                          ),
-                          content: SizedBox(
-                            width: double.maxFinite,
-                            child: StatefulBuilder(
-                              builder: (context, setStateDialog) {
-                                return relations.isEmpty
-                                    ? const Text(
-                                        'No hay relaciones disponibles',
-                                      )
-                                    : ListView(
-                                        shrinkWrap: true,
-                                        children: relations.map((r) {
-                                          final related = r.relatedUser;
-                                          final id = related.id;
-                                          final selected = temp.containsKey(id);
-                                          return ListTile(
-                                            leading: Checkbox(
-                                              value: selected,
-                                              onChanged: (v) {
-                                                setStateDialog(() {
-                                                  if (v == true) {
-                                                    temp[id] = MemoryRole
-                                                        .participant
-                                                        .name;
-                                                  } else {
-                                                    temp.remove(id);
-                                                  }
-                                                });
-                                              },
-                                            ),
-                                            title: Text(
-                                              related.name.isNotEmpty
-                                                  ? related.name
-                                                  : related.email,
-                                            ),
-                                            trailing: selected
-                                                ? DropdownButton<String>(
-                                                    value: temp[id],
-                                                    items: [
-                                                      DropdownMenuItem(
-                                                        value: MemoryRole
-                                                            .participant
-                                                            .name,
-                                                        child: const Text(
-                                                          'Participante',
-                                                        ),
-                                                      ),
-                                                      DropdownMenuItem(
-                                                        value: MemoryRole
-                                                            .guest
-                                                            .name,
-                                                        child: const Text(
-                                                          'Invitado',
-                                                        ),
-                                                      ),
-                                                    ],
-                                                    onChanged: (val) {
-                                                      if (val == null) return;
-                                                      setStateDialog(() {
-                                                        temp[id] = val;
-                                                      });
-                                                    },
-                                                  )
-                                                : null,
-                                          );
-                                        }).toList(),
-                                      );
-                              },
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _selectedRelationUserRoles
-                                    ..clear()
-                                    ..addAll(temp);
-                                  // Sync _relatedPeople from selections
-                                  final relationUsers = <String, User>{
-                                    for (final rel in relations)
-                                      rel.relatedUser.id: rel.relatedUser,
-                                  };
-                                  final existingUsers = <String, User>{
-                                    for (final person in _relatedPeople)
-                                      person.user.id: person.user,
-                                  };
-                                  final synced = _selectedRelationUserRoles
-                                      .entries
-                                      .map((entry) {
-                                        final user =
-                                            relationUsers[entry.key] ??
-                                            existingUsers[entry.key];
-                                        if (user == null) return null;
-                                        return UserRole(
-                                          user: user,
-                                          role: _roleFromName(entry.value),
-                                        );
-                                      })
-                                      .whereType<UserRole>()
-                                      .toList();
-                                  _relatedPeople = synced;
-                                });
-                                Navigator.of(ctx).pop();
-                              },
-                              child: const Text('Aceptar'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 14,
-                      ),
-                      suffixIcon: const Icon(Icons.arrow_drop_down),
-                    ),
-                    child: _selectedRelationUserRoles.isEmpty
-                        ? const Text('Ninguna seleccionada')
-                        : Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: relations
-                                .where(
-                                  (r) => _selectedRelationUserRoles.containsKey(
-                                    r.relatedUser.id,
+                SizedBox(
+                  height: 90,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      // Add Button
+                      GestureDetector(
+                        onTap: () => _showAddPeopleDialog(relations),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 1,
                                   ),
-                                )
-                                .map((r) {
-                                  final role =
-                                      _selectedRelationUserRoles[r
-                                          .relatedUser
-                                          .id];
-                                  return Chip(
-                                    label: Column(
-                                      mainAxisSize: MainAxisSize.min,
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                                child: const Icon(
+                                  Icons.add,
+                                  color: AppColors.textColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Selected People
+                      ..._relatedPeople.map((person) {
+                        return GestureDetector(
+                          onTap: () => _showEditPersonDialog(person),
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 50,
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 1,
+                                        ),
+                                        image:
+                                            person.user.profileUrl != null &&
+                                                person
+                                                    .user
+                                                    .profileUrl!
+                                                    .isNotEmpty
+                                            ? DecorationImage(
+                                                image: NetworkImage(
+                                                  'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/${person.user.profileUrl!}',
+                                                ),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                        color: Colors.grey[200],
+                                      ),
+                                      child:
+                                          person.user.profileUrl == null ||
+                                              person.user.profileUrl!.isEmpty
+                                          ? Center(
+                                              child: Text(
+                                                person.user.name.isNotEmpty
+                                                    ? person.user.name[0]
+                                                          .toUpperCase()
+                                                    : '?',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          r.relatedUser.name.isNotEmpty
-                                              ? r.relatedUser.name
-                                              : r.relatedUser.email,
-                                        ),
-                                        if (role != null)
-                                          Text(
-                                            role,
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodySmall,
+                                          person.user.name.isNotEmpty
+                                              ? person.user.name
+                                              : person.user.email,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
                                           ),
+                                        ),
+                                        Text(
+                                          _roleDisplayName(person.role),
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                  );
-                                })
-                                .toList(),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
+                        );
+                      }),
+                    ],
                   ),
                 ),
               ],
             );
           },
-          loading: () => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: const Center(child: CircularProgressIndicator()),
+          loading: () => const SizedBox(
+            height: 90,
+            child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, st) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: const Text('Error cargando relaciones'),
-          ),
+          error: (e, st) => const Text('Error cargando relaciones'),
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -1017,16 +914,265 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     );
   }
 
+  Future<void> _showAddPeopleDialog(List<UserRelation> relations) async {
+    final temp = Map<String, String>.from(_selectedRelationUserRoles);
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Seleccionar personas'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return relations.isEmpty
+                    ? const Text('No hay relaciones disponibles')
+                    : ListView(
+                        shrinkWrap: true,
+                        children: relations.map((r) {
+                          final related = r.relatedUser;
+                          final id = related.id;
+                          final selected = temp.containsKey(id);
+                          return InkWell(
+                            onTap: () {
+                              setStateDialog(() {
+                                if (selected) {
+                                  temp.remove(id);
+                                } else {
+                                  temp[id] =
+                                      temp[id] ?? MemoryRole.participant.name;
+                                }
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8.0,
+                                horizontal: 4.0,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Avatar
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                        width: 1,
+                                      ),
+                                      image:
+                                          related.profileUrl != null &&
+                                              related.profileUrl!.isNotEmpty
+                                          ? DecorationImage(
+                                              image: NetworkImage(
+                                                'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/${related.profileUrl!}',
+                                              ),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null,
+                                      color: Colors.grey[200],
+                                    ),
+                                    child:
+                                        related.profileUrl == null ||
+                                            related.profileUrl!.isEmpty
+                                        ? Center(
+                                            child: Text(
+                                              related.name.isNotEmpty
+                                                  ? related.name[0]
+                                                        .toUpperCase()
+                                                  : '?',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Name
+                                  Expanded(
+                                    child: Text(
+                                      related.name.isNotEmpty
+                                          ? related.name
+                                          : related.email,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  // Custom Checkbox
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: selected
+                                          ? AppColors.accentColor
+                                          : Colors.transparent,
+                                      border: selected
+                                          ? null
+                                          : Border.all(
+                                              color: Colors.grey,
+                                              width: 2,
+                                            ),
+                                    ),
+                                    child: selected
+                                        ? Padding(
+                                            padding: const EdgeInsets.all(5.0),
+                                            child: SvgPicture.asset(
+                                              AppIcons.check,
+                                              colorFilter:
+                                                  const ColorFilter.mode(
+                                                    Colors.white,
+                                                    BlendMode.srcIn,
+                                                  ),
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _applyPeopleSelection(temp, relations);
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('Aceptar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _applyPeopleSelection(
+    Map<String, String> temp,
+    List<UserRelation> relations,
+  ) {
+    setState(() {
+      _selectedRelationUserRoles.clear();
+      _selectedRelationUserRoles.addAll(temp);
+
+      final relationUsers = <String, User>{
+        for (final rel in relations) rel.relatedUser.id: rel.relatedUser,
+      };
+
+      // Preserve existing users that might not be in relations anymore but were added
+      final existingUsers = <String, User>{
+        for (final person in _relatedPeople) person.user.id: person.user,
+      };
+
+      final synced = _selectedRelationUserRoles.entries
+          .map((entry) {
+            final user = relationUsers[entry.key] ?? existingUsers[entry.key];
+            if (user == null) return null;
+            return UserRole(user: user, role: _roleFromName(entry.value));
+          })
+          .whereType<UserRole>()
+          .toList();
+
+      _relatedPeople = synced;
+    });
+  }
+
+  Future<void> _showEditPersonDialog(UserRole person) async {
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                person.user.name.isNotEmpty
+                    ? person.user.name
+                    : person.user.email,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.person),
+                title: const Text('Participante'),
+                trailing: person.role == MemoryRole.participant
+                    ? const Icon(Icons.check, color: AppColors.accentColor)
+                    : null,
+                onTap: () {
+                  _updatePersonRole(person, MemoryRole.participant);
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Invitado'),
+                trailing: person.role == MemoryRole.guest
+                    ? const Icon(Icons.check, color: AppColors.accentColor)
+                    : null,
+                onTap: () {
+                  _updatePersonRole(person, MemoryRole.guest);
+                  Navigator.pop(ctx);
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.redAccent),
+                title: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+                onTap: () {
+                  _removePerson(person);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _updatePersonRole(UserRole person, MemoryRole newRole) {
+    setState(() {
+      final idx = _relatedPeople.indexWhere((p) => p.user.id == person.user.id);
+      if (idx != -1) {
+        _relatedPeople[idx] = UserRole(user: person.user, role: newRole);
+        _selectedRelationUserRoles[person.user.id] = newRole.name;
+      }
+    });
+  }
+
+  void _removePerson(UserRole person) {
+    setState(() {
+      _relatedPeople.removeWhere((p) => p.user.id == person.user.id);
+      _selectedRelationUserRoles.remove(person.user.id);
+    });
+  }
+
   Widget _buildReorderSection(AsyncValue<List<MemoryMedia>>? mediaAsync) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Organiza los adjuntos',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-        ),
+        const Text('Ordena tu recuerdo', style: AppTextStyles.subtitle),
         const SizedBox(height: AppSizes.paddingSmall),
         if (_reorderingMedia)
           const Padding(
@@ -1432,7 +1578,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     final canMoveDown = index < assets.length - 1;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
+      margin: const EdgeInsets.only(bottom: 4.0),
       color: Colors.transparent,
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingMedium),

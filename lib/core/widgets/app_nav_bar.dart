@@ -25,7 +25,6 @@ class AppNavBar extends StatelessWidget {
         showUnselectedLabels: false,
         currentIndex: currentIndex,
         onTap: onItemTapped,
-        iconSize: 36,
         items: [
           BottomNavigationBarItem(
             icon: Padding(

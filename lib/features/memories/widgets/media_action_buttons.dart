@@ -22,21 +22,35 @@ class MediaActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (showMoveUp)
-          IconButton(
-            tooltip: 'Mover arriba',
-            icon: SvgPicture.asset(AppIcons.chevronUp),
-            onPressed: onMoveUp,
-          ),
-        if (showMoveDown)
-          IconButton(
-            tooltip: 'Mover abajo',
-            icon: SvgPicture.asset(AppIcons.chevronDown),
-            onPressed: onMoveDown,
-          ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showMoveUp)
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Mover arriba',
+                icon: SvgPicture.asset(AppIcons.chevronUp),
+                onPressed: onMoveUp,
+              ),
+            if (showMoveUp && showMoveDown) const SizedBox(height: 8),
+            if (showMoveDown)
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Mover abajo',
+                icon: SvgPicture.asset(AppIcons.chevronDown),
+                onPressed: onMoveDown,
+              ),
+          ],
+        ),
+        const SizedBox(width: 8),
         isDeleting
             ? const SizedBox(
                 width: 24,

@@ -6,11 +6,10 @@ import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/memories/widgets/memories_grid.dart';
 import 'package:mydearmap/features/relations/views/relations_view.dart';
-import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/timeline/view/timeline_view.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/features/memories/views/create_join_memory.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
@@ -121,9 +120,7 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => MemoryUpsertView.create(
-                      initialLocation: LatLng(39.4699, -0.3763),
-                    ),
+                    builder: (_) => const CreateJoinMemoryView(),
                   ),
                 );
               },

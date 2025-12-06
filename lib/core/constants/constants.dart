@@ -23,6 +23,7 @@ class AppSizes {
   static const double paddingSmall = 8.0;
   static const double paddingMedium = 16.0;
   static const double paddingLarge = 24.0;
+  static const double upperPadding = 64.0;
 
   static const double title = 24.0;
   static const double subtitle = 18.0;
@@ -60,7 +61,7 @@ class AppTextStyles {
     fontFamily: _fontFamily,
     fontSize: 18.0,
     fontWeight: FontWeight.w500, // w500 es Medium
-    color: AppColors.textColor,
+    color: AppColors.textGray,
   );
 
   // Estilo para Texto
