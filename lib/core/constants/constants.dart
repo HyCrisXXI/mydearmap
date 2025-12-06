@@ -178,4 +178,8 @@ class AppCardMemory {
   // Altura total 300 - Footer 46 = Imagen 254
   static const double bigImageHeight = 254.0;
   static const double bigTotalHeight = 300.0;
+
+  static const double previewWidth = 194.0;
+  static const double previewHeight = 260.0;
+  static const double previewRadius = 20.0;
 }

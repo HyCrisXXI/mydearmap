@@ -35,6 +35,7 @@ class AppIcons {
   static const String star = '$_basePath/star.svg';
   static const String sticker = '$_basePath/sticker.svg';
   static const String timer = '$_basePath/timer.svg';
+  static const String trash = '$_basePath/trash.svg';
   static const String toggleButtonOff = '$_basePath/toggle-button-off.svg';
   static const String toggleButtonOn = '$_basePath/toggle-button-on.svg';
   static const String userRound = '$_basePath/user-round.svg';

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mydearmap/data/models/media.dart' show mediaOrderStride;
@@ -13,6 +14,7 @@ class MemoryMedia {
     this.storagePath,
     this.publicUrl,
     this.content,
+    this.previewBytes,
   });
 
   final String id;
@@ -22,6 +24,7 @@ class MemoryMedia {
   final String? storagePath;
   final String? publicUrl;
   final String? content;
+  final Uint8List? previewBytes;
 }
 
 final memoryMediaProvider = FutureProvider.family

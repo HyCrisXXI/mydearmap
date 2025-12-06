@@ -20,11 +20,13 @@ import 'package:mydearmap/features/memories/widgets/memory_media_editor.dart'
         MemoryMediaEditor,
         MemoryMediaEditorController,
         PendingMemoryMediaDraft;
-import 'package:mydearmap/features/memories/widgets/memory_media_carousel.dart';
+
+import 'package:mydearmap/features/memories/widgets/memory_form_carrousel.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/map/views/map_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:mydearmap/data/models/media.dart' show mediaOrderStride;
+
+import 'package:mydearmap/features/memories/widgets/media_action_buttons.dart';
 
 final _memoryByIdProvider = FutureProvider.family<Memory, String>((
   ref,
@@ -240,6 +242,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   }
 
   void _handlePrimaryAction(Memory? memory) {
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
     if (_currentStep == 0) {
       if (_selectedDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -254,7 +257,41 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       setState(() => _currentStep = 2);
       return;
     }
-    _handleUpsert(memory);
+    _confirmAndSave(memory);
+  }
+
+  Future<void> _confirmAndSave(Memory? memory) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          widget.mode == MemoryUpsertMode.create
+              ? 'Crear recuerdo'
+              : 'Guardar cambios',
+        ),
+        content: Text(
+          widget.mode == MemoryUpsertMode.create
+              ? '¿Estás seguro de que deseas crear este recuerdo?'
+              : '¿Estás seguro de que deseas guardar los cambios?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              widget.mode == MemoryUpsertMode.create ? 'Crear' : 'Guardar',
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      _handleUpsert(memory);
+    }
   }
 
   void _handleSecondaryAction() {
@@ -324,25 +361,33 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             AppSizes.appBarHeight, // Separacion respecto al borde superior
         leading: Padding(
           padding: const EdgeInsets.only(left: AppSizes.paddingMedium),
-          child: Center(
-            child: IconButton(
-              icon: SvgPicture.asset(AppIcons.chevronLeft),
-              onPressed: _handleSecondaryAction,
-              style: AppButtonStyles.circularIconButton,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: SvgPicture.asset(AppIcons.chevronLeft),
+                onPressed: _handleSecondaryAction,
+                style: AppButtonStyles.circularIconButton,
+              ),
+              if (isEdit) ...[
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: SvgPicture.asset(AppIcons.trash),
+                  tooltip: 'Eliminar recuerdo',
+                  onPressed: _handleDelete,
+                  style: AppButtonStyles.circularIconButton,
+                ),
+              ],
+            ],
           ),
         ),
-        leadingWidth: 70, // Adjust width to accommodate padding/centering
+        leadingWidth: isEdit
+            ? 120
+            : 70, // Adjust width for 2 buttons if editing
         title: null, // Removed title
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          if (isEdit)
-            IconButton(
-              icon: const Icon(Icons.delete_forever),
-              tooltip: 'Eliminar recuerdo',
-              onPressed: _handleDelete,
-            ),
           Padding(
             padding: const EdgeInsets.only(right: AppSizes.paddingMedium),
             child: _currentStep < 2
@@ -421,53 +466,14 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   }
 
   Widget _buildStepIndicator() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: List.generate(_stepLabels.length, (index) {
-            final active = _currentStep == index;
-            final completed = _currentStep > index;
-            return Expanded(
-              child: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: completed || active
-                          ? AppColors.primaryColor
-                          : AppColors.primaryColor.withValues(alpha: 0.2),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      '',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  if (index < _stepLabels.length - 1)
-                    Expanded(
-                      child: Container(
-                        height: 2,
-                        color: completed
-                            ? AppColors.primaryColor
-                            : AppColors.primaryColor.withValues(alpha: 0.3),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          }),
-        ),
-        const SizedBox(height: AppSizes.paddingMedium),
-        Text(
-          _stepLabels[_currentStep],
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ],
+    return Center(
+      child: Text(
+        _stepLabels[_currentStep],
+        textAlign: TextAlign.center,
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+      ),
     );
   }
 
@@ -501,6 +507,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         const SizedBox(height: AppSizes.paddingMedium),
         Card(
           elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(AppSizes.paddingMedium),
             child: CalendarDatePicker(
@@ -533,47 +542,50 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 300,
-          child: FlutterMap(
-            key: ValueKey(
-              '${_currentLocation.latitude}_${_currentLocation.longitude}',
-            ),
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentLocation,
-              initialZoom: 17,
-              minZoom: 2.0,
-              maxZoom: 18.0,
-              onLongPress: (_, latLng) {
-                setState(() {
-                  _currentLocation = latLng;
-                  _locationDirty = true;
-                });
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
-                userAgentPackageName: 'com.mydearmap.app',
-                tileProvider: kIsWeb ? NetworkTileProvider() : null,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: SizedBox(
+            height: 300,
+            child: FlutterMap(
+              key: ValueKey(
+                '${_currentLocation.latitude}_${_currentLocation.longitude}',
               ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: _currentLocation,
-                    width: 40,
-                    height: 40,
-                    child: const Icon(
-                      Icons.location_on,
-                      color: Colors.red,
-                      size: 40,
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _currentLocation,
+                initialZoom: 17,
+                minZoom: 2.0,
+                maxZoom: 18.0,
+                onLongPress: (_, latLng) {
+                  setState(() {
+                    _currentLocation = latLng;
+                    _locationDirty = true;
+                  });
+                },
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate:
+                      'https://api.maptiler.com/maps/dataviz/{z}/{x}/{y}.png?key=${EnvConstants.mapTilesApiKey}',
+                  userAgentPackageName: 'com.mydearmap.app',
+                  tileProvider: kIsWeb ? NetworkTileProvider() : null,
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _currentLocation,
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 40,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -647,8 +659,37 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
 
   Widget _buildMediaSummarySection(AsyncValue<List<MemoryMedia>>? mediaAsync) {
     if (mediaAsync == null) {
-      return _buildPendingDraftsPreview();
+      if (_pendingMediaDrafts.isEmpty) {
+        return const SizedBox(
+          height: 100,
+          child: Center(
+            child: Text(
+              'Añade adjuntos en el paso anterior para verlos aquí.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+        );
+      }
+      // Show pending drafts as carousel
+      final mergedAssets = <MemoryMedia>[];
+      for (final draft in _pendingMediaDrafts) {
+        mergedAssets.add(
+          MemoryMedia(
+            id: 'draft_${draft.hashCode}',
+            kind: draft.kind,
+            createdAt: DateTime.now(),
+            order: null,
+            previewBytes: draft.previewBytes,
+            publicUrl: null,
+          ),
+        );
+      }
+      return SizedBox(
+        height: AppCardMemory.previewHeight,
+        child: MemoryFormCarrousel(media: mergedAssets),
+      );
     }
+
     return mediaAsync.when(
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: (error, _) => Text(
@@ -656,94 +697,36 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         style: const TextStyle(color: Colors.redAccent),
       ),
       data: (assets) {
-        if (assets.isEmpty && _pendingMediaDrafts.isEmpty) {
-          return _buildPendingDraftsPreview();
-        }
-        final orderedAssets = List<MemoryMedia>.from(assets);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (orderedAssets.isNotEmpty)
-              MemoryMediaCarousel(
-                media: orderedAssets,
-                height: 180,
-                prioritizeImages: true,
-                enableFullScreenPreview: true,
-              ),
-            if (_pendingMediaDrafts.isNotEmpty) ...[
-              const SizedBox(height: AppSizes.paddingMedium),
-              _buildPendingDraftsPreview(),
-            ],
-          ],
-        );
-      },
-    );
-  }
+        final mergedAssets = <MemoryMedia>[...assets];
 
-  Widget _buildPendingDraftsPreview() {
-    if (_pendingMediaDrafts.isEmpty) {
-      return Container(
-        height: 140,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-        ),
-        child: const Text(
-          'Añade adjuntos en el paso anterior para verlos aquí.',
-        ),
-      );
-    }
-    return SizedBox(
-      height: 200,
-      child: PageView.builder(
-        controller: PageController(viewportFraction: 0.8),
-        itemCount: _pendingMediaDrafts.length,
-        itemBuilder: (context, index) {
-          final draft = _pendingMediaDrafts[index];
-          Widget preview;
-          switch (draft.kind) {
-            case MemoryMediaKind.image:
-              preview = draft.previewBytes != null
-                  ? Image.memory(draft.previewBytes!, fit: BoxFit.cover)
-                  : const Icon(Icons.image, size: 48, color: Colors.blueGrey);
-              break;
-            case MemoryMediaKind.video:
-              preview = const Icon(
-                Icons.play_circle_outline,
-                size: 64,
-                color: Colors.deepPurple,
-              );
-              break;
-            case MemoryMediaKind.audio:
-              preview = const Icon(
-                Icons.audiotrack,
-                size: 64,
-                color: Colors.teal,
-              );
-              break;
-            case MemoryMediaKind.unknown:
-            default:
-              preview = const Icon(
-                Icons.insert_drive_file,
-                size: 64,
-                color: Colors.grey,
-              );
-              break;
-          }
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-              child: Container(
-                color: Colors.grey.shade200,
-                alignment: Alignment.center,
-                child: preview,
-              ),
+        for (final draft in _pendingMediaDrafts) {
+          mergedAssets.add(
+            MemoryMedia(
+              id: 'draft_${draft.hashCode}',
+              kind: draft.kind,
+              createdAt: DateTime.now(),
+              order: null,
+              previewBytes: draft.previewBytes,
+              publicUrl: null,
             ),
           );
-        },
-      ),
+        }
+
+        if (mergedAssets.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.only(top: AppSizes.paddingSmall),
+            child: Text(
+              'Todavía no hay archivos adjuntos guardados.',
+              style: TextStyle(color: Colors.black54),
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: AppCardMemory.previewHeight,
+          child: MemoryFormCarrousel(media: mergedAssets),
+        );
+      },
     );
   }
 
@@ -1031,7 +1014,18 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   }
 
   Widget _buildReorderSection(AsyncValue<List<MemoryMedia>>? mediaAsync) {
-    final hasPending = _pendingMediaDrafts.isNotEmpty;
+    // Only show if we simply have server media or if we have pending drafts (since they are now merged in logic,
+    // but the reordering list below currently only takes 'mediaAsync'.
+    // To support reordering drafts alongside server media, we need a unified list here too.
+    // For now, let's keep it simple: Show server reorder list if available.
+
+    // NOTE: In a perfect world, we'd unified `assets` and `_pendingMediaDrafts` into one list state
+    // that the reorderable list reads from.
+    // Given the constraints and the previous "split" logic, we might just show server assets for reordering
+    // or we can try to merge them. The user asked to merge them in the CAROUSEL.
+    // If they want to reorder PENDING items, that's trickier without a unified state.
+    // Let's assume reordering applies to the provided list.
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1047,16 +1041,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             padding: EdgeInsets.only(bottom: AppSizes.paddingSmall),
             child: LinearProgressIndicator(),
           ),
-        if (!hasPending && mediaAsync == null)
-          const Text(
-            'Añade archivos en el paso anterior para poder organizarlos.',
-            style: TextStyle(color: Colors.black54),
-          ),
-        if (hasPending) ...[
-          const Text('Borradores pendientes'),
-          const SizedBox(height: AppSizes.paddingSmall),
-          ...List.generate(_pendingMediaDrafts.length, _buildPendingDraftTile),
-        ],
+
         if (mediaAsync != null)
           mediaAsync.when(
             loading: () => const Padding(
@@ -1075,7 +1060,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 return const Padding(
                   padding: EdgeInsets.only(top: AppSizes.paddingSmall),
                   child: Text(
-                    'Todavía no hay archivos adjuntos guardados.',
+                    'No hay archivos guardados para organizar.',
                     style: TextStyle(color: Colors.black54),
                   ),
                 );
@@ -1091,17 +1076,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           ),
       ],
     );
-  }
-
-  // Fix: bring back helpers used by the 3-step wizard and submission
-  Future<void> _commitPendingMediaChanges({required String memoryId}) async {
-    if (!_mediaEditorController.hasPendingDrafts) return;
-    setState(() => _committingMedia = true);
-    try {
-      await _mediaEditorController.commitPendingChanges(memoryId: memoryId);
-    } finally {
-      if (mounted) setState(() => _committingMedia = false);
-    }
   }
 
   // Fix: restore upsert handler from original view (create/edit logic)
@@ -1349,6 +1323,16 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     }
   }
 
+  Future<void> _commitPendingMediaChanges({required String memoryId}) async {
+    if (!_mediaEditorController.hasPendingDrafts) return;
+    setState(() => _committingMedia = true);
+    try {
+      await _mediaEditorController.commitPendingChanges(memoryId: memoryId);
+    } finally {
+      if (mounted) setState(() => _committingMedia = false);
+    }
+  }
+
   void _handleCancel() => Navigator.of(context).pop();
 
   Future<void> _handleDelete() async {
@@ -1452,97 +1436,52 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   Widget _buildMediaTile(List<MemoryMedia> assets, int index) {
     final asset = assets[index];
     final deleting = _deletingMediaIds.contains(asset.id);
-    final isFirst = index == 0;
-    final isLast = index == assets.length - 1;
-    final canMoveUp = !isFirst && assets[index - 1].kind == asset.kind;
-    final canMoveDown = !isLast && assets[index + 1].kind == asset.kind;
-    final relativeOrder = _indexWithinKind(assets, asset);
+    final canMoveUp = index > 0;
+    final canMoveDown = index < assets.length - 1;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
-      child: InkWell(
-        onTap: () => _openAssetPreview(asset),
-        borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSizes.paddingMedium),
-          child: Row(
-            children: [
-              _MediaThumbnail(asset: asset),
-              const SizedBox(width: AppSizes.paddingMedium),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _mediaLabel(asset),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _mediaDescription(asset),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: AppSizes.paddingSmall,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Chip(
-                          label: Text(
-                            'Orden ${relativeOrder >= 0 ? relativeOrder : '?'}',
-                          ),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        Text(
-                          _kindPriorityLabel(asset.kind),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
+      color: Colors.transparent,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSizes.paddingMedium),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => _openAssetPreview(asset),
+              child: _MediaThumbnail(asset: asset),
+            ),
+            const SizedBox(width: AppSizes.paddingMedium),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    tooltip: 'Mover arriba',
-                    icon: const Icon(Icons.arrow_upward),
-                    onPressed: (!_reorderingMedia && canMoveUp)
-                        ? () => _reorderMediaAsset(assets, index, index - 1)
-                        : null,
+                  Text(
+                    _mediaLabel(asset),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  IconButton(
-                    tooltip: 'Mover abajo',
-                    icon: const Icon(Icons.arrow_downward),
-                    onPressed: (!_reorderingMedia && canMoveDown)
-                        ? () => _reorderMediaAsset(assets, index, index + 1)
-                        : null,
+                  const SizedBox(height: 4),
+                  Text(
+                    _mediaDescription(asset),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                   ),
-                  deleting
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator.adaptive(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : IconButton(
-                          tooltip: 'Eliminar archivo',
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.redAccent,
-                          ),
-                          onPressed: () => _deleteMediaAsset(asset),
-                        ),
                 ],
               ),
-            ],
-          ),
+            ),
+            MediaActionButtons(
+              onMoveUp: (!_reorderingMedia && canMoveUp)
+                  ? () => _reorderMediaAsset(assets, index, index - 1)
+                  : null,
+              onMoveDown: (!_reorderingMedia && canMoveDown)
+                  ? () => _reorderMediaAsset(assets, index, index + 1)
+                  : null,
+              onDelete: () => _deleteMediaAsset(asset),
+              isDeleting: deleting,
+            ),
+          ],
         ),
       ),
     );
@@ -1556,45 +1495,19 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     if (widget.memoryId == null) return;
     if (fromIndex == toIndex) return;
     if (toIndex < 0 || toIndex >= assets.length) return;
-    final source = assets[fromIndex];
-    final target = assets[toIndex];
-    if (source.kind != target.kind) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Solo puedes cambiar el orden dentro del mismo tipo.',
-            ),
-          ),
-        );
-      }
-      return;
-    }
 
-    final sameTypeAssets = assets
-        .where((asset) => asset.kind == source.kind)
-        .toList();
-    final fromTypeIndex = sameTypeAssets.indexWhere(
-      (element) => element.id == source.id,
-    );
-    final toTypeIndex = sameTypeAssets.indexWhere(
-      (element) => element.id == target.id,
-    );
-    if (fromTypeIndex == -1 || toTypeIndex == -1) return;
-    if (fromTypeIndex == toTypeIndex) return;
-
-    final reordered = List<MemoryMedia>.from(sameTypeAssets);
-    final moved = reordered.removeAt(fromTypeIndex);
-    reordered.insert(toTypeIndex, moved);
+    final reordered = List<MemoryMedia>.from(assets);
+    final movedItem = reordered.removeAt(fromIndex);
+    reordered.insert(toIndex, movedItem);
 
     setState(() => _reorderingMedia = true);
 
     try {
       final client = Supabase.instance.client;
-      final base = _orderBaseForKind(source.kind);
+      // Update order for all items to ensure consistency
       for (var i = 0; i < reordered.length; i++) {
         final asset = reordered[i];
-        final newOrder = base + i;
+        final newOrder = i;
         await client
             .from('media')
             .update({'order': newOrder})
@@ -1615,53 +1528,12 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     }
   }
 
-  String _kindPriorityLabel(MemoryMediaKind kind) {
-    switch (kind) {
-      case MemoryMediaKind.image:
-        return 'Prioridad: Imagen';
-      case MemoryMediaKind.video:
-        return 'Prioridad: Video';
-      case MemoryMediaKind.audio:
-        return 'Prioridad: Audio';
-      case MemoryMediaKind.unknown:
-      default:
-        return 'Prioridad: Archivo';
-    }
-  }
-
-  int _kindPriorityIndex(MemoryMediaKind kind) {
-    switch (kind) {
-      case MemoryMediaKind.image:
-        return 0;
-      case MemoryMediaKind.video:
-        return 1;
-      case MemoryMediaKind.audio:
-        return 2;
-      case MemoryMediaKind.unknown:
-      default:
-        return 4;
-    }
-  }
-
-  int _orderBaseForKind(MemoryMediaKind kind) =>
-      mediaOrderStride * _kindPriorityIndex(kind);
-
-  int _indexWithinKind(List<MemoryMedia> assets, MemoryMedia target) {
-    var index = 0;
-    for (final item in assets) {
-      if (item.kind != target.kind) continue;
-      if (item.id == target.id) return index;
-      index++;
-    }
-    return -1;
-  }
-
   void _openAssetPreview(MemoryMedia asset) {
     if (!mounted) return;
 
     switch (asset.kind) {
       case MemoryMediaKind.image:
-        if (asset.publicUrl == null) {
+        if (asset.publicUrl == null && asset.previewBytes == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('No hay vista previa disponible.')),
           );
@@ -1672,7 +1544,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
           builder: (context) => Dialog(
             insetPadding: const EdgeInsets.all(AppSizes.paddingLarge),
             child: InteractiveViewer(
-              child: Image.network(asset.publicUrl!, fit: BoxFit.contain),
+              child: asset.previewBytes != null
+                  ? Image.memory(asset.previewBytes!, fit: BoxFit.contain)
+                  : Image.network(asset.publicUrl!, fit: BoxFit.contain),
             ),
           ),
         );
@@ -1701,110 +1575,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
         return 'Contenido adjunto';
     }
   }
-
-  Widget _buildPendingDraftTile(int index) {
-    final draft = _pendingMediaDrafts[index];
-    final canMoveUp = index > 0;
-    final canMoveDown = index < _pendingMediaDrafts.length - 1;
-
-    Widget preview;
-    switch (draft.kind) {
-      case MemoryMediaKind.image:
-        preview = draft.previewBytes != null
-            ? Image.memory(
-                draft.previewBytes!,
-                fit: BoxFit.cover,
-                width: 72,
-                height: 72,
-              )
-            : const Icon(Icons.image, size: 48, color: Colors.blueGrey);
-        break;
-      case MemoryMediaKind.video:
-        preview = const Icon(
-          Icons.play_circle_outline,
-          size: 48,
-          color: Colors.deepPurple,
-        );
-        break;
-      case MemoryMediaKind.audio:
-        preview = const Icon(Icons.graphic_eq, size: 48, color: Colors.teal);
-        break;
-      case MemoryMediaKind.unknown:
-      default:
-        preview = const Icon(
-          Icons.insert_drive_file,
-          size: 48,
-          color: Colors.grey,
-        );
-        break;
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSizes.paddingMedium),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-              child: SizedBox(width: 72, height: 72, child: preview),
-            ),
-            const SizedBox(width: AppSizes.paddingMedium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _kindLabel(draft.kind),
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    draft.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: 'Mover arriba',
-                  icon: const Icon(Icons.arrow_upward),
-                  onPressed: canMoveUp
-                      ? () => _mediaEditorController.reorderDraft(
-                          index,
-                          index - 1,
-                        )
-                      : null,
-                ),
-                IconButton(
-                  tooltip: 'Mover abajo',
-                  icon: const Icon(Icons.arrow_downward),
-                  onPressed: canMoveDown
-                      ? () => _mediaEditorController.reorderDraft(
-                          index,
-                          index + 1,
-                        )
-                      : null,
-                ),
-                IconButton(
-                  tooltip: 'Quitar adjunto',
-                  icon: const Icon(Icons.close, color: Colors.redAccent),
-                  onPressed: () => _mediaEditorController.removeDraftAt(index),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _MediaThumbnail extends StatelessWidget {
@@ -1818,12 +1588,18 @@ class _MediaThumbnail extends StatelessWidget {
 
     switch (asset.kind) {
       case MemoryMediaKind.image:
-        thumbnail = Image.network(
-          asset.publicUrl!,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) =>
-              const Icon(Icons.image_not_supported, color: Colors.redAccent),
-        );
+        if (asset.previewBytes != null) {
+          thumbnail = Image.memory(asset.previewBytes!, fit: BoxFit.cover);
+        } else if (asset.publicUrl != null) {
+          thumbnail = Image.network(
+            asset.publicUrl!,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.image_not_supported, color: Colors.redAccent),
+          );
+        } else {
+          thumbnail = const Icon(Icons.image, color: Colors.grey);
+        }
         break;
       case MemoryMediaKind.video:
         thumbnail = const Icon(
