@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
@@ -229,7 +230,6 @@ class _NotificationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unread = !notification.isRead;
     final icon = iconForKind(notification.kind);
     final badgeColor = Theme.of(context).colorScheme.primary;
     final relativeTime = _relativeTimeLabel(notification.createdAt);
@@ -252,7 +252,7 @@ class _NotificationTile extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
-        color: unread ? AppColors.backgroundColor : AppColors.primaryColor,
+        color: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
@@ -682,6 +682,8 @@ class _CapsulePreviewCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
+    final fadedColor =
+        (isTop ? Colors.white : AppColors.textColor).withValues(alpha: 0.85);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -721,20 +723,16 @@ class _CapsulePreviewCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: (isTop ? Colors.white : AppColors.textColor).withValues(
-                alpha: 0.85,
-              ),
+              color: fadedColor,
             ),
           ),
           const Spacer(),
           Row(
             children: [
-              Icon(
-                Icons.lock_clock,
-                size: 16,
-                color: (isTop ? Colors.white : AppColors.textColor).withValues(
-                  alpha: 0.85,
-                ),
+              SvgPicture.asset(
+                AppIcons.lock,
+                width: 16,
+                height: 16,
               ),
               const SizedBox(width: 6),
               Text(
@@ -748,8 +746,7 @@ class _CapsulePreviewCard extends StatelessWidget {
               Text(
                 DateFormat('d MMM', 'es_ES').format(capsule.openAt),
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: (isTop ? Colors.white : AppColors.textColor)
-                      .withValues(alpha: 0.85),
+                  color: fadedColor,
                 ),
               ),
             ],
@@ -787,10 +784,15 @@ class _CapsuleExpandedTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: badgeColor.withValues(alpha: 0.18),
-                child: Icon(Icons.lock_clock_outlined, color: badgeColor),
+              SizedBox(
+                width: 52,
+                child: Center(
+                  child: SvgPicture.asset(
+                    AppIcons.lock,
+                    width: 24,
+                    height: 24,
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
