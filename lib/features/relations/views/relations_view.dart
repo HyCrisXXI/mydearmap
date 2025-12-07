@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
+import 'package:mydearmap/core/providers/group_memories_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/relation_groups_provider.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
@@ -154,11 +155,10 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
         .toList();
   }
 
-  String _groupMembersLabel(RelationGroup group) {
-    final count = group.members.length;
-    if (count == 0) return 'Sin integrantes';
-    if (count == 1) return '1 integrante';
-    return '$count integrantes';
+  String _groupMemoriesLabel(int count) {
+    if (count == 0) return 'Sin recuerdos';
+    if (count == 1) return '1 recuerdo';
+    return '$count recuerdos';
   }
 
   Widget _buildSectionHeader(BuildContext context, String label) {
@@ -171,11 +171,12 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
     );
   }
 
-  Widget _buildGroupCard(BuildContext context, RelationGroup group) {
+  Widget _buildGroupCard(BuildContext context, WidgetRef ref, RelationGroup group) {
     final photoUrl = group.photoUrl?.trim();
     final trimmedName = group.name.trim();
     final displayLetter =
       trimmedName.isNotEmpty ? trimmedName[0].toUpperCase() : '?';
+    final memoriesAsync = ref.watch(groupMemoriesProvider(group.id));
 
     return InkWell(
       borderRadius: BorderRadius.circular(18),
@@ -223,12 +224,28 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    _groupMembersLabel(group),
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.black54),
+                  memoriesAsync.when(
+                    loading: () => Text(
+                      'Cargando recuerdos...',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.black54),
+                    ),
+                    error: (error, _) => Text(
+                      'Error al cargar recuerdos',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.redAccent),
+                    ),
+                    data: (memories) => Text(
+                      _groupMemoriesLabel(memories.length),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.black54),
+                    ),
                   ),
                 ],
               ),
@@ -410,7 +427,7 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
                   tiles.add(_buildSectionHeader(context, 'Grupos'));
                   tiles.add(const SizedBox(height: 12));
                   for (final group in filteredGroups) {
-                    tiles.add(_buildGroupCard(context, group));
+                      tiles.add(_buildGroupCard(context, ref, group));
                     tiles.add(const SizedBox(height: 12));
                   }
                 }
