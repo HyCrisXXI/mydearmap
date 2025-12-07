@@ -75,6 +75,13 @@ class UserNotificationsCacheNotifier extends Notifier<List<AppNotification>> {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     state = List<AppNotification>.unmodifiable(next);
   }
+
+  void remove(String notificationId) {
+    final filtered = state.where((item) => item.id != notificationId).toList();
+    if (filtered.length == state.length) return;
+    filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    state = List<AppNotification>.unmodifiable(filtered);
+  }
 }
 
 final userNotificationsProvider = FutureProvider<List<AppNotification>>((
@@ -110,6 +117,23 @@ final userNotificationsProvider = FutureProvider<List<AppNotification>>((
 
   final repo = ref.read(notificationRepositoryProvider);
   final fetched = await repo.getNotificationsByUser(user.id);
-  cacheNotifier.setAll(fetched);
-  return fetched;
+
+  final cutoff = DateTime.now().subtract(const Duration(days: 30));
+  final freshNotifications = <AppNotification>[];
+  var hasStale = false;
+
+  for (final notification in fetched) {
+    if (notification.createdAt.isBefore(cutoff)) {
+      hasStale = true;
+      continue;
+    }
+    freshNotifications.add(notification);
+  }
+
+  if (hasStale) {
+    await repo.deleteNotificationsOlderThan(user.id, cutoff);
+  }
+
+  cacheNotifier.setAll(freshNotifications);
+  return freshNotifications;
 });

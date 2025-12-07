@@ -60,4 +60,24 @@ class NotificationRepository {
     return controller.stream;
   }
 
+  Future<void> deleteNotificationsOlderThan(
+    String userId,
+    DateTime cutoff,
+  ) async {
+    await _client
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId)
+        .lt('created_at', cutoff.toIso8601String());
+  }
+
+  Future<void> deleteNotificationsByIds(List<String> ids) async {
+    if (ids.isEmpty) return;
+    final formatted = ids.map((id) => '"$id"').join(',');
+    await _client
+        .from('notifications')
+        .delete()
+        .filter('id', 'in', '($formatted)');
+  }
+
 }

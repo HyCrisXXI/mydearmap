@@ -444,22 +444,27 @@ Future<void> _handleNotificationTap(
 ) async {
   final memoryId = _memoryIdFromMetadata(notification.metadata);
   if (memoryId == null || memoryId.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Esta notificación no tiene un recuerdo asociado.'),
-      ),
-    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Esta notificación no tiene un recuerdo asociado.'),
+        ),
+      );
+    }
+    await _deleteNotificationById(ref, notification.id);
     return;
   }
 
   final controller = ref.read(memoryControllerProvider.notifier);
   final memory = await controller.getMemoryById(memoryId);
   if (memory == null) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Este recuerdo ya no está disponible.')),
-    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Este recuerdo ya no está disponible.')),
+      );
+    }
     ref.invalidate(memoryDetailProvider(memoryId));
+    await _deleteNotificationById(ref, notification.id);
     return;
   }
 
@@ -467,6 +472,22 @@ Future<void> _handleNotificationTap(
   await Navigator.of(context).push(
     MaterialPageRoute(builder: (_) => MemoryDetailView(memoryId: memoryId)),
   );
+}
+
+Future<void> _deleteNotificationById(
+  WidgetRef ref,
+  String notificationId,
+) async {
+  try {
+    await ref
+        .read(notificationRepositoryProvider)
+        .deleteNotificationsByIds([notificationId]);
+  } catch (_) {
+    // Intentionally ignore network errors to keep UI responsive.
+  }
+
+  ref.read(userNotificationsCacheProvider.notifier).remove(notificationId);
+  ref.invalidate(userNotificationsProvider);
 }
 
 bool _shouldHideNotification(AppNotification notification) {
