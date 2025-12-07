@@ -14,6 +14,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/data/models/memory.dart';
+import 'package:mydearmap/data/models/relation_group.dart';
 import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
@@ -53,6 +54,7 @@ class MemoryUpsertView extends ConsumerStatefulWidget {
     required this.mode,
     this.memoryId,
     this.initialLocation,
+    this.initialGroup,
   }) : assert(
          mode == MemoryUpsertMode.edit
              ? memoryId != null
@@ -61,11 +63,13 @@ class MemoryUpsertView extends ConsumerStatefulWidget {
 
   factory MemoryUpsertView.create({
     Key? key,
-    required LatLng initialLocation,
+    LatLng? initialLocation,
+    RelationGroup? initialGroup,
   }) => MemoryUpsertView._(
     key: key,
     mode: MemoryUpsertMode.create,
-    initialLocation: initialLocation,
+    initialLocation: initialLocation ?? _defaultLocation,
+    initialGroup: initialGroup,
   );
 
   factory MemoryUpsertView.edit({Key? key, required String memoryId}) =>
@@ -73,11 +77,13 @@ class MemoryUpsertView extends ConsumerStatefulWidget {
         key: key,
         mode: MemoryUpsertMode.edit,
         memoryId: memoryId,
+        initialGroup: null,
       );
 
   final MemoryUpsertMode mode;
   final String? memoryId;
   final LatLng? initialLocation;
+  final RelationGroup? initialGroup;
 
   @override
   ConsumerState<MemoryUpsertView> createState() => _MemoryUpsertViewState();
@@ -114,6 +120,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   bool _locationDirty = false;
   String? _resolvedMemoryId;
 
+  RelationGroup? get _groupContext => widget.initialGroup;
+
   @override
   void initState() {
     super.initState();
@@ -123,6 +131,10 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       _locationDirty = true;
     } else {
       _resolvedMemoryId = widget.memoryId;
+    }
+
+    if (widget.mode == MemoryUpsertMode.create && _groupContext != null) {
+      _prefillGroupMembers(_groupContext!);
     }
   }
 
@@ -170,6 +182,38 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       (role) => role.name == raw,
       orElse: () => MemoryRole.participant,
     );
+  }
+
+  void _prefillGroupMembers(RelationGroup group) {
+    final userAsync = ref.read(currentUserProvider);
+    final currentUserId = userAsync.asData?.value?.id;
+    final seenIds = <String>{};
+    final prefilled = <UserRole>[];
+
+    for (final member in group.members) {
+      final memberId = member.id;
+      if (memberId.isEmpty) continue;
+      if (memberId == currentUserId) continue;
+      if (seenIds.add(memberId)) {
+        prefilled.add(
+          UserRole(user: member, role: MemoryRole.participant),
+        );
+      }
+    }
+
+    if (prefilled.isEmpty) return;
+
+    _relatedPeople = List<UserRole>.from(prefilled);
+    _selectedRelationUserRoles
+      ..clear()
+      ..addEntries(
+        prefilled.map(
+          (userRole) => MapEntry<String, String>(
+            userRole.user.id,
+            userRole.role.name,
+          ),
+        ),
+      );
   }
 
   void _updateSelectedDate(DateTime date) {
@@ -1313,6 +1357,27 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
               relatedUserId,
               roleName,
             );
+          }
+
+          if (_groupContext != null) {
+            try {
+              await memoryController.linkMemoryToGroup(
+                groupId: _groupContext!.id,
+                memoryId: createdId,
+                addedBy: user.id,
+              );
+            } catch (error) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'No se pudo vincular el grupo: $error',
+                    ),
+                    backgroundColor: Colors.orangeAccent,
+                  ),
+                );
+              }
+            }
           }
         } else if (_pendingMediaDrafts.isNotEmpty) {
           if (!mounted) return;

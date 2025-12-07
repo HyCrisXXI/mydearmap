@@ -59,6 +59,15 @@ class MemoryController extends AsyncNotifier<void> {
     }
   }
 
+  Future<List<Memory>> getMemoriesByGroup(String groupId) async {
+    try {
+      final memories = await _repository.getMemoriesByGroup(groupId);
+      return memories;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Verificar si ya existe un recuerdo con el mismo título
   Future<bool> existsByTitle(String title) async {
     try {
@@ -124,6 +133,23 @@ class MemoryController extends AsyncNotifier<void> {
   Future<void> removeParticipant(String memoryId, String userId) async {
     try {
       await _repository.removeParticipant(memoryId, userId);
+      ref.invalidate(userMemoriesProvider);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> linkMemoryToGroup({
+    required String groupId,
+    required String memoryId,
+    required String addedBy,
+  }) async {
+    try {
+      await _repository.linkMemoryToGroup(
+        groupId: groupId,
+        memoryId: memoryId,
+        addedBy: addedBy,
+      );
       ref.invalidate(userMemoriesProvider);
     } catch (e) {
       rethrow;

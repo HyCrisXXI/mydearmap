@@ -159,6 +159,52 @@ class MemoryRepository {
     return memories;
   }
 
+  Future<List<Memory>> getMemoriesByGroup(String groupId) async {
+    final response = await _client
+        .from('relation_group_memories')
+        .select('''
+          created_at,
+          memory:memories(
+            *,
+            media(*),
+            participants:memory_users(*, user:users(*))
+          )
+        ''')
+        .eq('group_id', groupId)
+        .order('created_at', ascending: false);
+
+    final rows = (response as List).whereType<Map<String, dynamic>>();
+    final List<Memory> memories = [];
+
+    for (final row in rows) {
+      final memoryData = row['memory'];
+      if (memoryData is! Map<String, dynamic>) continue;
+
+      final memory = Memory.fromJson(Map<String, dynamic>.from(memoryData));
+
+      if (memory.media.isNotEmpty) {
+        memory.media.sort((a, b) {
+          final orderCompare = effectiveMediaOrder(
+            a,
+          ).compareTo(effectiveMediaOrder(b));
+          if (orderCompare != 0) return orderCompare;
+          final priorityCompare = mediaTypePriority(
+            a.type,
+          ).compareTo(mediaTypePriority(b.type));
+          if (priorityCompare != 0) return priorityCompare;
+          return a.createdAt.compareTo(b.createdAt);
+        });
+      }
+
+      memories.add(memory);
+    }
+
+    final excludedIds = await _getExcludedMemoryIds();
+    memories.removeWhere((memory) => excludedIds.contains(memory.id));
+    memories.sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
+    return memories;
+  }
+
   Future<Set<String>> _getExcludedMemoryIds() async {
     final capsuleResponse = await _client
         .from('time_capsules')
@@ -212,5 +258,20 @@ class MemoryRepository {
         .update({'favorite': isFavorite})
         .eq('memory_id', memoryId)
         .eq('user_id', userId);
+  }
+
+  Future<void> linkMemoryToGroup({
+    required String groupId,
+    required String memoryId,
+    required String addedBy,
+  }) async {
+    await _client.from('relation_group_memories').upsert(
+      {
+        'group_id': groupId,
+        'memory_id': memoryId,
+        'added_by': addedBy,
+      },
+      onConflict: 'group_id,memory_id',
+    );
   }
 }

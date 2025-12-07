@@ -251,7 +251,7 @@ class _NotificationTile extends ConsumerWidget {
     String? creatorName;
     String? previewImageUrl;
 
-    if (memoryId != null) {
+    if  (memoryId != null) {
       memoryAsync = ref.watch(memoryDetailProvider(memoryId));
       mediaAsync = ref.watch(memoryMediaProvider(memoryId));
       memory = memoryAsync?.maybeWhen(
