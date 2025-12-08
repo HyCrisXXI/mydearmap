@@ -7,6 +7,7 @@ class AppIcons {
   static const String audioLines = '$_basePath/audio-lines.svg';
   static const String bell = '$_basePath/bell.svg';
   static const String blueCheck = '$_basePath/blue-check.svg';
+  static const String calendar = '$_basePath/calendar-1.svg';
   static const String check = '$_basePath/check.svg';
   static const String chevronDown = '$_basePath/chevron-down.svg';
   static const String chevronLeft = '$_basePath/chevron-left.svg';

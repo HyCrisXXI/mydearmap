@@ -66,7 +66,9 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const RelationCreateView()),
+                    MaterialPageRoute(
+                      builder: (_) => const RelationCreateView(),
+                    ),
                   );
                 },
               ),
@@ -129,10 +131,7 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
   }
 
   Scaffold _buildShell(BuildContext context, Widget body) {
-    return Scaffold(
-      appBar: _buildRelationsAppBar(context),
-      body: body,
-    );
+    return Scaffold(appBar: _buildRelationsAppBar(context), body: body);
   }
 
   List<UserRelation> _applySearchFilter(List<UserRelation> relations) {
@@ -140,9 +139,8 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
     final query = _searchQuery.toLowerCase();
     return relations
         .where(
-          (relation) => _relationDisplayName(relation)
-              .toLowerCase()
-              .contains(query),
+          (relation) =>
+              _relationDisplayName(relation).toLowerCase().contains(query),
         )
         .toList();
   }
@@ -164,18 +162,20 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
   Widget _buildSectionHeader(BuildContext context, String label) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
+      child: Text(label, style: Theme.of(context).textTheme.titleMedium),
     );
   }
 
-  Widget _buildGroupCard(BuildContext context, WidgetRef ref, RelationGroup group) {
+  Widget _buildGroupCard(
+    BuildContext context,
+    WidgetRef ref,
+    RelationGroup group,
+  ) {
     final photoUrl = group.photoUrl?.trim();
     final trimmedName = group.name.trim();
-    final displayLetter =
-      trimmedName.isNotEmpty ? trimmedName[0].toUpperCase() : '?';
+    final displayLetter = trimmedName.isNotEmpty
+        ? trimmedName[0].toUpperCase()
+        : '?';
     final memoriesAsync = ref.watch(groupMemoriesProvider(group.id));
 
     return InkWell(
@@ -200,17 +200,13 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
               backgroundColor: photoUrl == null || photoUrl.isEmpty
                   ? Colors.white
                   : Colors.grey.shade300,
-              backgroundImage:
-                  photoUrl != null && photoUrl.isNotEmpty
-                      ? NetworkImage(photoUrl)
-                      : null,
+              backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                  ? NetworkImage(photoUrl)
+                  : null,
               child: photoUrl == null || photoUrl.isEmpty
                   ? Text(
                       displayLetter,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.black,
-                      ),
+                      style: const TextStyle(fontSize: 20, color: Colors.black),
                     )
                   : null,
             ),
@@ -227,24 +223,21 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
                   memoriesAsync.when(
                     loading: () => Text(
                       'Cargando recuerdos...',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.black54),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                     ),
                     error: (error, _) => Text(
                       'Error al cargar recuerdos',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.redAccent),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.redAccent),
                     ),
                     data: (memories) => Text(
                       _groupMemoriesLabel(memories.length),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.black54),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                     ),
                   ),
                 ],
@@ -264,13 +257,10 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
                 const SizedBox(width: 4),
                 Text(
                   group.members.length.toString(),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(
-                        color: AppColors.blue,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppColors.blue,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -316,19 +306,18 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor:
-                  avatarUrl == null ? Colors.white : Colors.grey.shade300,
-              backgroundImage:
-                  avatarUrl != null ? NetworkImage(avatarUrl) : null,
+              backgroundColor: avatarUrl == null
+                  ? Colors.white
+                  : Colors.grey.shade300,
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(avatarUrl)
+                  : null,
               child: avatarUrl == null
                   ? Text(
                       (relationLabel.isNotEmpty
                           ? relationLabel[0].toUpperCase()
                           : '?'),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.black,
-                      ),
+                      style: const TextStyle(fontSize: 20, color: Colors.black),
                     )
                   : null,
             ),
@@ -344,10 +333,9 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
                   const SizedBox(height: 4),
                   Text(
                     _sharedMemoriesLabel(shared.length),
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.black54),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.black54),
                   ),
                 ],
               ),
@@ -367,10 +355,8 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
         context,
         const Center(child: CircularProgressIndicator()),
       ),
-      error: (error, _) => _buildShell(
-        context,
-        Center(child: Text('Error: $error')),
-      ),
+      error: (error, _) =>
+          _buildShell(context, Center(child: Text('Error: $error'))),
       data: (user) {
         if (user == null) {
           return const Scaffold(
@@ -387,128 +373,175 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
             context,
             const Center(child: CircularProgressIndicator()),
           ),
-          error: (error, _) => _buildShell(
-            context,
-            Center(child: Text('Error: $error')),
-          ),
+          error: (error, _) =>
+              _buildShell(context, Center(child: Text('Error: $error'))),
           data: (relations) => memoriesAsync.when(
-            loading: () => _buildShell(
-              context,
-              const Center(child: CircularProgressIndicator()),
+            loading: () => Scaffold(
+              appBar: _buildRelationsAppBar(context),
+              body: const Center(child: CircularProgressIndicator()),
             ),
-            error: (error, _) => _buildShell(
-              context,
-              Center(child: Text('Error: $error')),
+            error: (error, _) => Scaffold(
+              appBar: _buildRelationsAppBar(context),
+              body: Center(child: Text('Error: $error')),
             ),
-            data: (memories) => groupsAsync.when(
-              loading: () => _buildShell(
-                context,
-                const Center(child: CircularProgressIndicator()),
-              ),
-              error: (error, _) => _buildShell(
-                context,
-                Center(child: Text('Error: $error')),
-              ),
-              data: (groups) {
-                final sortedRelations = [...relations]
-                  ..sort(
-                    (a, b) =>
-                        _relationDisplayName(a).compareTo(_relationDisplayName(b)),
-                  );
-                final filteredRelations = _applySearchFilter(sortedRelations);
-                final filteredGroups = _applyGroupSearch(groups);
-                final hasInitialItems =
-                    sortedRelations.isNotEmpty || groups.isNotEmpty;
-                final hasFilteredItems =
-                    filteredRelations.isNotEmpty || filteredGroups.isNotEmpty;
+            data: (memories) {
+              final sorted = [...relations]
+                ..sort(
+                  (a, b) => _relationDisplayName(
+                    a,
+                  ).compareTo(_relationDisplayName(b)),
+                );
 
-                final tiles = <Widget>[];
-                if (filteredGroups.isNotEmpty) {
-                  tiles.add(_buildSectionHeader(context, 'Grupos'));
-                  tiles.add(const SizedBox(height: 12));
-                  for (final group in filteredGroups) {
-                      tiles.add(_buildGroupCard(context, ref, group));
-                    tiles.add(const SizedBox(height: 12));
-                  }
-                }
+              final filtered = _applySearchFilter(sorted);
 
-                if (filteredRelations.isNotEmpty) {
-                  tiles.add(_buildSectionHeader(context, 'Vínculos'));
-                  tiles.add(const SizedBox(height: 12));
-                  for (final relation in filteredRelations) {
-                    tiles.add(
-                      _buildRelationCard(
-                        context: context,
-                        relation: relation,
-                        memories: memories,
-                        currentUserId: user.id,
-                      ),
-                    );
-                    tiles.add(const SizedBox(height: 12));
-                  }
-                }
-
-                if (tiles.isNotEmpty) {
-                  tiles.removeLast();
-                }
-
-                if (!hasInitialItems) {
-                  return _buildShell(
-                    context,
-                    const Center(
-                      child: Text('Aún no has creado vínculos ni grupos.'),
-                    ),
-                  );
-                }
-
-                return _buildShell(
-                  context,
-                  Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Buscar vínculos o grupos',
-                            suffixIcon: Padding(
-                              padding: const EdgeInsets.only(bottom: 0),
-                              child: const Icon(Icons.search),
-                            ),
-                            suffixIconConstraints: const BoxConstraints(
-                              minHeight: 24,
-                              minWidth: 40,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 20,
+              return Scaffold(
+                appBar: _buildRelationsAppBar(context),
+                body: sorted.isEmpty
+                    ? const Center(child: Text('Aún no has creado vinculos.'))
+                    : Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Buscar vínculos',
+                                suffixIcon: Padding(
+                                  padding: const EdgeInsets.only(bottom: 0),
+                                  child: const Icon(Icons.search),
+                                ),
+                                suffixIconConstraints: const BoxConstraints(
+                                  minHeight: 24,
+                                  minWidth: 40,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 20,
+                                ),
+                              ),
+                              textAlignVertical: TextAlignVertical.center,
                             ),
                           ),
-                          textAlignVertical: TextAlignVertical.center,
-                        ),
+                          Expanded(
+                            child: filtered.isEmpty
+                                ? const Center(
+                                    child: Text('No se encontraron vínculos.'),
+                                  )
+                                : ListView.separated(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 8,
+                                    ),
+                                    itemBuilder: (context, index) {
+                                      final relation = filtered[index];
+                                      final shared = sharedMemoriesForRelation(
+                                        allMemories: memories,
+                                        currentUserId: user.id,
+                                        relatedUserId: relation.relatedUser.id,
+                                      );
+                                      final relationLabel =
+                                          _relationDisplayName(relation);
+
+                                      // Avatar del usuario relacionado
+                                      final avatarUrl = buildAvatarUrl(
+                                        relation.relatedUser.profileUrl,
+                                      );
+
+                                      return InkWell(
+                                        borderRadius: BorderRadius.circular(18),
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  RelationDetailView(
+                                                    currentUserId: user.id,
+                                                    relatedUserId:
+                                                        relation.relatedUser.id,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
+                                            color: Colors.grey.shade100,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 24,
+                                                backgroundColor:
+                                                    avatarUrl == null
+                                                    ? Colors.white
+                                                    : Colors.grey.shade300,
+                                                backgroundImage:
+                                                    avatarUrl != null
+                                                    ? NetworkImage(avatarUrl)
+                                                    : null,
+                                                child: avatarUrl == null
+                                                    ? Text(
+                                                        (relationLabel
+                                                                .isNotEmpty
+                                                            ? relationLabel[0]
+                                                                  .toUpperCase()
+                                                            : '?'),
+                                                        style: const TextStyle(
+                                                          fontSize: 20,
+                                                          color: Colors.black,
+                                                        ),
+                                                      )
+                                                    : null,
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      relationLabel,
+                                                      style: Theme.of(
+                                                        context,
+                                                      ).textTheme.titleMedium,
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      _sharedMemoriesLabel(
+                                                        shared.length,
+                                                      ),
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            color:
+                                                                Colors.black54,
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const Icon(Icons.chevron_right),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    separatorBuilder: (_, _) =>
+                                        const SizedBox(height: 12),
+                                    itemCount: filtered.length,
+                                  ),
+                          ),
+                        ],
                       ),
-                      Expanded(
-                        child: hasFilteredItems
-                            ? ListView(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 8,
-                                ),
-                                children: tiles,
-                              )
-                            : const Center(
-                                child: Text('No se encontraron resultados.'),
-                              ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+              );
+            },
           ),
         );
       },

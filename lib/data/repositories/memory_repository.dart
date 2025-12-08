@@ -1,5 +1,6 @@
 // lib/data/repositories/memory_repository.dart
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import '../models/comment.dart';
 import '../models/media.dart';
 import '../models/memory.dart';
 import '../models/user.dart';
@@ -260,18 +261,39 @@ class MemoryRepository {
         .eq('user_id', userId);
   }
 
+  Future<Comment> addComment({
+    required String memoryId,
+    required String userId,
+    required String content,
+    String? subtitle,
+  }) async {
+    final response = await _client
+        .from('comments')
+        .insert({
+          'memory_id': memoryId,
+          'user_id': userId,
+          'content': content,
+          'subtext': subtitle,
+        })
+        .select('id, content, subtext, created_at, updated_at, user:users(*)')
+        .single();
+
+    return Comment.fromJson(response);
+  }
+
+  Future<void> deleteComment(String commentId) async {
+    await _client.from('comments').delete().eq('id', commentId);
+  }
+
   Future<void> linkMemoryToGroup({
     required String groupId,
     required String memoryId,
     required String addedBy,
   }) async {
-    await _client.from('relation_group_memories').upsert(
-      {
-        'group_id': groupId,
-        'memory_id': memoryId,
-        'added_by': addedBy,
-      },
-      onConflict: 'group_id,memory_id',
-    );
+    await _client.from('relation_group_memories').upsert({
+      'group_id': groupId,
+      'memory_id': memoryId,
+      'added_by': addedBy,
+    }, onConflict: 'group_id,memory_id');
   }
 }
