@@ -213,8 +213,10 @@ class _SignupViewState extends ConsumerState<SignupView> {
                     DropdownButtonFormField<String?>(
                       key: ValueKey(signupState.form.gender),
                       initialValue: signupState.form.gender,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Género (opcional)',
+                        border: OutlineInputBorder(),
                       ),
                       items: const [
                         DropdownMenuItem<String?>(

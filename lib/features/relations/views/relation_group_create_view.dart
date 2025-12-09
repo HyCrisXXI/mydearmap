@@ -1,9 +1,10 @@
 import 'dart:typed_data';
+import 'package:mydearmap/core/utils/media_utils.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:image_picker/image_picker.dart';
+
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
@@ -35,19 +36,18 @@ class _RelationGroupCreateViewState
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final file = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 900,
-      imageQuality: 85,
-    );
-    if (file == null) return;
+    final croppedFile = await MediaUtils.pickAndCropImage(context: context);
+    if (croppedFile == null) return;
 
-    final bytes = await file.readAsBytes();
+    final bytes = await croppedFile.readAsBytes();
     if (!mounted) return;
     setState(() {
       _imageBytes = bytes;
-      _imageFilename = file.name;
+      // We need a filename for upload. CroppedFile usually has a path.
+      // We can generate a generic name or try to use path's basename.
+      // Since createGroup expects a filename, let's use a synthetic one with .jpg extension
+      _imageFilename =
+          'group_image_${DateTime.now().millisecondsSinceEpoch}.jpg';
     });
   }
 
@@ -115,6 +115,7 @@ class _RelationGroupCreateViewState
           error: (error, _) =>
               Scaffold(body: Center(child: Text('Error: $error'))),
           data: (relations) => Scaffold(
+            extendBodyBehindAppBar: true,
             appBar: AppBar(
               title: const Text('Nuevo grupo'),
               leading: IconButton(
@@ -122,79 +123,123 @@ class _RelationGroupCreateViewState
                 onPressed: () => Navigator.of(context).pop(),
                 style: AppButtonStyles.circularIconButton,
               ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
             ),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(60),
-                        onTap: _saving ? null : _pickImage,
-                        child: CircleAvatar(
-                          radius: 60,
-                          backgroundImage: _imageBytes != null
-                              ? MemoryImage(_imageBytes!)
-                              : null,
-                          backgroundColor: Colors.grey.shade200,
-                          child: _imageBytes == null
-                              ? const Icon(Icons.photo_camera, size: 28)
-                              : null,
-                        ),
-                      ),
+            body: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(AppIcons.profileBG),
+                      fit: BoxFit.cover,
                     ),
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre del grupo',
-                        hintText: 'Familia, Amigos del cole…',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'El grupo necesita un nombre';
-                        }
-                        if (value.trim().length < 3) {
-                          return 'Usa al menos 3 caracteres';
-                        }
-                        return null;
-                      },
-                      textInputAction: TextInputAction.done,
-                      enabled: !_saving,
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Integrantes (opcional)',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildMembersSection(relations),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: _saving
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.check),
-                        label: Text(
-                          _saving ? 'Creando grupo...' : 'Crear grupo',
-                        ),
-                        onPressed: _saving ? null : _handleSubmit,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                SingleChildScrollView(
+                  padding: const EdgeInsets.only(
+                    top: AppSizes.upperPadding,
+                    left: 20,
+                    right: 20,
+                    bottom: 20,
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Stack(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.primaryColor,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 60,
+                                  backgroundImage: _imageBytes != null
+                                      ? MemoryImage(_imageBytes!)
+                                      : null,
+                                  backgroundColor: Colors.grey.shade200,
+                                  child: _imageBytes == null
+                                      ? const Icon(
+                                          Icons.group,
+                                          size: 60,
+                                          color: Colors.grey,
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Transform.translate(
+                                  offset: const Offset(5, 5),
+                                  child: IconButton(
+                                    style: AppButtonStyles.circularIconButton,
+                                    onPressed: _saving ? null : _pickImage,
+                                    icon: SvgPicture.asset(AppIcons.pencil),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nombre del grupo',
+                            hintText: 'Familia, Amigos del cole…',
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'El grupo necesita un nombre';
+                            }
+                            if (value.trim().length < 3) {
+                              return 'Usa al menos 3 caracteres';
+                            }
+                            return null;
+                          },
+                          textInputAction: TextInputAction.done,
+                          enabled: !_saving,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Integrantes (opcional)',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMembersSection(relations),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: _saving
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.check),
+                            label: Text(
+                              _saving ? 'Creando grupo...' : 'Crear grupo',
+                            ),
+                            onPressed: _saving ? null : _handleSubmit,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );

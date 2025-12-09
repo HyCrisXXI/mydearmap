@@ -14,65 +14,19 @@ class TimeCapsulesView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final capsulesAsync = ref.watch(userTimeCapsulesProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: SvgPicture.asset(AppIcons.chevronLeft),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          style: AppButtonStyles.circularIconButton,
-        ),
-        title: const Text('Mis Cápsulas de Tiempo'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: SvgPicture.asset(
-                AppIcons.timer,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.blue,
-                  BlendMode.srcIn,
-                ),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              style: AppButtonStyles.circularIconButton,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: SvgPicture.asset(AppIcons.heartHandshake),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RelationsView()),
-                );
-              },
-              style: AppButtonStyles.circularIconButton,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: IconButton(
-              icon: SvgPicture.asset(AppIcons.plus),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const TimeCapsuleCreateView(),
-                  ),
-                );
-              },
-              style: AppButtonStyles.circularIconButton,
-            ),
-          ),
-        ],
+    return capsulesAsync.when(
+      loading: () => const _TimeCapsulesLayout(
+        child: Center(child: CircularProgressIndicator()),
       ),
-      body: capsulesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
-        data: (capsules) => capsules.isEmpty
+      error: (error, _) =>
+          _TimeCapsulesLayout(child: Center(child: Text('Error: $error'))),
+      data: (capsules) => _TimeCapsulesLayout(
+        onAddPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const TimeCapsuleCreateView()),
+          );
+        },
+        child: capsules.isEmpty
             ? const Center(child: Text('No tienes cápsulas de tiempo.'))
             : ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -104,6 +58,92 @@ class TimeCapsulesView extends ConsumerWidget {
                   );
                 },
               ),
+      ),
+    );
+  }
+}
+
+class _TimeCapsulesLayout extends StatelessWidget {
+  const _TimeCapsulesLayout({required this.child, this.onAddPressed});
+
+  final Widget child;
+  final VoidCallback? onAddPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSizes.upperPadding,
+                bottom: 8.0,
+                left: 16,
+                right: 30.0,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: SvgPicture.asset(AppIcons.chevronLeft),
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: AppButtonStyles.circularIconButton,
+                    ),
+                  ),
+                  const Text(
+                    'Mis Cápsulas de Tiempo',
+                    style: AppTextStyles.title,
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: SvgPicture.asset(
+                            AppIcons.timer,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.blue,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: AppButtonStyles.circularIconButton,
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: SvgPicture.asset(AppIcons.heartHandshake),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const RelationsView(),
+                              ),
+                            );
+                          },
+                          style: AppButtonStyles.circularIconButton,
+                        ),
+                        if (onAddPressed != null) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: SvgPicture.asset(AppIcons.plus),
+                            onPressed: onAddPressed,
+                            style: AppButtonStyles.circularIconButton,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: child),
+          ],
+        ),
       ),
     );
   }

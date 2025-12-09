@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/achievement_provider.dart';
@@ -13,6 +14,7 @@ import 'package:mydearmap/features/wishlist/views/wishlist_view.dart';
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
 
+  @override
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
@@ -33,187 +35,257 @@ class ProfileView extends ConsumerWidget {
         }
 
         final achievementsAsync = ref.watch(userAchievementsProvider(user.id));
-
         final avatarUrl = buildAvatarUrl(user.profileUrl);
 
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Mi perfil'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.edit),
-                tooltip: 'Editar perfil',
-                onPressed: () async {
-                  final updated = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(
-                      builder: (_) => ProfileEditView(user: user),
-                    ),
-                  );
-                  if (updated == true) {
-                    Future.microtask(() => ref.invalidate(currentUserProvider));
-                  }
-                },
+          extendBodyBehindAppBar: true,
+          body: Stack(
+            children: [
+              // 1. Background Image
+              Container(
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(AppIcons.profileBG),
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
-            ],
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSizes.paddingLarge),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: AppColors.primaryColor,
-                  backgroundImage: avatarUrl != null
-                      ? NetworkImage(avatarUrl)
-                      : null,
-                  child: avatarUrl == null
-                      ? Text(
-                          user.name.isNotEmpty
-                              ? user.name[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            fontSize: 48,
-                            color: Color.fromARGB(255, 17, 17, 17),
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(height: AppSizes.paddingMedium),
-                Text(
-                  user.name,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  user.email,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                ),
-                const SizedBox(height: AppSizes.paddingMedium),
-                Card(
-                  child: ListTile(
-                    title: const Text('Wishlist'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        SizedBox(height: 6),
-                        Divider(height: 1, thickness: 1),
-                        SizedBox(height: 6),
-                        Text(
-                          'Todos los lugares o planes que estás deseando hacer.',
+              // 2. Safe Area Wrapper for Content
+              SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    // 3. Custom Header with Padding
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: AppSizes.upperPadding,
+                        bottom: 8.0,
+                      ),
+                      child: Center(
+                        child: Text('Perfil', style: AppTextStyles.title),
+                      ),
+                    ),
+                    // 4. Scrollable Content
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSizes.paddingLarge,
                         ),
-                      ],
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      showDialog<void>(
-                        context: context,
-                        barrierDismissible: true,
-                        builder: (_) => const WishlistDialog(),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: AppSizes.paddingLarge),
-                const Divider(),
-                const SizedBox(height: AppSizes.paddingMedium),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Logros desbloqueados',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSizes.paddingMedium),
-                achievementsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator.adaptive()),
-                  error: (error, _) => Text(
-                    'Error al cargar los logros: $error',
-                    style: const TextStyle(color: Colors.redAccent),
-                  ),
-                  data: (achievements) {
-                    if (achievements.isEmpty) {
-                      return const Text(
-                        'Todavía no has desbloqueado ningún logro.',
-                        style: TextStyle(color: Colors.black54),
-                      );
-                    }
-
-                    return ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: achievements.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: AppSizes.paddingSmall),
-                      itemBuilder: (context, index) {
-                        final userAchievement = achievements[index];
-                        final achievement = userAchievement.achievement;
-
-                        return Card(
-                          child: ListTile(
-                            leading: achievement?.iconUrl != null
-                                ? Image.network(
-                                    achievement!.iconUrl!,
-                                    width: 48,
-                                    height: 48,
-                                    errorBuilder: (_, _, _) => const Icon(
-                                      Icons.emoji_events,
-                                      size: 48,
-                                      color: Colors.amber,
+                        child: Column(
+                          children: [
+                            const SizedBox(height: AppSizes.paddingSmall),
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                GestureDetector(
+                                  onTap: () =>
+                                      _showFullImage(context, avatarUrl),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: AppColors.primaryColor,
+                                        width: 1,
+                                      ),
                                     ),
-                                  )
-                                : const Icon(
-                                    Icons.emoji_events,
-                                    size: 48,
-                                    color: Colors.amber,
+                                    child: CircleAvatar(
+                                      radius: 60,
+                                      backgroundColor: AppColors.primaryColor,
+                                      backgroundImage: avatarUrl != null
+                                          ? NetworkImage(avatarUrl)
+                                          : null,
+                                      child: avatarUrl == null
+                                          ? Text(
+                                              user.name.isNotEmpty
+                                                  ? user.name[0].toUpperCase()
+                                                  : '?',
+                                              style: const TextStyle(
+                                                fontSize: 48,
+                                                color: Color.fromARGB(
+                                                  255,
+                                                  17,
+                                                  17,
+                                                  17,
+                                                ),
+                                              ),
+                                            )
+                                          : null,
+                                    ),
                                   ),
-                            title: Text(
-                              achievement?.name ?? 'Logro',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Transform.translate(
+                                    offset: const Offset(5, 5),
+                                    child: IconButton(
+                                      style: AppButtonStyles.circularIconButton,
+                                      onPressed: () => _navigateToEditProfile(
+                                        context,
+                                        ref,
+                                        user,
+                                      ),
+                                      icon: SvgPicture.asset(AppIcons.pencil),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSizes.paddingMedium),
+                            Text(
+                              user.name,
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              user.email,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.grey[600]),
+                            ),
+                            const SizedBox(height: AppSizes.paddingMedium),
+                            Card(
+                              child: ListTile(
+                                title: const Text('Wishlist'),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    SizedBox(height: 6),
+                                    Divider(height: 1, thickness: 1),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Todos los lugares o planes que estás deseando hacer.',
+                                    ),
+                                  ],
+                                ),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  showDialog<void>(
+                                    context: context,
+                                    barrierDismissible: true,
+                                    builder: (_) => const WishlistDialog(),
+                                  );
+                                },
                               ),
                             ),
-                            subtitle: Text(
-                              achievement?.description ?? '',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(height: AppSizes.paddingLarge),
+                            const Divider(),
+                            const SizedBox(height: AppSizes.paddingMedium),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Logros desbloqueados',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
                             ),
-                            trailing: Text(
-                              _formatDate(userAchievement.unlockedAt),
-                              style: Theme.of(context).textTheme.bodySmall,
+                            const SizedBox(height: AppSizes.paddingMedium),
+                            achievementsAsync.when(
+                              loading: () => const Center(
+                                child: CircularProgressIndicator.adaptive(),
+                              ),
+                              error: (error, _) => Text(
+                                'Error al cargar los logros: $error',
+                                style: const TextStyle(color: Colors.redAccent),
+                              ),
+                              data: (achievements) {
+                                if (achievements.isEmpty) {
+                                  return const Text(
+                                    'Todavía no has desbloqueado ningún logro.',
+                                    style: TextStyle(color: Colors.black54),
+                                  );
+                                }
+
+                                return ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: achievements.length,
+                                  separatorBuilder: (_, _) => const SizedBox(
+                                    height: AppSizes.paddingSmall,
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final userAchievement = achievements[index];
+                                    final achievement =
+                                        userAchievement.achievement;
+
+                                    return Card(
+                                      child: ListTile(
+                                        leading: achievement?.iconUrl != null
+                                            ? Image.network(
+                                                achievement!.iconUrl!,
+                                                width: 48,
+                                                height: 48,
+                                                errorBuilder: (_, _, _) =>
+                                                    const Icon(
+                                                      Icons.emoji_events,
+                                                      size: 48,
+                                                      color: Colors.amber,
+                                                    ),
+                                              )
+                                            : const Icon(
+                                                Icons.emoji_events,
+                                                size: 48,
+                                                color: Colors.amber,
+                                              ),
+                                        title: Text(
+                                          achievement?.name ?? 'Logro',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          achievement?.description ?? '',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        trailing: Text(
+                                          _formatDate(
+                                            userAchievement.unlockedAt,
+                                          ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: AppSizes.paddingLarge),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingLarge,
-                    vertical: AppSizes.paddingLarge,
-                  ),
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Cerrar sesión'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(48),
+                            const SizedBox(height: AppSizes.paddingLarge),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSizes.paddingLarge,
+                                vertical: AppSizes.paddingLarge,
+                              ),
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.textColor,
+                                  backgroundColor: Colors.transparent,
+                                  side: const BorderSide(
+                                    color: AppColors.buttonBackground,
+                                    width: 1.0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      AppSizes.borderRadius,
+                                    ),
+                                  ),
+                                  fixedSize: const Size(200, 35),
+                                ),
+                                onPressed: () => _handleLogout(context, ref),
+                                child: const Text('Cerrar sesión'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    onPressed: () => _handleLogout(context, ref),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
@@ -224,6 +296,33 @@ class ProfileView extends ConsumerWidget {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     return '$day/$month/${date.year}';
+  }
+
+  void _showFullImage(BuildContext context, String? imageUrl) {
+    if (imageUrl == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(500),
+          child: Image.network(imageUrl, fit: BoxFit.cover),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _navigateToEditProfile(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic user,
+  ) async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => ProfileEditView(user: user)),
+    );
+    if (updated == true) {
+      Future.microtask(() => ref.invalidate(currentUserProvider));
+    }
   }
 
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {

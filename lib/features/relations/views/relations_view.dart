@@ -91,49 +91,6 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
     );
   }
 
-  PreferredSizeWidget _buildRelationsAppBar(BuildContext context) {
-    return AppBar(
-      leading: IconButton(
-        icon: SvgPicture.asset(AppIcons.chevronLeft),
-        onPressed: () {
-          Navigator.of(context).pop();
-        },
-        style: AppButtonStyles.circularIconButton,
-      ),
-      title: const Text('Vínculos'),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 8.0),
-          child: IconButton(
-            icon: SvgPicture.asset(
-              AppIcons.heartHandshake,
-              colorFilter: const ColorFilter.mode(
-                AppColors.blue,
-                BlendMode.srcIn,
-              ),
-            ),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            style: AppButtonStyles.circularIconButton,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(right: 12.0),
-          child: IconButton(
-            icon: SvgPicture.asset(AppIcons.plus),
-            onPressed: () => _showCreateOptions(context),
-            style: AppButtonStyles.circularIconButton,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Scaffold _buildShell(BuildContext context, Widget body) {
-    return Scaffold(appBar: _buildRelationsAppBar(context), body: body);
-  }
-
   List<UserRelation> _applySearchFilter(List<UserRelation> relations) {
     if (_searchQuery.isEmpty) return relations;
     final query = _searchQuery.toLowerCase();
@@ -351,16 +308,15 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
     final userAsync = ref.watch(currentUserProvider);
 
     return userAsync.when(
-      loading: () => _buildShell(
-        context,
-        const Center(child: CircularProgressIndicator()),
+      loading: () => const _RelationsLayout(
+        child: Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) =>
-          _buildShell(context, Center(child: Text('Error: $error'))),
+          _RelationsLayout(child: Center(child: Text('Error: $error'))),
       data: (user) {
         if (user == null) {
-          return const Scaffold(
-            body: Center(child: Text('Inicia sesión para ver tus vínculos')),
+          return const _RelationsLayout(
+            child: Center(child: Text('Inicia sesión para ver tus vínculos')),
           );
         }
 
@@ -369,21 +325,17 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
         final groupsAsync = ref.watch(userRelationGroupsProvider(user.id));
 
         return relationsAsync.when(
-          loading: () => _buildShell(
-            context,
-            const Center(child: CircularProgressIndicator()),
+          loading: () => const _RelationsLayout(
+            child: Center(child: CircularProgressIndicator()),
           ),
           error: (error, _) =>
-              _buildShell(context, Center(child: Text('Error: $error'))),
+              _RelationsLayout(child: Center(child: Text('Error: $error'))),
           data: (relations) => memoriesAsync.when(
-            loading: () => Scaffold(
-              appBar: _buildRelationsAppBar(context),
-              body: const Center(child: CircularProgressIndicator()),
+            loading: () => const _RelationsLayout(
+              child: Center(child: CircularProgressIndicator()),
             ),
-            error: (error, _) => Scaffold(
-              appBar: _buildRelationsAppBar(context),
-              body: Center(child: Text('Error: $error')),
-            ),
+            error: (error, _) =>
+                _RelationsLayout(child: Center(child: Text('Error: $error'))),
             data: (memories) {
               final sorted = [...relations]
                 ..sort(
@@ -394,9 +346,9 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
 
               final filtered = _applySearchFilter(sorted);
 
-              return Scaffold(
-                appBar: _buildRelationsAppBar(context),
-                body: sorted.isEmpty
+              return _RelationsLayout(
+                onAddPressed: () => _showCreateOptions(context),
+                child: sorted.isEmpty
                     ? const Center(child: Text('Aún no has creado vinculos.'))
                     : Column(
                         children: [
@@ -545,6 +497,77 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
           ),
         );
       },
+    );
+  }
+}
+
+class _RelationsLayout extends StatelessWidget {
+  const _RelationsLayout({required this.child, this.onAddPressed});
+
+  final Widget child;
+  final VoidCallback? onAddPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSizes.upperPadding,
+                bottom: 8.0,
+                left: 16,
+                right: 30.0,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: SvgPicture.asset(AppIcons.chevronLeft),
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: AppButtonStyles.circularIconButton,
+                    ),
+                  ),
+                  const Text('Vínculos', style: AppTextStyles.title),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: SvgPicture.asset(
+                            AppIcons.heartHandshake,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.blue,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: AppButtonStyles.circularIconButton,
+                        ),
+                        if (onAddPressed != null) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: SvgPicture.asset(AppIcons.plus),
+                            onPressed: onAddPressed,
+                            style: AppButtonStyles.circularIconButton,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: child),
+          ],
+        ),
+      ),
     );
   }
 }
