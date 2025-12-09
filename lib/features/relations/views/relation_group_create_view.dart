@@ -54,10 +54,9 @@ class _RelationGroupCreateViewState
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final currentUser = ref.read(currentUserProvider).maybeWhen(
-          data: (user) => user,
-          orElse: () => null,
-        );
+    final currentUser = ref
+        .read(currentUserProvider)
+        .maybeWhen(data: (user) => user, orElse: () => null);
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Debes iniciar sesión para continuar')),
@@ -69,12 +68,14 @@ class _RelationGroupCreateViewState
     final name = _nameController.text.trim();
 
     try {
-      await ref.read(relationGroupControllerProvider.notifier).createGroup(
+      await ref
+          .read(relationGroupControllerProvider.notifier)
+          .createGroup(
             creatorId: currentUser.id,
             name: name,
             photoBytes: _imageBytes,
             photoFilename: _imageFilename,
-        memberIds: _selectedMemberIds.toList(),
+            memberIds: _selectedMemberIds.toList(),
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,12 +97,9 @@ class _RelationGroupCreateViewState
     final userAsync = ref.watch(currentUserProvider);
 
     return userAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (error, _) => Scaffold(
-        body: Center(child: Text('Error: $error')),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, _) => Scaffold(body: Center(child: Text('Error: $error'))),
       data: (user) {
         if (user == null) {
           return const Scaffold(
@@ -112,12 +110,10 @@ class _RelationGroupCreateViewState
         final relationsAsync = ref.watch(userRelationsProvider(user.id));
 
         return relationsAsync.when(
-          loading: () => const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          ),
-          error: (error, _) => Scaffold(
-            body: Center(child: Text('Error: $error')),
-          ),
+          loading: () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          error: (error, _) =>
+              Scaffold(body: Center(child: Text('Error: $error'))),
           data: (relations) => Scaffold(
             appBar: AppBar(
               title: const Text('Nuevo grupo'),
@@ -191,7 +187,8 @@ class _RelationGroupCreateViewState
                               )
                             : const Icon(Icons.check),
                         label: Text(
-                            _saving ? 'Creando grupo...' : 'Crear grupo'),
+                          _saving ? 'Creando grupo...' : 'Crear grupo',
+                        ),
                         onPressed: _saving ? null : _handleSubmit,
                       ),
                     ),
@@ -214,15 +211,14 @@ class _RelationGroupCreateViewState
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: relations.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final relation = relations[index];
         final relationId = relation.relatedUser.id;
         final selected = _selectedMemberIds.contains(relationId);
         final label = _relationDisplayName(relation);
         final avatarUrl = buildAvatarUrl(relation.relatedUser.profileUrl);
-        final fallbackLetter =
-            label.isNotEmpty ? label[0].toUpperCase() : '?';
+        final fallbackLetter = label.isNotEmpty ? label[0].toUpperCase() : '?';
 
         return CheckboxListTile(
           value: selected,
@@ -241,17 +237,14 @@ class _RelationGroupCreateViewState
           title: Text(label),
           secondary: CircleAvatar(
             radius: 24,
-            backgroundColor:
-                avatarUrl == null ? Colors.grey.shade200 : Colors.transparent,
-            backgroundImage:
-                avatarUrl != null ? NetworkImage(avatarUrl) : null,
+            backgroundColor: avatarUrl == null
+                ? Colors.grey.shade200
+                : Colors.transparent,
+            backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
             child: avatarUrl == null
                 ? Text(
                     fallbackLetter,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.black,
-                    ),
+                    style: const TextStyle(fontSize: 18, color: Colors.black),
                   )
                 : null,
           ),

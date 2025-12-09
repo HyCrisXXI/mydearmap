@@ -42,28 +42,27 @@ class MemoryDetailView extends ConsumerWidget {
     final currentUserAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       floatingActionButton: null,
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
-            const SizedBox(height: AppSizes.paddingLarge),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSizes.paddingLarge,
-                AppSizes.paddingLarge,
+                AppSizes.upperPadding,
                 AppSizes.paddingLarge,
                 AppSizes.paddingMedium,
               ),
               child: Row(
                 children: [
-                  _HeaderCircleButton(
-                    child: IconButton(
-                      icon: SvgPicture.asset(AppIcons.chevronLeft),
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: AppButtonStyles.circularIconButton,
-                    ),
+                  IconButton(
+                    icon: SvgPicture.asset(AppIcons.chevronLeft),
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: AppButtonStyles.circularIconButton,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSizes.paddingSmallMedium),
                   Expanded(
                     child: memoryAsync.maybeWhen(
                       data: (memory) => Text(
@@ -79,6 +78,8 @@ class MemoryDetailView extends ConsumerWidget {
                     ),
                   ),
                   PopupMenuButton<_MemoryDetailMenuAction>(
+                    icon: SvgPicture.asset(AppIcons.ellipsisVertical),
+                    style: AppButtonStyles.circularIconButton,
                     tooltip: 'Más opciones',
                     onSelected: (action) async {
                       switch (action) {
@@ -112,9 +113,6 @@ class MemoryDetailView extends ConsumerWidget {
                         child: Text('Crear comentario'),
                       ),
                     ],
-                    child: _HeaderCircleButton(
-                      child: const Icon(Icons.more_vert),
-                    ),
                   ),
                 ],
               ),
@@ -154,7 +152,9 @@ class MemoryDetailView extends ConsumerWidget {
                         const SizedBox(height: 6),
                         Center(
                           child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 520),
+                            constraints: const BoxConstraints(
+                              maxWidth: AppSizes.modalMaxWidth,
+                            ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -195,7 +195,7 @@ class MemoryDetailView extends ConsumerWidget {
                                         Row(
                                           children: [
                                             Icon(
-                                              Icons.place_outlined,
+                                              Icons.place,
                                               size: 16,
                                               color: AppColors.accentColor,
                                             ),
@@ -354,32 +354,6 @@ class _ParticipantsHeaderPreview extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _HeaderCircleButton extends StatelessWidget {
-  const _HeaderCircleButton({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 46,
-      height: 46,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Center(child: child),
     );
   }
 }
@@ -757,194 +731,208 @@ String _formatLocationLabel(LatLng point) {
   return 'Lat $lat, Lon $lng';
 }
 
+class _CommentComposerDialog extends ConsumerStatefulWidget {
+  const _CommentComposerDialog({required this.memoryId});
+
+  final String memoryId;
+
+  @override
+  ConsumerState<_CommentComposerDialog> createState() =>
+      _CommentComposerDialogState();
+}
+
+class _CommentComposerDialogState
+    extends ConsumerState<_CommentComposerDialog> {
+  late final TextEditingController _contentController;
+  late final TextEditingController _subtitleController;
+  final _formKey = GlobalKey<FormState>();
+  var _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _contentController = TextEditingController();
+    _subtitleController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _contentController.dispose();
+    _subtitleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    return Dialog(
+      insetPadding: const EdgeInsets.all(AppSizes.paddingLarge),
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.only(bottom: viewInsets),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSizes.paddingLarge),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Nuevo comentario',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Cerrar',
+                        onPressed: _isSubmitting
+                            ? null
+                            : () {
+                                if (!context.mounted) return;
+                                Navigator.of(context).pop(false);
+                              },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.paddingMedium),
+                  TextFormField(
+                    controller: _contentController,
+                    decoration: const InputDecoration(
+                      labelText: 'Título',
+                      hintText: 'Describe el momento',
+                    ),
+                    minLines: 1,
+                    maxLines: 6,
+                    autofocus: true,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Escribe un título';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: AppSizes.paddingMedium),
+                  TextFormField(
+                    controller: _subtitleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Subtexto (opcional)',
+                      hintText: 'Describe el momento',
+                    ),
+                    minLines: 1,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: AppSizes.paddingLarge),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () {
+                                if (!context.mounted) return;
+                                Navigator.of(context).pop(false);
+                              },
+                        child: const Text('Cancelar'),
+                      ),
+                      const Spacer(),
+                      FilledButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () async {
+                                if (!_formKey.currentState!.validate()) {
+                                  return;
+                                }
+                                setState(() => _isSubmitting = true);
+                                try {
+                                  final user = await ref.read(
+                                    currentUserProvider.future,
+                                  );
+                                  if (user == null) {
+                                    setState(() => _isSubmitting = false);
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Debes iniciar sesión para comentar.',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  final repository = ref.read(
+                                    memoryRepositoryProvider,
+                                  );
+                                  final content = _contentController.text
+                                      .trim();
+                                  final subtitle = _subtitleController.text
+                                      .trim();
+                                  await repository.addComment(
+                                    memoryId: widget.memoryId,
+                                    userId: user.id,
+                                    content: content,
+                                    subtitle: subtitle.isNotEmpty
+                                        ? subtitle
+                                        : null,
+                                  );
+                                  ref.invalidate(
+                                    memoryCommentsProvider(widget.memoryId),
+                                  );
+                                  if (!context.mounted) return;
+                                  if (Navigator.of(context).canPop()) {
+                                    Navigator.of(context).pop(true);
+                                  }
+                                } catch (error) {
+                                  setState(() => _isSubmitting = false);
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'No se pudo publicar: $error',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Publicar'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 Future<void> _showCommentComposer(
   BuildContext context,
   WidgetRef ref,
   String memoryId,
 ) async {
-  final contentController = TextEditingController();
-  final subtitleController = TextEditingController();
-  final formKey = GlobalKey<FormState>();
-  var isSubmitting = false;
-
   final shouldNotify = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
-    builder: (_) {
-      return StatefulBuilder(
-        builder: (modalContext, setDialogState) {
-          final viewInsets = MediaQuery.of(modalContext).viewInsets.bottom;
-          return Dialog(
-            insetPadding: const EdgeInsets.all(AppSizes.paddingLarge),
-            child: AnimatedPadding(
-              duration: const Duration(milliseconds: 200),
-              padding: EdgeInsets.only(bottom: viewInsets),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSizes.paddingLarge),
-                  child: Form(
-                    key: formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Nuevo comentario',
-                                style: Theme.of(modalContext)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: 'Cerrar',
-                              onPressed: isSubmitting
-                                  ? null
-                                  : () {
-                                      if (!context.mounted) return;
-                                      Navigator.of(context).pop(false);
-                                    },
-                              icon: const Icon(Icons.close_rounded),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSizes.paddingMedium),
-                        TextFormField(
-                          controller: contentController,
-                          decoration: const InputDecoration(
-                            labelText: 'Comentario',
-                            hintText: 'Comparte qué recuerdas de este momento',
-                          ),
-                          minLines: 3,
-                          maxLines: 6,
-                          autofocus: true,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Escribe un comentario';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: AppSizes.paddingMedium),
-                        TextFormField(
-                          controller: subtitleController,
-                          decoration: const InputDecoration(
-                            labelText: 'Subtexto (opcional)',
-                            hintText: 'Añade un pie de foto o contexto extra',
-                          ),
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: AppSizes.paddingLarge),
-                        Row(
-                          children: [
-                            TextButton(
-                              onPressed: isSubmitting
-                                  ? null
-                                  : () {
-                                      if (!context.mounted) return;
-                                      Navigator.of(context).pop(false);
-                                    },
-                              child: const Text('Cancelar'),
-                            ),
-                            const Spacer(),
-                            FilledButton(
-                              onPressed: isSubmitting
-                                  ? null
-                                  : () async {
-                                      if (!formKey.currentState!.validate()) {
-                                        return;
-                                      }
-                                      setDialogState(() => isSubmitting = true);
-                                      try {
-                                        final user = await ref.read(
-                                          currentUserProvider.future,
-                                        );
-                                        if (user == null) {
-                                          setDialogState(
-                                            () => isSubmitting = false,
-                                          );
-                                          if (!context.mounted) return;
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Debes iniciar sesión para comentar.',
-                                              ),
-                                            ),
-                                          );
-                                          return;
-                                        }
-
-                                        final repository = ref.read(
-                                          memoryRepositoryProvider,
-                                        );
-                                        final content = contentController.text
-                                            .trim();
-                                        final subtitle = subtitleController.text
-                                            .trim();
-                                        await repository.addComment(
-                                          memoryId: memoryId,
-                                          userId: user.id,
-                                          content: content,
-                                          subtitle: subtitle.isNotEmpty
-                                              ? subtitle
-                                              : null,
-                                        );
-                                        ref.invalidate(
-                                          memoryCommentsProvider(memoryId),
-                                        );
-                                        if (!context.mounted) return;
-                                        if (Navigator.of(context).canPop()) {
-                                          Navigator.of(context).pop(true);
-                                        }
-                                      } catch (error) {
-                                        setDialogState(
-                                          () => isSubmitting = false,
-                                        );
-                                        if (!context.mounted) return;
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'No se pudo publicar: $error',
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                              child: isSubmitting
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text('Publicar'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    },
+    builder: (_) => _CommentComposerDialog(memoryId: memoryId),
   );
-
-  contentController.dispose();
-  subtitleController.dispose();
 
   if (shouldNotify == true) {
     if (!context.mounted) return;
