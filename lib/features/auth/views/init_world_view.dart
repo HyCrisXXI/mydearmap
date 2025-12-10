@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/widgets/app_nav_bar.dart';
+import 'package:mydearmap/core/widgets/app_shell.dart';
 
 class InitWorldView extends StatefulWidget {
   const InitWorldView({super.key, this.userName, this.onEnterWorld});
@@ -31,110 +32,120 @@ class _InitWorldViewState extends State<InitWorldView>
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        top: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSizes.paddingLarge,
-                AppSizes.upperPadding + 40,
-                AppSizes.paddingLarge,
-                0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'MyDearMap',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Because every memory\ndeserves a place',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.black,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.paddingMedium),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.center,
-                child: SizedBox(
-                  width: iconDiameter,
-                  height: iconDiameter * 1.1,
-                  child: Image.asset(
-                    AppIcons.initWorld,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSizes.paddingLarge,
-                AppSizes.paddingLarge,
-                AppSizes.paddingLarge,
-                AppSizes.paddingLarge,
-              ),
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.center,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 48,
-                          vertical: 18,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(60),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: Image.asset(AppIcons.initWorldBG, fit: BoxFit.cover),
+          ),
+          SafeArea(
+            top: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 125, 0, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'MyDearMap',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.myDearMapTitle,
+                      ),
+                      const SizedBox(height: 13),
+                      Text(
+                        'Because every memory\ndeserves a place',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.initWorldSubtitle,
+                      ),
+                      SizedBox(
+                        width: iconDiameter,
+                        height: iconDiameter * 1.0,
+                        child: OverflowBox(
+                          maxWidth: iconDiameter * 1.2,
+                          minWidth: iconDiameter * 1.2,
+                          minHeight: 0,
+                          maxHeight: double.infinity,
+                          alignment: Alignment.topCenter,
+                          child: Image.asset(
+                            AppIcons.initWorld,
+                            fit: BoxFit.fitWidth,
+                            alignment: Alignment.topCenter,
+                          ),
                         ),
                       ),
-                      onPressed: _isNavigating ? null : _goToMap,
-                      child: _isNavigating
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : const Text(
-                              'Iniciar',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                                fontSize: 20,
-                              ),
-                            ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+                ),
+                Expanded(child: Container()),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSizes.paddingLarge,
+                    0,
+                    AppSizes.paddingLarge,
+                    AppSizes.paddingLarge,
+                  ),
+                  child: Column(
+                    children: [
+                      Align(
+                        alignment: Alignment.center,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF000000), // Negro
+                            foregroundColor: Colors.white,
+                            fixedSize: const Size(100, 36),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 15,
+                              vertical: 0,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          onPressed: _isNavigating ? null : _goToMap,
+                          child: _isNavigating
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Iniciar',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                    fontSize: 13,
+                                    fontFamily: 'TikTokSans',
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-      bottomNavigationBar: const AppNavBar(currentIndex: 2),
+      bottomNavigationBar: AppNavBar(
+        currentIndex: 2,
+        onItemTapped: (index) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => AppShell(initialIndex: index),
+            ),
+            (route) => false,
+          );
+        },
+      ),
     );
   }
 }

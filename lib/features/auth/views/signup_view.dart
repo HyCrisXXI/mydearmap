@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/auth/controllers/signup_view_model.dart';
 import 'package:mydearmap/core/widgets/app_form_buttons.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class SignupView extends ConsumerStatefulWidget {
   const SignupView({super.key});
@@ -125,134 +124,128 @@ class _SignupViewState extends ConsumerState<SignupView> {
     final signupNotifier = ref.read(signupViewModelProvider.notifier);
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: SvgPicture.asset(AppIcons.chevronLeft),
-          onPressed: () => Navigator.of(context).pop(),
-          style: AppButtonStyles.circularIconButton,
-        ),
-      ),
+      backgroundColor: Colors.transparent,
+      extendBody: true,
+      resizeToAvoidBottomInset: false,
       body: Stack(
+        fit: StackFit.expand,
         children: [
           Positioned.fill(
             child: Image.asset(AppIcons.authBG, fit: BoxFit.cover),
           ),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 60.0),
-              child: SafeArea(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 10),
-                    const Align(
-                      alignment: Alignment.topCenter,
-                      child: Text('Crear Cuenta', style: AppTextStyles.title),
+          SingleChildScrollView(
+            padding: const EdgeInsets.only(left: 60.0, right: 60.0, top: 125.0),
+            child: SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Crear Cuenta',
+                      style: AppTextStyles.myDearMapTitle,
                     ),
-                    const SizedBox(height: 40),
-                    TextField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Nombre completo *',
-                        errorText: signupState.nameError,
-                      ),
-                      onChanged: signupNotifier.onNameChanged,
+                  ),
+                  const SizedBox(height: 40),
+                  TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Nombre completo *',
+                      errorText: signupState.nameError,
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email *',
-                        errorText: signupState.emailError,
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      onChanged: signupNotifier.onEmailChanged,
+                    onChanged: signupNotifier.onNameChanged,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      labelText: 'Email *',
+                      errorText: signupState.emailError,
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _passwordController,
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña *',
-                        errorText: signupState.passwordError,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            signupState.obscurePassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: signupNotifier.togglePasswordVisibility,
+                    keyboardType: TextInputType.emailAddress,
+                    onChanged: signupNotifier.onEmailChanged,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: 'Contraseña *',
+                      errorText: signupState.passwordError,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          signupState.obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
+                        onPressed: signupNotifier.togglePasswordVisibility,
                       ),
-                      obscureText: signupState.obscurePassword,
-                      onChanged: signupNotifier.onPasswordChanged,
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _numberController,
-                      decoration: InputDecoration(
-                        labelText: 'Teléfono (opcional)',
-                        errorText: signupState.numberError,
+                    obscureText: signupState.obscurePassword,
+                    onChanged: signupNotifier.onPasswordChanged,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _numberController,
+                    decoration: InputDecoration(
+                      labelText: 'Teléfono (opcional)',
+                      errorText: signupState.numberError,
+                    ),
+                    keyboardType: TextInputType.phone,
+                    onChanged: signupNotifier.onNumberChanged,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _birthDateController,
+                    decoration: InputDecoration(
+                      labelText: 'Fecha de nacimiento (opcional) DD/MM/AAAA',
+                      errorText: signupState.birthDateError,
+                    ),
+                    readOnly: true,
+                    onTap: () => _selectBirthDate(signupState),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String?>(
+                    key: ValueKey(signupState.form.gender),
+                    initialValue: signupState.form.gender,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Género (opcional)',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Sin especificar'),
                       ),
-                      keyboardType: TextInputType.phone,
-                      onChanged: signupNotifier.onNumberChanged,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _birthDateController,
-                      decoration: InputDecoration(
-                        labelText: 'Fecha de nacimiento (opcional) DD/MM/AAAA',
-                        errorText: signupState.birthDateError,
+                      DropdownMenuItem<String?>(
+                        value: 'male',
+                        child: Text('Masculino'),
                       ),
-                      readOnly: true,
-                      onTap: () => _selectBirthDate(signupState),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String?>(
-                      key: ValueKey(signupState.form.gender),
-                      initialValue: signupState.form.gender,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Género (opcional)',
-                        border: OutlineInputBorder(),
+                      DropdownMenuItem<String?>(
+                        value: 'female',
+                        child: Text('Femenino'),
                       ),
-                      items: const [
-                        DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('Sin especificar'),
-                        ),
-                        DropdownMenuItem<String?>(
-                          value: 'male',
-                          child: Text('Masculino'),
-                        ),
-                        DropdownMenuItem<String?>(
-                          value: 'female',
-                          child: Text('Femenino'),
-                        ),
-                        DropdownMenuItem<String?>(
-                          value: 'other',
-                          child: Text('Otro'),
-                        ),
-                      ],
-                      onChanged: signupNotifier.onGenderChanged,
-                    ),
-                    const SizedBox(height: 60),
-                    AppFormButtons(
-                      primaryLabel: 'Registrarse',
-                      onPrimaryPressed: signupState.canSubmit ? _signUp : null,
-                      isProcessing: signupState.isSubmitting,
-                      secondaryLabel: 'Iniciar Sesión',
-                      onSecondaryPressed: signupState.isSubmitting
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      secondaryIsCompact: false, // same width as primary
-                      secondaryOutlined:
-                          true, // outlined (transparent background + border)
-                    ),
-                  ],
-                ),
+                      DropdownMenuItem<String?>(
+                        value: 'other',
+                        child: Text('Otro'),
+                      ),
+                    ],
+                    onChanged: signupNotifier.onGenderChanged,
+                  ),
+                  const SizedBox(height: 60),
+                  AppFormButtons(
+                    primaryLabel: 'Registrarse',
+                    onPrimaryPressed: signupState.canSubmit ? _signUp : null,
+                    isProcessing: signupState.isSubmitting,
+                    secondaryLabel: 'Iniciar Sesión',
+                    onSecondaryPressed: signupState.isSubmitting
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    secondaryIsCompact: false, // same width as primary
+                    secondaryOutlined:
+                        true, // outlined (transparent background + border)
+                  ),
+                ],
               ),
             ),
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 export 'app_icons.dart';
 
 // Definiciones de colores, tamaños y estilos de texto utilizados en la aplicaciónç
@@ -81,6 +82,22 @@ class AppTextStyles {
     fontSize: 14.0,
     fontWeight: FontWeight.w400, // w400 es Regular
     color: AppColors.textColor,
+  );
+
+  static TextStyle get myDearMapTitle => GoogleFonts.archivo(
+    fontSize: 24.0,
+    fontWeight: FontWeight.w500,
+    color: const Color(0xFF000000), // Negro
+    fontStyle: FontStyle.normal,
+  );
+
+  static const TextStyle initWorldSubtitle = TextStyle(
+    fontFamily: _fontFamily,
+    fontSize: 14.0,
+    fontWeight: FontWeight.w400,
+    color: Color(0xFF000000), // Negro
+    fontStyle: FontStyle.normal,
+    height: null,
   );
 }
 
