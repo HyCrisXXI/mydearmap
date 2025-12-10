@@ -195,9 +195,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       if (memberId.isEmpty) continue;
       if (memberId == currentUserId) continue;
       if (seenIds.add(memberId)) {
-        prefilled.add(
-          UserRole(user: member, role: MemoryRole.participant),
-        );
+        prefilled.add(UserRole(user: member, role: MemoryRole.participant));
       }
     }
 
@@ -208,10 +206,8 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       ..clear()
       ..addEntries(
         prefilled.map(
-          (userRole) => MapEntry<String, String>(
-            userRole.user.id,
-            userRole.role.name,
-          ),
+          (userRole) =>
+              MapEntry<String, String>(userRole.user.id, userRole.role.name),
         ),
       );
   }
@@ -880,14 +876,15 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                                           width: 1,
                                         ),
                                         image:
-                                            person.user.profileUrl != null &&
-                                                person
-                                                    .user
-                                                    .profileUrl!
-                                                    .isNotEmpty
+                                            _resolveAvatarUrl(
+                                                  person.user.profileUrl,
+                                                ) !=
+                                                null
                                             ? DecorationImage(
                                                 image: NetworkImage(
-                                                  'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/${person.user.profileUrl!}',
+                                                  _resolveAvatarUrl(
+                                                    person.user.profileUrl,
+                                                  )!,
                                                 ),
                                                 fit: BoxFit.cover,
                                               )
@@ -1007,11 +1004,15 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                                         width: 1,
                                       ),
                                       image:
-                                          related.profileUrl != null &&
-                                              related.profileUrl!.isNotEmpty
+                                          _resolveAvatarUrl(
+                                                related.profileUrl,
+                                              ) !=
+                                              null
                                           ? DecorationImage(
                                               image: NetworkImage(
-                                                'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/${related.profileUrl!}',
+                                                _resolveAvatarUrl(
+                                                  related.profileUrl,
+                                                )!,
                                               ),
                                               fit: BoxFit.cover,
                                             )
@@ -1370,9 +1371,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      'No se pudo vincular el grupo: $error',
-                    ),
+                    content: Text('No se pudo vincular el grupo: $error'),
                     backgroundColor: Colors.orangeAccent,
                   ),
                 );
@@ -1597,20 +1596,31 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       await client.from('media').delete().eq('id', asset.id);
       ref.invalidate(memoryMediaProvider(widget.memoryId!));
       ref.invalidate(userMemoriesProvider);
+
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Archivo eliminado')));
-    } catch (error) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error al eliminar: $error')));
+      ).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
     } finally {
       if (mounted) {
         setState(() => _deletingMediaIds.remove(asset.id));
       }
     }
+  }
+
+  String? _resolveAvatarUrl(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    if (raw.startsWith('http')) return raw;
+
+    const baseUrl =
+        'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/';
+
+    return '$baseUrl$raw';
   }
 
   String _mediaLabel(MemoryMedia asset) => _kindLabel(asset.kind);

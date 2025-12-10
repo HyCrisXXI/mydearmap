@@ -12,160 +12,315 @@ import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/memories/widgets/memories_grid.dart';
+import 'package:mydearmap/core/utils/media_utils.dart';
+import 'package:mydearmap/features/relations/controllers/relation_group_controller.dart';
+import 'package:mydearmap/core/providers/relation_groups_provider.dart';
 
-class RelationGroupDetailView extends ConsumerWidget {
+class RelationGroupDetailView extends ConsumerStatefulWidget {
   const RelationGroupDetailView({super.key, required this.group});
 
   final RelationGroup group;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final photoUrl = group.photoUrl?.trim();
-    final members = group.members;
-    final currentUserAsync = ref.watch(currentUserProvider);
-    final memoriesAsync = ref.watch(groupMemoriesProvider(group.id));
+  ConsumerState<RelationGroupDetailView> createState() =>
+      _RelationGroupDetailViewState();
+}
 
-    Future<void> handleLinkExistingMemory() async {
-      final currentUser = currentUserAsync.value;
-      if (currentUser == null) {
+class _RelationGroupDetailViewState
+    extends ConsumerState<RelationGroupDetailView> {
+  bool _isUploading = false;
+
+  Future<void> _pickAndUploadImage(String currentUserId) async {
+    final croppedFile = await MediaUtils.pickAndCropImage(
+      context: context,
+      title: 'Editar imagen del grupo',
+    );
+    if (croppedFile == null) return;
+
+    setState(() => _isUploading = true);
+
+    try {
+      final bytes = await croppedFile.readAsBytes();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filename = 'group_${widget.group.id}_$timestamp.jpg';
+
+      await ref
+          .read(relationGroupControllerProvider.notifier)
+          .updateGroupImage(
+            currentUserId: currentUserId,
+            groupId: widget.group.id,
+            bytes: bytes,
+            filename: filename,
+          );
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Inicia sesión para añadir recuerdos al grupo.'),
-          ),
+          const SnackBar(content: Text('Imagen del grupo actualizada')),
         );
-        return;
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al actualizar imagen: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
 
-      final selectedMemory = await showModalBottomSheet<Memory>(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  Future<void> _handleLinkExistingMemory() async {
+    final currentUser = ref.read(currentUserProvider).value;
+    if (currentUser == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inicia sesión para añadir recuerdos al grupo.'),
         ),
-        builder: (_) => const _ExistingMemoryPickerSheet(),
       );
-
-      if (selectedMemory == null || !context.mounted) return;
-      final memoryId = selectedMemory.id;
-      if (memoryId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('El recuerdo seleccionado no se puede vincular.'),
-          ),
-        );
-        return;
-      }
-
-      final controller = ref.read(memoryControllerProvider.notifier);
-      try {
-        await controller.linkMemoryToGroup(
-          groupId: group.id,
-          memoryId: memoryId,
-          addedBy: currentUser.id,
-        );
-        ref.invalidate(groupMemoriesProvider(group.id));
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Recuerdo añadido al grupo.')),
-        );
-      } catch (error) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo añadir el recuerdo: $error')),
-        );
-      }
+      return;
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: SvgPicture.asset(AppIcons.chevronLeft),
-          onPressed: () => Navigator.of(context).pop(),
-          style: AppButtonStyles.circularIconButton,
-        ),
-        title: const Text('Detalle del grupo'),
+    final selectedMemory = await showModalBottomSheet<Memory>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      builder: (_) => const _ExistingMemoryPickerSheet(),
+    );
+
+    if (selectedMemory == null || !mounted) return;
+    final memoryId = selectedMemory.id;
+    if (memoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El recuerdo seleccionado no se puede vincular.'),
+        ),
+      );
+      return;
+    }
+
+    final controller = ref.read(memoryControllerProvider.notifier);
+    try {
+      await controller.linkMemoryToGroup(
+        groupId: widget.group.id,
+        memoryId: memoryId,
+        addedBy: currentUser.id,
+      );
+      ref.invalidate(groupMemoriesProvider(widget.group.id));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recuerdo añadido al grupo.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo añadir el recuerdo: $error')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Re-watch the groups provider to get the updated group data
+    final groupsAsync = ref.watch(
+      userRelationGroupsProvider(
+        ref.watch(currentUserProvider).value?.id ?? '',
+      ),
+    );
+
+    // Try to find the current group in the list, otherwise use the passed widget.group
+    // This allows the UI to update automatically when the provider refreshes.
+    final currentGroup = groupsAsync.maybeWhen(
+      data: (groups) => groups.firstWhere(
+        (g) => g.id == widget.group.id,
+        orElse: () => widget.group,
+      ),
+      orElse: () => widget.group,
+    );
+
+    final photoUrl = currentGroup.photoUrl?.trim();
+    final members = currentGroup.members;
+    final currentUserAsync = ref.watch(currentUserProvider);
+    final memoriesAsync = ref.watch(groupMemoriesProvider(widget.group.id));
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
         children: [
-          Center(
-            child: CircleAvatar(
-              radius: 56,
-              backgroundColor: photoUrl == null || photoUrl.isEmpty
-                  ? Colors.grey.shade200
-                  : Colors.grey.shade300,
-              backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                  ? NetworkImage(photoUrl)
-                  : null,
-              child: photoUrl == null || photoUrl.isEmpty
-                  ? Text(
-                      group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
-                      style: const TextStyle(fontSize: 28, color: Colors.black),
-                    )
-                  : null,
+          // Transparent background as requested
+          // The overall app background from main.dart will be visible
+          SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppSizes.upperPadding,
+                    left: 20,
+                    right: 20,
+                    bottom: 10,
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: SvgPicture.asset(AppIcons.chevronLeft),
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: AppButtonStyles.circularIconButton,
+                      ),
+                      Expanded(
+                        child: Text(
+                          'Detalle del grupo',
+                          style: Theme.of(context).textTheme.titleLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.only(
+                      left: 20,
+                      right: 20,
+                      bottom: 20,
+                    ),
+                    children: [
+                      Center(
+                        child: Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.primaryColor,
+                                  width: 1,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 60,
+                                backgroundColor:
+                                    photoUrl == null || photoUrl.isEmpty
+                                    ? Colors.grey.shade200
+                                    : Colors.transparent,
+                                backgroundImage:
+                                    photoUrl != null && photoUrl.isNotEmpty
+                                    ? NetworkImage(photoUrl)
+                                    : null,
+                                child: _isUploading
+                                    ? const CircularProgressIndicator.adaptive()
+                                    : (photoUrl == null || photoUrl.isEmpty
+                                          ? Text(
+                                              currentGroup.name.isNotEmpty
+                                                  ? currentGroup.name[0]
+                                                        .toUpperCase()
+                                                  : '?',
+                                              style: const TextStyle(
+                                                fontSize: 28,
+                                                color: Colors.black,
+                                              ),
+                                            )
+                                          : null),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Transform.translate(
+                                offset: const Offset(5, 5),
+                                child: IconButton(
+                                  style: AppButtonStyles.circularIconButton,
+                                  onPressed: _isUploading
+                                      ? null
+                                      : () {
+                                          final user = currentUserAsync.value;
+                                          if (user != null) {
+                                            _pickAndUploadImage(user.id);
+                                          }
+                                        },
+                                  icon: SvgPicture.asset(AppIcons.pencil),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        currentGroup.name,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _groupMembersCopy(members.length),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: _handleLinkExistingMemory,
+                        icon: const Icon(Icons.library_add),
+                        label: const Text('Añadir recuerdo'),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Recuerdos del grupo',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      memoriesAsync.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (error, _) =>
+                            Text('No se pudieron cargar los recuerdos: $error'),
+                        data: (memories) {
+                          if (memories.isEmpty) {
+                            return const Text(
+                              'Aún no hay recuerdos en este grupo.',
+                            );
+                          }
+                          final preview = memories.length > 8
+                              ? memories.take(8).toList()
+                              : memories;
+                          return MemoriesGrid(
+                            memories: preview,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridPadding: EdgeInsets.zero,
+                            showFavoriteOverlay: false,
+                            onMemoryTap: (memory) {
+                              final memoryId = memory.id;
+                              if (memoryId == null) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      MemoryDetailView(memoryId: memoryId),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Integrantes',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      if (members.isEmpty)
+                        const Text('Aún no hay integrantes en este grupo.')
+                      else
+                        ...members.map((user) => _GroupMemberTile(user: user)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            group.name,
-            style: Theme.of(context).textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _groupMembersCopy(members.length),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: handleLinkExistingMemory,
-            icon: const Icon(Icons.library_add),
-            label: const Text('Añadir recuerdo'),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'Recuerdos del grupo',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          memoriesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) =>
-                Text('No se pudieron cargar los recuerdos: $error'),
-            data: (memories) {
-              if (memories.isEmpty) {
-                return const Text('Aún no hay recuerdos en este grupo.');
-              }
-              final preview = memories.length > 8
-                  ? memories.take(8).toList()
-                  : memories;
-              return MemoriesGrid(
-                memories: preview,
-                physics: const NeverScrollableScrollPhysics(),
-                gridPadding: EdgeInsets.zero,
-                showFavoriteOverlay: false,
-                onMemoryTap: (memory) {
-                  final memoryId = memory.id;
-                  if (memoryId == null) return;
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => MemoryDetailView(memoryId: memoryId),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 32),
-          Text('Integrantes', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          if (members.isEmpty)
-            const Text('Aún no hay integrantes en este grupo.')
-          else
-            ...members.map((user) => _GroupMemberTile(user: user)),
         ],
       ),
     );

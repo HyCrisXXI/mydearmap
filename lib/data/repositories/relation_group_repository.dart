@@ -130,6 +130,41 @@ class RelationGroupRepository {
     await _client.from('relation_groups').delete().eq('id', groupId);
   }
 
+  Future<String> uploadGroupPhoto({
+    required String creatorId,
+    required Uint8List bytes,
+    String? filename,
+  }) async {
+    final storage = _client.storage.from(_storageBucket);
+    final objectPath = _buildStoragePath(
+      creatorId: creatorId,
+      originalFilename: filename,
+    );
+    await storage.uploadBinary(
+      objectPath,
+      bytes,
+      fileOptions: FileOptions(
+        upsert: true,
+        contentType: _inferMimeType(filename),
+      ),
+    );
+    return storage.getPublicUrl(objectPath);
+  }
+
+  Future<void> updateGroup({
+    required String groupId,
+    String? name,
+    String? photoUrl,
+  }) async {
+    final updates = <String, dynamic>{};
+    if (name != null) updates['name'] = name;
+    if (photoUrl != null) updates['photo_url'] = photoUrl;
+
+    if (updates.isEmpty) return;
+
+    await _client.from('relation_groups').update(updates).eq('id', groupId);
+  }
+
   String _buildStoragePath({
     required String creatorId,
     String? originalFilename,
