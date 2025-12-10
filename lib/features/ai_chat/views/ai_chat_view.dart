@@ -212,7 +212,7 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'La IA está pensando...',
+                        'Estoy pensando...',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontStyle: FontStyle.italic,
