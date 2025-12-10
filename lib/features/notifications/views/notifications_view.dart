@@ -63,26 +63,7 @@ class _NotificationsLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(
-                top: AppSizes.upperPadding,
-                bottom: 8.0,
-                left: 24, // Add left padding for alignment
-                right: 24,
-              ),
-              child: const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Notificaciones', style: AppTextStyles.title),
-              ),
-            ),
-            Expanded(child: child),
-          ],
-        ),
-      ),
+      body: SafeArea(top: false, child: child),
     );
   }
 }
@@ -153,6 +134,13 @@ class _NotificationsContent extends ConsumerWidget {
 
     final listChildren = <Widget>[
       capsulesSection,
+      const Padding(
+        padding: EdgeInsets.fromLTRB(24, 8, 24, 12),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text('Notificaciones', style: AppTextStyles.title),
+        ),
+      ),
       if (sectionWidgets.isEmpty)
         const _NotificationsEmptyState()
       else
@@ -501,9 +489,9 @@ Future<void> _deleteNotificationById(
   String notificationId,
 ) async {
   try {
-    await ref
-        .read(notificationRepositoryProvider)
-        .deleteNotificationsByIds([notificationId]);
+    await ref.read(notificationRepositoryProvider).deleteNotificationsByIds([
+      notificationId,
+    ]);
   } catch (_) {
     // Intentionally ignore network errors to keep UI responsive.
   }
@@ -665,15 +653,30 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
     final activeCapsules =
         widget.capsules.where((capsule) => !capsule.isOpen).toList()
           ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-
-    if (activeCapsules.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final subtitle = activeCapsules.length == 1
-        ? '1 cápsula activa'
-        : '${activeCapsules.length} cápsulas activas';
+    final hasActiveCapsules = activeCapsules.isNotEmpty;
+    final subtitle = hasActiveCapsules
+        ? (activeCapsules.length == 1
+              ? '1 cápsula activa'
+              : '${activeCapsules.length} cápsulas activas')
+        : 'Crea una cápsula para comenzar';
     final previewCapsules = activeCapsules.take(3).toList(growable: false);
+    final shelfBody = hasActiveCapsules
+        ? AnimatedCrossFade(
+            duration: const Duration(milliseconds: 220),
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: _CapsuleStackPreview(capsules: previewCapsules),
+            secondChild: Column(
+              children: [
+                for (var i = 0; i < activeCapsules.length; i++) ...[
+                  _CapsuleExpandedTile(capsule: activeCapsules[i]),
+                  if (i < activeCapsules.length - 1) const SizedBox(height: 12),
+                ],
+              ],
+            ),
+          )
+        : const _CapsulesEmptyMessage();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
@@ -687,12 +690,7 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Cápsulas de tiempo',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    Text('Cápsulas de tiempo', style: AppTextStyles.title),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
@@ -713,30 +711,54 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
                 ),
               ),
               const SizedBox(width: 8),
-              _CapsuleCountChip(count: activeCapsules.length),
+              if (hasActiveCapsules)
+                _CapsuleCountChip(count: activeCapsules.length),
               IconButton(
-                onPressed: _toggle,
+                onPressed: hasActiveCapsules ? _toggle : null,
                 icon: Icon(
                   _expanded ? Icons.expand_less : Icons.expand_more,
-                  color: theme.colorScheme.primary,
+                  color: hasActiveCapsules
+                      ? theme.colorScheme.primary
+                      : Colors.grey.shade400,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 220),
-            crossFadeState: _expanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            firstChild: _CapsuleStackPreview(capsules: previewCapsules),
-            secondChild: Column(
-              children: [
-                for (var i = 0; i < activeCapsules.length; i++) ...[
-                  _CapsuleExpandedTile(capsule: activeCapsules[i]),
-                  if (i < activeCapsules.length - 1) const SizedBox(height: 12),
-                ],
-              ],
+          shelfBody,
+        ],
+      ),
+    );
+  }
+}
+
+class _CapsulesEmptyMessage extends StatelessWidget {
+  const _CapsulesEmptyMessage();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sin cápsulas activas',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Crea una cápsula para guardar recuerdos y abrirlos más adelante.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey.shade600,
             ),
           ),
         ],
@@ -823,6 +845,7 @@ class _CapsuleExpandedTile extends StatelessWidget {
     final theme = Theme.of(context);
     final badgeColor = theme.colorScheme.primary;
     final description = capsule.description?.trim();
+    const double previewExtent = 120;
 
     final content = Padding(
       padding: const EdgeInsets.all(16),
@@ -830,7 +853,7 @@ class _CapsuleExpandedTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: previewExtent,
             child: Align(
               alignment: Alignment.centerLeft,
               child: Image.asset(
@@ -843,74 +866,81 @@ class _CapsuleExpandedTile extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  capsule.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize:
-                        (theme.textTheme.titleMedium?.fontSize ?? 16) * 1.5,
-                  ),
-                ),
-                if (description != null && description.isNotEmpty) ...[
-                  const SizedBox(height: 6),
+            child: SizedBox(
+              height: previewExtent,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    capsule.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                       fontSize:
-                          (theme.textTheme.bodySmall?.fontSize ?? 14) * 1.1,
+                          (theme.textTheme.titleMedium?.fontSize ?? 16) * 1.5,
                     ),
                   ),
-                ],
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SvgPicture.asset(
-                            AppIcons.timer,
-                            width: 16,
-                            height: 16,
-                            colorFilter: ColorFilter.mode(
-                              badgeColor,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _capsuleCountdownLabel(capsule),
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: badgeColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
+                  if (description != null && description.isNotEmpty) ...[
+                    const SizedBox(height: 6),
                     Text(
-                      DateFormat('d MMM yyyy', 'es_ES').format(capsule.openAt),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: Colors.grey.shade600,
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize:
+                            (theme.textTheme.bodySmall?.fontSize ?? 14) * 1.1,
                       ),
                     ),
                   ],
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SvgPicture.asset(
+                              AppIcons.timer,
+                              width: 16,
+                              height: 16,
+                              colorFilter: ColorFilter.mode(
+                                badgeColor,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _capsuleCountdownLabel(capsule),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: badgeColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        DateFormat(
+                          'd MMM yyyy',
+                          'es_ES',
+                        ).format(capsule.openAt),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
