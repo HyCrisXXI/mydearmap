@@ -1005,7 +1005,7 @@ List<Widget> _notificationSection({
 }) {
   final widgets = <Widget>[
     Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Text(
         title,
         style: Theme.of(
