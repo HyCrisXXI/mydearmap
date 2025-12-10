@@ -12,6 +12,7 @@ import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/relations/views/relation_view.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
+import 'package:mydearmap/features/relations/controllers/relation_group_controller.dart';
 import 'package:mydearmap/features/relations/views/relation_create_view.dart';
 import 'package:mydearmap/features/relations/views/relation_group_create_view.dart';
 import 'package:mydearmap/features/relations/views/relation_group_detail_view.dart';
@@ -127,6 +128,7 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
     BuildContext context,
     WidgetRef ref,
     RelationGroup group,
+    String currentUserId,
   ) {
     final photoUrl = group.photoUrl?.trim();
     final trimmedName = group.name.trim();
@@ -144,6 +146,8 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
           ),
         );
       },
+      onLongPress: () =>
+          _confirmDeleteGroup(context, ref, group, currentUserId),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -225,6 +229,52 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteGroup(
+    BuildContext context,
+    WidgetRef ref,
+    RelationGroup group,
+    String currentUserId,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar grupo'),
+        content: Text(
+          '¿Seguro que deseas eliminar "${group.name}"? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final controller = ref.read(relationGroupControllerProvider.notifier);
+    try {
+      await controller.deleteGroup(
+        groupId: group.id,
+        currentUserId: currentUserId,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Grupo eliminado correctamente.')),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo eliminar el grupo: $error')),
+      );
+    }
   }
 
   Widget _buildRelationCard({
@@ -348,150 +398,103 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
 
               return _RelationsLayout(
                 onAddPressed: () => _showCreateOptions(context),
-                child: sorted.isEmpty
-                    ? const Center(child: Text('Aún no has creado vinculos.'))
-                    : Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                            child: TextField(
-                              controller: _searchController,
-                              decoration: InputDecoration(
-                                hintText: 'Buscar vínculos',
-                                suffixIcon: Padding(
-                                  padding: const EdgeInsets.only(bottom: 0),
-                                  child: const Icon(Icons.search),
-                                ),
-                                suffixIconConstraints: const BoxConstraints(
-                                  minHeight: 24,
-                                  minWidth: 40,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 20,
-                                ),
-                              ),
-                              textAlignVertical: TextAlignVertical.center,
-                            ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Buscar vínculos o grupos',
+                          suffixIcon: const Icon(Icons.search),
+                          suffixIconConstraints: const BoxConstraints(
+                            minHeight: 24,
+                            minWidth: 40,
                           ),
-                          Expanded(
-                            child: filtered.isEmpty
-                                ? const Center(
-                                    child: Text('No se encontraron vínculos.'),
-                                  )
-                                : ListView.separated(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 8,
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      final relation = filtered[index];
-                                      final shared = sharedMemoriesForRelation(
-                                        allMemories: memories,
-                                        currentUserId: user.id,
-                                        relatedUserId: relation.relatedUser.id,
-                                      );
-                                      final relationLabel =
-                                          _relationDisplayName(relation);
-
-                                      // Avatar del usuario relacionado
-                                      final avatarUrl = buildAvatarUrl(
-                                        relation.relatedUser.profileUrl,
-                                      );
-
-                                      return InkWell(
-                                        borderRadius: BorderRadius.circular(18),
-                                        onTap: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  RelationDetailView(
-                                                    currentUserId: user.id,
-                                                    relatedUserId:
-                                                        relation.relatedUser.id,
-                                                  ),
-                                            ),
-                                          );
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(16),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              18,
-                                            ),
-                                            color: Colors.grey.shade100,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              CircleAvatar(
-                                                radius: 24,
-                                                backgroundColor:
-                                                    avatarUrl == null
-                                                    ? Colors.white
-                                                    : Colors.grey.shade300,
-                                                backgroundImage:
-                                                    avatarUrl != null
-                                                    ? NetworkImage(avatarUrl)
-                                                    : null,
-                                                child: avatarUrl == null
-                                                    ? Text(
-                                                        (relationLabel
-                                                                .isNotEmpty
-                                                            ? relationLabel[0]
-                                                                  .toUpperCase()
-                                                            : '?'),
-                                                        style: const TextStyle(
-                                                          fontSize: 20,
-                                                          color: Colors.black,
-                                                        ),
-                                                      )
-                                                    : null,
-                                              ),
-                                              const SizedBox(width: 16),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      relationLabel,
-                                                      style: Theme.of(
-                                                        context,
-                                                      ).textTheme.titleMedium,
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    Text(
-                                                      _sharedMemoriesLabel(
-                                                        shared.length,
-                                                      ),
-                                                      style: Theme.of(context)
-                                                          .textTheme
-                                                          .bodySmall
-                                                          ?.copyWith(
-                                                            color:
-                                                                Colors.black54,
-                                                          ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const Icon(Icons.chevron_right),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    separatorBuilder: (_, _) =>
-                                        const SizedBox(height: 12),
-                                    itemCount: filtered.length,
-                                  ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
                           ),
-                        ],
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 20,
+                          ),
+                        ),
+                        textAlignVertical: TextAlignVertical.center,
                       ),
+                    ),
+                    Expanded(
+                      child: groupsAsync.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (error, _) =>
+                            Center(child: Text('Error: $error')),
+                        data: (groups) {
+                          final sortedGroups = [...groups]
+                            ..sort(
+                              (a, b) => a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              ),
+                            );
+                          final filteredGroups = _applyGroupSearch(
+                            sortedGroups,
+                          );
+                          final hasRelations = filtered.isNotEmpty;
+                          final hasGroups = filteredGroups.isNotEmpty;
+
+                          if (!hasRelations && !hasGroups) {
+                            final message = _searchQuery.isEmpty
+                                ? 'Aún no has creado vínculos ni grupos.'
+                                : 'No se encontraron resultados.';
+                            return Center(child: Text(message));
+                          }
+
+                          return ListView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
+                            ),
+                            children: [
+                              if (hasGroups) ...[
+                                _buildSectionHeader(context, 'Grupos'),
+                                const SizedBox(height: 12),
+                                for (
+                                  var i = 0;
+                                  i < filteredGroups.length;
+                                  i++
+                                ) ...[
+                                  _buildGroupCard(
+                                    context,
+                                    ref,
+                                    filteredGroups[i],
+                                    user.id,
+                                  ),
+                                  if (i < filteredGroups.length - 1)
+                                    const SizedBox(height: 12),
+                                ],
+                                if (hasRelations) const SizedBox(height: 24),
+                              ],
+                              if (hasRelations) ...[
+                                _buildSectionHeader(context, 'Vínculos'),
+                                const SizedBox(height: 12),
+                                for (var i = 0; i < filtered.length; i++) ...[
+                                  _buildRelationCard(
+                                    context: context,
+                                    relation: filtered[i],
+                                    memories: memories,
+                                    currentUserId: user.id,
+                                  ),
+                                  if (i < filtered.length - 1)
+                                    const SizedBox(height: 12),
+                                ],
+                              ],
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
           ),

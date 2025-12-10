@@ -6,8 +6,9 @@ import 'package:mydearmap/data/models/user.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:uuid/uuid.dart';
 
-final relationGroupRepositoryProvider =
-    Provider<RelationGroupRepository>((ref) {
+final relationGroupRepositoryProvider = Provider<RelationGroupRepository>((
+  ref,
+) {
   return RelationGroupRepository(Supabase.instance.client);
 });
 
@@ -19,18 +20,18 @@ class RelationGroupRepository {
 
   Future<List<RelationGroup>> fetchGroups(String userId) async {
     final membershipRaw = await _client
-      .from('relation_group_members')
-      .select('group_id')
-      .eq('user_id', userId);
+        .from('relation_group_members')
+        .select('group_id')
+        .eq('user_id', userId);
 
     final membershipData = _normalizeRaw(membershipRaw);
     if (membershipData == null) return <RelationGroup>[];
 
     final groupIds = (membershipData as List<dynamic>)
-      .map((row) => (row as Map)['group_id'])
-      .whereType<dynamic>()
-      .map((id) => id.toString())
-      .toList();
+        .map((row) => (row as Map)['group_id'])
+        .whereType<dynamic>()
+        .map((id) => id.toString())
+        .toList();
 
     if (groupIds.isEmpty) return <RelationGroup>[];
 
@@ -61,16 +62,12 @@ class RelationGroupRepository {
       }
     }
 
-    return (groupsData as List<dynamic>)
-        .map((row) {
-          final group = RelationGroup.fromMap(
-            Map<String, dynamic>.from(row as Map),
-          );
-          return group.copyWith(
-            members: membersByGroup[group.id] ?? const [],
-          );
-        })
-        .toList();
+    return (groupsData as List<dynamic>).map((row) {
+      final group = RelationGroup.fromMap(
+        Map<String, dynamic>.from(row as Map),
+      );
+      return group.copyWith(members: membersByGroup[group.id] ?? const []);
+    }).toList();
   }
 
   Future<RelationGroup> createGroup({
@@ -100,18 +97,16 @@ class RelationGroupRepository {
 
     final inserted = await _client
         .from('relation_groups')
-        .insert({
-          'name': name,
-          'photo_url': photoUrl,
-          'creator_id': creatorId,
-        })
+        .insert({'name': name, 'photo_url': photoUrl, 'creator_id': creatorId})
         .select()
         .single();
 
     final groupId = inserted['id'].toString();
     final uniqueMembers = <String>{creatorId, ...memberIds};
     if (uniqueMembers.isNotEmpty) {
-      await _client.from('relation_group_members').insert(
+      await _client
+          .from('relation_group_members')
+          .insert(
             uniqueMembers
                 .map(
                   (userId) => {
@@ -124,16 +119,23 @@ class RelationGroupRepository {
           );
     }
 
-    return RelationGroup.fromMap(
-      Map<String, dynamic>.from(inserted as Map),
-    );
+    return RelationGroup.fromMap(Map<String, dynamic>.from(inserted as Map));
+  }
+
+  Future<void> deleteGroup({required String groupId}) async {
+    await _client
+        .from('relation_group_members')
+        .delete()
+        .eq('group_id', groupId);
+    await _client.from('relation_groups').delete().eq('id', groupId);
   }
 
   String _buildStoragePath({
     required String creatorId,
     String? originalFilename,
   }) {
-    final extension = (originalFilename != null && originalFilename.contains('.'))
+    final extension =
+        (originalFilename != null && originalFilename.contains('.'))
         ? originalFilename.split('.').last
         : 'jpg';
     final sanitizedExt = extension.toLowerCase();

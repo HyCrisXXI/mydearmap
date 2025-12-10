@@ -6,8 +6,8 @@ import 'package:mydearmap/data/repositories/relation_group_repository.dart';
 
 final relationGroupControllerProvider =
     AsyncNotifierProvider<RelationGroupController, void>(() {
-  return RelationGroupController();
-});
+      return RelationGroupController();
+    });
 
 class RelationGroupController extends AsyncNotifier<void> {
   RelationGroupRepository get _repository =>
@@ -34,6 +34,21 @@ class RelationGroupController extends AsyncNotifier<void> {
       );
 
       ref.invalidate(userRelationGroupsProvider(creatorId));
+      state = const AsyncValue.data(null);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteGroup({
+    required String groupId,
+    required String currentUserId,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repository.deleteGroup(groupId: groupId);
+      ref.invalidate(userRelationGroupsProvider(currentUserId));
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
