@@ -77,14 +77,9 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
       backgroundColor: Colors.transparent,
       body: Container(
         decoration: const BoxDecoration(
-          gradient: SweepGradient(
-            center: Alignment.topRight,
-            colors: [
-              Color.fromARGB(255, 85, 111, 168),
-              Color.fromARGB(255, 233, 226, 138),
-              Color.fromARGB(255, 96, 145, 90),
-            ],
-            stops: [0.05, 0.5, 1.0],
+          image: DecorationImage(
+            image: AssetImage(AppIcons.aiBG),
+            fit: BoxFit.cover,
           ),
         ),
         child: SafeArea(

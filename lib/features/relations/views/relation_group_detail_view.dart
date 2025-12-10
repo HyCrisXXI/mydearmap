@@ -94,19 +94,13 @@ class RelationGroupDetailView extends ConsumerWidget {
               backgroundColor: photoUrl == null || photoUrl.isEmpty
                   ? Colors.grey.shade200
                   : Colors.grey.shade300,
-              backgroundImage:
-                  photoUrl != null && photoUrl.isNotEmpty
-                      ? NetworkImage(photoUrl)
-                      : null,
+              backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                  ? NetworkImage(photoUrl)
+                  : null,
               child: photoUrl == null || photoUrl.isEmpty
                   ? Text(
-                      group.name.isNotEmpty
-                          ? group.name[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        color: Colors.black,
-                      ),
+                      group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
+                      style: const TextStyle(fontSize: 28, color: Colors.black),
                     )
                   : null,
             ),
@@ -120,8 +114,9 @@ class RelationGroupDetailView extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             _groupMembersCopy(members.length),
-            style:
-                Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -138,7 +133,8 @@ class RelationGroupDetailView extends ConsumerWidget {
           const SizedBox(height: 12),
           memoriesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Text('No se pudieron cargar los recuerdos: $error'),
+            error: (error, _) =>
+                Text('No se pudieron cargar los recuerdos: $error'),
             data: (memories) {
               if (memories.isEmpty) {
                 return const Text('Aún no hay recuerdos en este grupo.');
@@ -164,10 +160,7 @@ class RelationGroupDetailView extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 32),
-          Text(
-            'Integrantes',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('Integrantes', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           if (members.isEmpty)
             const Text('Aún no hay integrantes en este grupo.')
@@ -196,8 +189,9 @@ class _GroupMemberTile extends StatelessWidget {
       ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor:
-              avatarUrl == null ? Colors.white : Colors.grey.shade300,
+          backgroundColor: avatarUrl == null
+              ? Colors.white
+              : Colors.grey.shade300,
           backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
           child: avatarUrl == null
               ? Text(
@@ -247,7 +241,8 @@ class _ExistingMemoryPickerSheet extends ConsumerWidget {
               const SizedBox(height: 12),
               Expanded(
                 child: memoriesAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (error, _) => Center(
                     child: Text('No se pudieron cargar los recuerdos: $error'),
                   ),
@@ -263,11 +258,13 @@ class _ExistingMemoryPickerSheet extends ConsumerWidget {
 
                     return ListView.separated(
                       itemCount: memories.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final memory = memories[index];
                         final description = memory.description?.trim();
-                        final subtitleParts = <String>[_formatMemoryDate(memory.happenedAt)];
+                        final subtitleParts = <String>[
+                          _formatMemoryDate(memory.happenedAt),
+                        ];
                         if (description != null && description.isNotEmpty) {
                           subtitleParts.add(description);
                         }

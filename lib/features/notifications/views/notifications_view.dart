@@ -21,19 +21,20 @@ class NotificationsView extends ConsumerWidget {
   const NotificationsView({super.key});
 
   @override
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
 
     return currentUser.when(
-      loading: () => _notificationsScaffold(
-        body: const Center(child: CircularProgressIndicator()),
+      loading: () => const _NotificationsLayout(
+        child: Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) =>
-          _notificationsScaffold(body: Center(child: Text('Error: $error'))),
+          _NotificationsLayout(child: Center(child: Text('Error: $error'))),
       data: (user) {
         if (user == null) {
-          return _notificationsScaffold(
-            body: const Center(
+          return const _NotificationsLayout(
+            child: Center(
               child: Text('Inicia sesión para ver tus notificaciones.'),
             ),
           );
@@ -42,14 +43,46 @@ class NotificationsView extends ConsumerWidget {
         final asyncNotifications = ref.watch(userNotificationsProvider);
         return asyncNotifications.when(
           loading: () =>
-              _notificationsScaffold(body: const _NotificationsLoading()),
-          error: (error, stack) => _notificationsScaffold(
-            body: Center(child: Text('Error: $error')),
-          ),
+              const _NotificationsLayout(child: _NotificationsLoading()),
+          error: (error, stack) =>
+              _NotificationsLayout(child: Center(child: Text('Error: $error'))),
           data: (notifications) =>
               _NotificationsContent(notifications: notifications),
         );
       },
+    );
+  }
+}
+
+class _NotificationsLayout extends StatelessWidget {
+  const _NotificationsLayout({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSizes.upperPadding,
+                bottom: 8.0,
+                left: 24, // Add left padding for alignment
+                right: 24,
+              ),
+              child: const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Notificaciones', style: AppTextStyles.title),
+              ),
+            ),
+            Expanded(child: child),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -132,8 +165,8 @@ class _NotificationsContent extends ConsumerWidget {
       children: listChildren,
     );
 
-    return _notificationsScaffold(
-      body: RefreshIndicator(onRefresh: refresh, child: content),
+    return _NotificationsLayout(
+      child: RefreshIndicator(onRefresh: refresh, child: content),
     );
   }
 }
@@ -251,7 +284,7 @@ class _NotificationTile extends ConsumerWidget {
     String? creatorName;
     String? previewImageUrl;
 
-    if  (memoryId != null) {
+    if (memoryId != null) {
       memoryAsync = ref.watch(memoryDetailProvider(memoryId));
       mediaAsync = ref.watch(memoryMediaProvider(memoryId));
       memory = memoryAsync?.maybeWhen(
@@ -421,20 +454,9 @@ class _NotificationMemoryThumbnail extends StatelessWidget {
 
   Widget _thumbnailPlaceholder() {
     return Center(
-      child: Icon(
-        Icons.photo_outlined,
-        color: Colors.grey.shade500,
-        size: 28,
-      ),
+      child: Icon(Icons.photo_outlined, color: Colors.grey.shade500, size: 28),
     );
   }
-}
-
-Widget _notificationsScaffold({required Widget body, List<Widget>? actions}) {
-  return Scaffold(
-    appBar: AppBar(title: const Text('Notificaciones'), actions: actions),
-    body: body,
-  );
 }
 
 Future<void> _handleNotificationTap(
@@ -630,9 +652,7 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
 
   Future<void> _openCreateCapsule() async {
     final created = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => const TimeCapsuleCreateView(),
-      ),
+      MaterialPageRoute(builder: (_) => const TimeCapsuleCreateView()),
     );
     if (created == true) {
       widget.onCapsuleCreated?.call();
@@ -706,15 +726,15 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
           const SizedBox(height: 12),
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 220),
-            crossFadeState:
-                _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             firstChild: _CapsuleStackPreview(capsules: previewCapsules),
             secondChild: Column(
               children: [
                 for (var i = 0; i < activeCapsules.length; i++) ...[
                   _CapsuleExpandedTile(capsule: activeCapsules[i]),
-                  if (i < activeCapsules.length - 1)
-                    const SizedBox(height: 12),
+                  if (i < activeCapsules.length - 1) const SizedBox(height: 12),
                 ],
               ],
             ),
@@ -769,9 +789,8 @@ class _CapsuleStackPreview extends StatelessWidget {
     }
 
     final nextCapsule = capsules.reduce(
-      (current, candidate) => candidate.openAt.isBefore(current.openAt)
-          ? candidate
-          : current,
+      (current, candidate) =>
+          candidate.openAt.isBefore(current.openAt) ? candidate : current,
     );
 
     return _CapsuleExpandedTile(
@@ -831,7 +850,8 @@ class _CapsuleExpandedTile extends StatelessWidget {
                   capsule.title,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    fontSize: (theme.textTheme.titleMedium?.fontSize ?? 16) * 1.5,
+                    fontSize:
+                        (theme.textTheme.titleMedium?.fontSize ?? 16) * 1.5,
                   ),
                 ),
                 if (description != null && description.isNotEmpty) ...[
@@ -883,10 +903,7 @@ class _CapsuleExpandedTile extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      DateFormat(
-                        'd MMM yyyy',
-                        'es_ES',
-                      ).format(capsule.openAt),
+                      DateFormat('d MMM yyyy', 'es_ES').format(capsule.openAt),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: Colors.grey.shade600,
                       ),
@@ -900,21 +917,23 @@ class _CapsuleExpandedTile extends StatelessWidget {
       ),
     );
 
-    final effectiveOnTap = onTap ?? () {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => TimeCapsuleView(capsuleId: capsule.id),
-        ),
-      );
-    };
+    final effectiveOnTap =
+        onTap ??
+        () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TimeCapsuleView(capsuleId: capsule.id),
+            ),
+          );
+        };
 
     final child = readOnly
-      ? GestureDetector(onTap: onTap, child: content)
-      : InkWell(
-        borderRadius: BorderRadius.circular(20),
+        ? GestureDetector(onTap: onTap, child: content)
+        : InkWell(
+            borderRadius: BorderRadius.circular(20),
             onTap: effectiveOnTap,
-        child: content,
-        );
+            child: content,
+          );
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

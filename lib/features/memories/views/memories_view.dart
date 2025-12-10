@@ -79,105 +79,128 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        toolbarHeight: AppSizes.appBarHeight,
-        title: const Text('Recuerdos'),
-        actions: [
-          // Botón Timeline a la izquierda de los demás
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: const Icon(Icons.timeline),
-              tooltip: 'Ver timeline',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const MemoriesTimelineView(),
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSizes.upperPadding,
+                bottom: 8.0,
+                left: 16, // Typical padding
+                right: 30.0, // Right padding for actions
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8.0),
+                    child: Text('Recuerdos', style: AppTextStyles.title),
                   ),
-                );
-              },
-              style: AppButtonStyles.circularIconButton,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: SvgPicture.asset(AppIcons.heartHandshake),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RelationsView()),
-                );
-              },
-              style: AppButtonStyles.circularIconButton,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: IconButton(
-              icon: SvgPicture.asset(AppIcons.plus),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const CreateJoinMemoryView(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.timeline),
+                        tooltip: 'Ver timeline',
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const MemoriesTimelineView(),
+                            ),
+                          );
+                        },
+                        style: AppButtonStyles.circularIconButton,
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: SvgPicture.asset(AppIcons.heartHandshake),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const RelationsView(),
+                            ),
+                          );
+                        },
+                        style: AppButtonStyles.circularIconButton,
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: SvgPicture.asset(AppIcons.plus),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const CreateJoinMemoryView(),
+                            ),
+                          );
+                        },
+                        style: AppButtonStyles.circularIconButton,
+                      ),
+                    ],
                   ),
-                );
-              },
-              style: AppButtonStyles.circularIconButton,
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-      body: memoriesAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator.adaptive()),
-        error: (error, _) =>
-            Center(child: Text('No se pudieron cargar los recuerdos: $error')),
-        data: (memories) {
-          if (memories.isEmpty) {
-            return const Center(
-              child: Text('Todavía no has guardado ningún recuerdo.'),
-            );
-          }
-
-          final filtered = MemoryFilterUtils.applyFilters(memories, _filters);
-          if (filtered.isEmpty) {
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('No hay recuerdos que coincidan con los filtros.'),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: _clearFilters,
-                  child: const Text('Limpiar filtros'),
+            Expanded(
+              child: memoriesAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator.adaptive()),
+                error: (error, _) => Center(
+                  child: Text('No se pudieron cargar los recuerdos: $error'),
                 ),
-              ],
-            );
-          }
+                data: (memories) {
+                  if (memories.isEmpty) {
+                    return const Center(
+                      child: Text('Todavía no has guardado ningún recuerdo.'),
+                    );
+                  }
 
-          return MemoriesGrid(
-            memories: filtered,
-            showFeatured: true,
-            onFilterTap: () => _openFiltersSheet(memories),
-            filtersActive: _filters.hasFilters,
-            onMemoryTap: (memory) {
-              final memoryId = memory.id ?? '';
-              if (memoryId.isEmpty) return;
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => MemoryDetailView(memoryId: memoryId),
-                ),
-              );
-            },
-            gridPadding: const EdgeInsets.fromLTRB(
-              AppSizes.paddingLarge,
-              AppSizes.paddingLarge,
-              AppSizes.paddingLarge,
-              80,
+                  final filtered = MemoryFilterUtils.applyFilters(
+                    memories,
+                    _filters,
+                  );
+                  if (filtered.isEmpty) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'No hay recuerdos que coincidan con los filtros.',
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: _clearFilters,
+                          child: const Text('Limpiar filtros'),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return MemoriesGrid(
+                    memories: filtered,
+                    showFeatured: true,
+                    onFilterTap: () => _openFiltersSheet(memories),
+                    filtersActive: _filters.hasFilters,
+                    onMemoryTap: (memory) {
+                      final memoryId = memory.id ?? '';
+                      if (memoryId.isEmpty) return;
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => MemoryDetailView(memoryId: memoryId),
+                        ),
+                      );
+                    },
+                    gridPadding: const EdgeInsets.fromLTRB(
+                      AppSizes.paddingLarge,
+                      AppSizes.paddingLarge,
+                      AppSizes.paddingLarge,
+                      80,
+                    ),
+                  );
+                },
+              ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }

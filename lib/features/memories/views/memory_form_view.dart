@@ -847,7 +847,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                                     color: Colors.white,
                                     width: 1,
                                   ),
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withAlpha(0x4D),
                                 ),
                                 child: const Icon(
                                   Icons.add,

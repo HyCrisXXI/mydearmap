@@ -45,19 +45,8 @@ class _AppBackgroundState extends State<AppBackground> {
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is ScrollUpdateNotification ||
-            notification is ScrollStartNotification ||
-            notification is ScrollEndNotification) {
-          if (notification.metrics.axis == Axis.vertical) {
-            if (_bgScrollController.hasClients) {
-              _bgScrollController.jumpTo(notification.metrics.pixels);
-            }
-          }
-        }
-        return false;
-      },
+    return Container(
+      color: AppColors.primaryColor,
       child: Stack(
         children: [
           Positioned.fill(
@@ -74,7 +63,21 @@ class _AppBackgroundState extends State<AppBackground> {
               ),
             ),
           ),
-          widget.child,
+          NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollUpdateNotification ||
+                  notification is ScrollStartNotification ||
+                  notification is ScrollEndNotification) {
+                if (notification.metrics.axis == Axis.vertical) {
+                  if (_bgScrollController.hasClients) {
+                    _bgScrollController.jumpTo(notification.metrics.pixels);
+                  }
+                }
+              }
+              return false;
+            },
+            child: widget.child,
+          ),
         ],
       ),
     );

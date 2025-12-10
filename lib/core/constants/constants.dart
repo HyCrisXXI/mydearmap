@@ -21,6 +21,7 @@ class AppColors {
 class AppSizes {
   // Esto no es la version final de las constantes paddings
   static const double paddingSmall = 8.0;
+  static const double paddingSmallMedium = 12.0;
   static const double paddingMedium = 16.0;
   static const double paddingLarge = 24.0;
   static const double upperPadding = 64.0;
@@ -39,6 +40,8 @@ class AppSizes {
   static const double buttonPaddingVertical = 12.0;
   static const double profileAvatarSize = 56.0;
   static const double profileAvatarBorder = 1.5;
+  static const double listAvatarSize = 48.0;
+  static const double modalMaxWidth = 520.0;
 
   static const double memoryRadiusTop = 22.0;
   static const double memoryFooterHeight = 46.0;
