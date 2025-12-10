@@ -692,7 +692,15 @@ Future<void> _showParticipantsSheet(
 String? _resolveAvatarUrl(String? raw) {
   if (raw == null || raw.isEmpty) return null;
   if (raw.startsWith('http')) return raw;
-  return 'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/$raw';
+
+  const baseUrl =
+      'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media';
+
+  if (raw.startsWith('avatars/')) {
+    return '$baseUrl/$raw';
+  }
+
+  return '$baseUrl/avatars/$raw';
 }
 
 LatLng? _resolveMemoryLocation(

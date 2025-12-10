@@ -264,169 +264,205 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: SvgPicture.asset(AppIcons.chevronLeft),
-          onPressed: () => Navigator.of(context).pop(),
-          style: AppButtonStyles.circularIconButton,
-        ),
-        title: const Text('Editar perfil'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(AppIcons.profileBG),
-            fit: BoxFit.cover,
+      body: Stack(
+        children: [
+          Container(
+            height: double.infinity,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(AppIcons.profileBG),
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(
-            top: AppSizes.upperPadding,
-            left: AppSizes.paddingLarge,
-            right: AppSizes.paddingLarge,
-            bottom: AppSizes.paddingLarge,
-          ),
-          child: Column(
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  GestureDetector(
-                    onTap: _isUploadingAvatar ? null : _pickAndUploadAvatar,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.primaryColor,
-                          width: 1,
+          SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppSizes.upperPadding,
+                    left: AppSizes.paddingLarge,
+                    right: AppSizes.paddingLarge,
+                    bottom: 8.0,
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          icon: SvgPicture.asset(AppIcons.chevronLeft),
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: AppButtonStyles.circularIconButton,
                         ),
                       ),
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: AppColors.primaryColor,
-                        backgroundImage: currentAvatarUrl != null
-                            ? NetworkImage(currentAvatarUrl)
-                            : null,
-                        child: currentAvatarUrl == null
-                            ? Text(
-                                widget.user.name.isNotEmpty
-                                    ? widget.user.name[0].toUpperCase()
-                                    : '?',
-                                style: const TextStyle(
-                                  fontSize: 48,
-                                  color: Color.fromARGB(255, 17, 17, 17),
+                      const Text('Editar perfil', style: AppTextStyles.title),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(
+                      left: AppSizes.paddingLarge,
+                      right: AppSizes.paddingLarge,
+                      bottom: AppSizes.paddingLarge,
+                    ),
+                    child: Column(
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            GestureDetector(
+                              onTap: _isUploadingAvatar
+                                  ? null
+                                  : _pickAndUploadAvatar,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.primaryColor,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: AppColors.primaryColor,
+                                  backgroundImage: currentAvatarUrl != null
+                                      ? NetworkImage(currentAvatarUrl)
+                                      : null,
+                                  child: currentAvatarUrl == null
+                                      ? Text(
+                                          widget.user.name.isNotEmpty
+                                              ? widget.user.name[0]
+                                                    .toUpperCase()
+                                              : '?',
+                                          style: const TextStyle(
+                                            fontSize: 48,
+                                            color: Color.fromARGB(
+                                              255,
+                                              17,
+                                              17,
+                                              17,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ),
+                            if (_isUploadingAvatar)
+                              const Positioned.fill(
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Transform.translate(
+                                offset: const Offset(5, 5),
+                                child: IconButton(
+                                  style: AppButtonStyles.circularIconButton,
+                                  onPressed: _isUploadingAvatar
+                                      ? null
+                                      : _pickAndUploadAvatar,
+                                  icon: SvgPicture.asset(AppIcons.pencil),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Toca para cambiar la imagen',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: AppSizes.paddingLarge),
+                        TextField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            labelText: 'Nombre completo *',
+                            prefixIcon: const Icon(Icons.person),
+                            border: const OutlineInputBorder(),
+                            errorText: _nameError,
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.paddingMedium),
+                        TextField(
+                          controller: _emailController,
+                          decoration: InputDecoration(
+                            labelText: 'Correo electrónico *',
+                            prefixIcon: const Icon(Icons.email),
+                            border: const OutlineInputBorder(),
+                            errorText: _emailError,
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        const SizedBox(height: AppSizes.paddingMedium),
+                        TextField(
+                          controller: _numberController,
+                          decoration: InputDecoration(
+                            labelText: 'Número de teléfono (opcional)',
+                            prefixIcon: const Icon(Icons.phone),
+                            border: const OutlineInputBorder(),
+                            errorText: _numberError,
+                          ),
+                          keyboardType: TextInputType.phone,
+                        ),
+                        const SizedBox(height: AppSizes.paddingMedium),
+                        TextFormField(
+                          controller: _birthDateController,
+                          readOnly: true,
+                          onTap: _pickBirthDate,
+                          decoration: const InputDecoration(
+                            labelText: 'Fecha de nacimiento',
+                            prefixIcon: Icon(Icons.calendar_today),
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.paddingMedium),
+                        DropdownButtonFormField<Gender>(
+                          initialValue: _selectedGender,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Género',
+                            prefixIcon: Icon(Icons.wc),
+                            border: OutlineInputBorder(),
+                          ),
+                          items: Gender.values
+                              .map(
+                                (gender) => DropdownMenuItem(
+                                  value: gender,
+                                  child: Text(_genderLabel(gender)),
                                 ),
                               )
-                            : null,
-                      ),
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _selectedGender = value);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: AppSizes.paddingLarge),
+                        AppFormButtons(
+                          primaryLabel: 'Guardar cambios',
+                          onPrimaryPressed: _canSave ? _saveProfile : null,
+                          secondaryLabel: 'Cancelar',
+                          onSecondaryPressed: () => Navigator.of(context).pop(),
+                          isProcessing:
+                              controllerState.isLoading || _isUploadingAvatar,
+                        ),
+                      ],
                     ),
                   ),
-                  if (_isUploadingAvatar)
-                    const Positioned.fill(
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Transform.translate(
-                      offset: const Offset(5, 5),
-                      child: IconButton(
-                        style: AppButtonStyles.circularIconButton,
-                        onPressed: _isUploadingAvatar
-                            ? null
-                            : _pickAndUploadAvatar,
-                        icon: SvgPicture.asset(AppIcons.pencil),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Toca para cambiar la imagen',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-              ),
-              const SizedBox(height: AppSizes.paddingLarge),
-              TextField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Nombre completo *',
-                  prefixIcon: const Icon(Icons.person),
-                  border: const OutlineInputBorder(),
-                  errorText: _nameError,
                 ),
-              ),
-              const SizedBox(height: AppSizes.paddingMedium),
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Correo electrónico *',
-                  prefixIcon: const Icon(Icons.email),
-                  border: const OutlineInputBorder(),
-                  errorText: _emailError,
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: AppSizes.paddingMedium),
-              TextField(
-                controller: _numberController,
-                decoration: InputDecoration(
-                  labelText: 'Número de teléfono (opcional)',
-                  prefixIcon: const Icon(Icons.phone),
-                  border: const OutlineInputBorder(),
-                  errorText: _numberError,
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: AppSizes.paddingMedium),
-              TextFormField(
-                controller: _birthDateController,
-                readOnly: true,
-                onTap: _pickBirthDate,
-                decoration: const InputDecoration(
-                  labelText: 'Fecha de nacimiento',
-                  prefixIcon: Icon(Icons.calendar_today),
-                ),
-              ),
-              const SizedBox(height: AppSizes.paddingMedium),
-              DropdownButtonFormField<Gender>(
-                initialValue: _selectedGender,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Género',
-                  prefixIcon: Icon(Icons.wc),
-                  border: OutlineInputBorder(),
-                ),
-                items: Gender.values
-                    .map(
-                      (gender) => DropdownMenuItem(
-                        value: gender,
-                        child: Text(_genderLabel(gender)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedGender = value);
-                  }
-                },
-              ),
-              const SizedBox(height: AppSizes.paddingLarge),
-              AppFormButtons(
-                primaryLabel: 'Guardar cambios',
-                onPrimaryPressed: _canSave ? _saveProfile : null,
-                secondaryLabel: 'Cancelar',
-                onSecondaryPressed: () => Navigator.of(context).pop(),
-                isProcessing: controllerState.isLoading || _isUploadingAvatar,
-              ),
-            ],
+              ],
+            ),
           ),
-        ), // SingleChildScrollView
-      ), // Container
+        ],
+      ),
     ); // Scaffold
   }
 

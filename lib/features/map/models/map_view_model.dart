@@ -58,12 +58,15 @@ class LocationSuggestion {
 }
 
 class MapViewModel extends Notifier<MapViewState> {
+  bool _mounted = true;
+
   @override
   MapViewState build() {
+    _mounted = true;
     final initialMemories = ref.read(userMemoriesProvider);
 
     ref.onDispose(() {
-      // No hay cache que limpiar
+      _mounted = false;
     });
 
     ref.listen<AsyncValue<User?>>(currentUserProvider, (previous, next) {
@@ -71,6 +74,7 @@ class MapViewModel extends Notifier<MapViewState> {
       final nextId = _userIdFromAsync(next);
       if (prevId != nextId) {
         Future.microtask(() {
+          if (!_mounted) return;
           state = const MapViewState();
           ref.invalidate(userMemoriesProvider);
         });
@@ -82,6 +86,7 @@ class MapViewModel extends Notifier<MapViewState> {
       next,
     ) {
       Future.microtask(() {
+        if (!_mounted) return;
         final nextMemories = next.asData?.value ?? const <Memory>[];
         state = state.copyWith(
           memories: next,

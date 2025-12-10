@@ -260,13 +260,14 @@ class _MapViewState extends ConsumerState<MapView> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
+        top: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Filtros y toggle
             Padding(
               padding: const EdgeInsets.only(
-                top: 30.0,
+                top: AppSizes.upperPadding,
                 left: 44.0,
                 right: 36.0,
               ),

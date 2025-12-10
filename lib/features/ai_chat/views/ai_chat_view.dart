@@ -13,8 +13,6 @@ class AiChatView extends ConsumerStatefulWidget {
   ConsumerState<AiChatView> createState() => _AiChatViewState();
 }
 
-enum _ChatMenuAction { clearChat }
-
 class _AiChatViewState extends ConsumerState<AiChatView> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -83,32 +81,22 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
           ),
         ),
         child: SafeArea(
+          top: false,
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 30, 16, 20),
+                padding: const EdgeInsets.fromLTRB(
+                  16,
+                  AppSizes.upperPadding,
+                  16,
+                  20,
+                ),
                 child: Row(
                   children: [
-                    PopupMenuButton<_ChatMenuAction>(
-                      icon: const Icon(Icons.more_vert),
-                      onSelected: (action) {
-                        if (action == _ChatMenuAction.clearChat) {
-                          chatNotifier.clearChat();
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem<_ChatMenuAction>(
-                          value: _ChatMenuAction.clearChat,
-                          enabled: chatState.messages.isNotEmpty,
-                          child: Row(
-                            children: const [
-                              Icon(Icons.delete_outline),
-                              SizedBox(width: 8),
-                              Text('Borrar chat'),
-                            ],
-                          ),
-                        ),
-                      ],
+                    IconButton(
+                      icon: SvgPicture.asset(AppIcons.trash),
+                      onPressed: () => chatNotifier.clearChat(),
+                      style: AppButtonStyles.circularIconButton,
                     ),
                     const SizedBox(width: 20),
                     Expanded(
@@ -134,45 +122,71 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
               // Lista de mensajes
               Expanded(
                 child: chatState.messages.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 16),
-                            RichText(
-                              textAlign: TextAlign.center,
-                              text: TextSpan(
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(color: Colors.grey[700]),
-                                children: [
-                                  TextSpan(
-                                    text:
-                                        'Hola${userName.isNotEmpty ? ', $userName' : ''}',
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
+                    ? LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(
+                                    AppSizes.paddingMedium,
                                   ),
-                                  const TextSpan(text: '\n'),
-                                  TextSpan(
-                                    text: '¿Cuál es el plan de hoy?',
-                                    style: const TextStyle(fontSize: 18),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const SizedBox(height: 16),
+                                      RichText(
+                                        textAlign: TextAlign.center,
+                                        text: TextSpan(
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.copyWith(
+                                                color: Colors.grey[700],
+                                              ),
+                                          children: [
+                                            TextSpan(
+                                              text:
+                                                  'Hola${userName.isNotEmpty ? ', $userName' : ''}',
+                                              style: const TextStyle(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                            const TextSpan(text: '\n'),
+                                            TextSpan(
+                                              text: '¿Cuál es el plan de hoy?',
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      _SuggestionChips(
+                                        prompts: suggestionsAsync,
+                                        disabled: chatState.isLoading,
+                                        onPromptTap: (prompt) =>
+                                            _handleSendMessage(
+                                              prompt,
+                                              chatNotifier,
+                                            ),
+                                        onRefresh: () => ref.refresh(
+                                          chatSuggestionsProvider,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 24),
-                            _SuggestionChips(
-                              prompts: suggestionsAsync,
-                              disabled: chatState.isLoading,
-                              onPromptTap: (prompt) =>
-                                  _handleSendMessage(prompt, chatNotifier),
-                              onRefresh: () =>
-                                  ref.refresh(chatSuggestionsProvider),
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       )
                     : ListView.builder(
                         controller: _scrollController,
