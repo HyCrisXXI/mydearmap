@@ -1,5 +1,6 @@
 // lib/core/widgets/auth_gate.dart
 import 'package:mydearmap/core/widgets/app_shell.dart';
+import 'package:mydearmap/features/auth/views/init_world_view.dart';
 import 'package:mydearmap/features/auth/views/login_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,7 @@ class AuthGate extends ConsumerStatefulWidget {
 
 class _AuthGateState extends ConsumerState<AuthGate> {
   late final Stream<User?> _authStateChanges;
+  bool _hasEnteredWorld = false;
 
   @override
   void initState() {
@@ -21,6 +23,14 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     _authStateChanges = Supabase.instance.client.auth.onAuthStateChange.map(
       (event) => event.session?.user,
     );
+  }
+
+  void _resetWorld() {
+    if (!_hasEnteredWorld) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _hasEnteredWorld = false);
+    });
   }
 
   @override
@@ -36,10 +46,26 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         }
 
         if (snapshot.data == null) {
+          _resetWorld();
           return const LoginView();
         }
 
-        return const AppShell(initialIndex: 2); // Start with map
+        final supabaseUser = snapshot.data;
+        final metadataName = supabaseUser?.userMetadata?['name'];
+        final userName = metadataName is String && metadataName.isNotEmpty
+            ? metadataName
+            : supabaseUser?.email;
+        if (!_hasEnteredWorld) {
+          return InitWorldView(
+            userName: userName,
+            onEnterWorld: () {
+              if (!mounted) return;
+              setState(() => _hasEnteredWorld = true);
+            },
+          );
+        }
+
+        return const AppShell(initialIndex: 2);
       },
     );
   }
