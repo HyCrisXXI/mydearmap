@@ -305,8 +305,8 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.only(
-                      left: AppSizes.paddingLarge,
-                      right: AppSizes.paddingLarge,
+                      left: 60.0,
+                      right: 60.0,
                       bottom: AppSizes.paddingLarge,
                     ),
                     child: Column(
@@ -385,8 +385,7 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
                           controller: _nameController,
                           decoration: InputDecoration(
                             labelText: 'Nombre completo *',
-                            prefixIcon: const Icon(Icons.person),
-                            border: const OutlineInputBorder(),
+                            labelStyle: AppTextStyles.textField,
                             errorText: _nameError,
                           ),
                         ),
@@ -395,8 +394,7 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
                           controller: _emailController,
                           decoration: InputDecoration(
                             labelText: 'Correo electrónico *',
-                            prefixIcon: const Icon(Icons.email),
-                            border: const OutlineInputBorder(),
+                            labelStyle: AppTextStyles.textField,
                             errorText: _emailError,
                           ),
                           keyboardType: TextInputType.emailAddress,
@@ -406,8 +404,7 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
                           controller: _numberController,
                           decoration: InputDecoration(
                             labelText: 'Número de teléfono (opcional)',
-                            prefixIcon: const Icon(Icons.phone),
-                            border: const OutlineInputBorder(),
+                            labelStyle: AppTextStyles.textField,
                             errorText: _numberError,
                           ),
                           keyboardType: TextInputType.phone,
@@ -419,23 +416,32 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
                           onTap: _pickBirthDate,
                           decoration: const InputDecoration(
                             labelText: 'Fecha de nacimiento',
-                            prefixIcon: Icon(Icons.calendar_today),
+                            labelStyle: AppTextStyles.textField,
                           ),
                         ),
                         const SizedBox(height: AppSizes.paddingMedium),
                         DropdownButtonFormField<Gender>(
                           initialValue: _selectedGender,
                           isExpanded: true,
+                          dropdownColor: AppColors.primaryColor.withValues(
+                            alpha: .9,
+                          ),
+                          icon: Padding(
+                            padding: const EdgeInsets.only(right: 12.0),
+                            child: SvgPicture.asset(AppIcons.chevronDown),
+                          ),
                           decoration: const InputDecoration(
                             labelText: 'Género',
-                            prefixIcon: Icon(Icons.wc),
-                            border: OutlineInputBorder(),
+                            labelStyle: AppTextStyles.textField,
                           ),
                           items: Gender.values
                               .map(
                                 (gender) => DropdownMenuItem(
                                   value: gender,
-                                  child: Text(_genderLabel(gender)),
+                                  child: Text(
+                                    _genderLabel(gender),
+                                    style: AppTextStyles.text,
+                                  ),
                                 ),
                               )
                               .toList(),

@@ -135,18 +135,19 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             controller: _emailController,
                             decoration: InputDecoration(
                               labelText: 'Email',
+                              labelStyle: AppTextStyles.textField,
                               errorText: loginState.emailError,
                             ),
                             keyboardType: TextInputType.emailAddress,
                             onChanged: loginNotifier.onEmailChanged,
                             onSubmitted: (_) => _signIn(),
-                            style: AppTextStyles.textField,
                           ),
                           const SizedBox(height: 52),
                           TextField(
                             controller: _passwordController,
                             decoration: InputDecoration(
                               labelText: 'Contraseña',
+                              labelStyle: AppTextStyles.textField,
                               errorText: loginState.passwordError,
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -164,7 +165,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             obscureText: loginState.obscurePassword,
                             onChanged: loginNotifier.onPasswordChanged,
                             onSubmitted: (_) => _signIn(),
-                            style: AppTextStyles.textField,
                           ),
                           const SizedBox(height: 60),
                           AppFormButtons(

@@ -16,152 +16,158 @@ class AppNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 94, // Altura deseada para la barra de navegación
-      child: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.primaryColor,
-        selectedItemColor: AppColors.accentColor,
-        unselectedItemColor: Colors.black,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        currentIndex: currentIndex,
-        onTap: onItemTapped,
-        items: [
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.ai,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  Colors.black,
-                  BlendMode.srcIn,
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: AppColors.primaryColor,
+          selectedItemColor: AppColors.accentColor,
+          unselectedItemColor: Colors.black,
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
+          currentIndex: currentIndex,
+          onTap: onItemTapped,
+          items: [
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.ai,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
-            ),
-            activeIcon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.ai,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.accentColor,
-                  BlendMode.srcIn,
+              activeIcon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.ai,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.accentColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
+              label: 'Chatbot',
             ),
-            label: 'Chatbot',
-          ),
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.sticker,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  Colors.black,
-                  BlendMode.srcIn,
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.sticker,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
-            ),
-            activeIcon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.sticker,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.accentColor,
-                  BlendMode.srcIn,
+              activeIcon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.sticker,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.accentColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
+              label: 'Recuerdos',
             ),
-            label: 'Recuerdos',
-          ),
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.earth,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  Colors.black,
-                  BlendMode.srcIn,
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.earth,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
-            ),
-            activeIcon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.earth,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.accentColor,
-                  BlendMode.srcIn,
+              activeIcon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.earth,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.accentColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
+              label: 'Mapa',
             ),
-            label: 'Mapa',
-          ),
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.bell,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  Colors.black,
-                  BlendMode.srcIn,
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.bell,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
-            ),
-            activeIcon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.bell,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.accentColor,
-                  BlendMode.srcIn,
+              activeIcon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.bell,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.accentColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
+              label: 'Notificaciones',
             ),
-            label: 'Notificaciones',
-          ),
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.userRound,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  Colors.black,
-                  BlendMode.srcIn,
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.userRound,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
-            ),
-            activeIcon: Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: SvgPicture.asset(
-                AppIcons.userRound,
-                width: AppSizes.iconSize,
-                height: AppSizes.iconSize,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.accentColor,
-                  BlendMode.srcIn,
+              activeIcon: Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: SvgPicture.asset(
+                  AppIcons.userRound,
+                  width: AppSizes.iconSize,
+                  height: AppSizes.iconSize,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.accentColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
+              label: 'Perfil',
             ),
-            label: 'Perfil',
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -149,7 +149,7 @@ class _NotificationsContent extends ConsumerWidget {
 
     final content = ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.fromLTRB(0, AppSizes.upperPadding, 0, 12),
       children: listChildren,
     );
 
@@ -679,7 +679,7 @@ class _CapsulesShelfState extends State<_CapsulesShelf> {
         : const _CapsulesEmptyMessage();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

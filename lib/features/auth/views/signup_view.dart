@@ -152,27 +152,28 @@ class _SignupViewState extends ConsumerState<SignupView> {
                     controller: _nameController,
                     decoration: InputDecoration(
                       labelText: 'Nombre completo *',
+                      labelStyle: AppTextStyles.textField,
                       errorText: signupState.nameError,
                     ),
                     onChanged: signupNotifier.onNameChanged,
-                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _emailController,
                     decoration: InputDecoration(
                       labelText: 'Email *',
+                      labelStyle: AppTextStyles.textField,
                       errorText: signupState.emailError,
                     ),
                     keyboardType: TextInputType.emailAddress,
                     onChanged: signupNotifier.onEmailChanged,
-                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _passwordController,
                     decoration: InputDecoration(
                       labelText: 'Contraseña *',
+                      labelStyle: AppTextStyles.textField,
                       errorText: signupState.passwordError,
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -185,29 +186,28 @@ class _SignupViewState extends ConsumerState<SignupView> {
                     ),
                     obscureText: signupState.obscurePassword,
                     onChanged: signupNotifier.onPasswordChanged,
-                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _numberController,
                     decoration: InputDecoration(
                       labelText: 'Teléfono (opcional)',
+                      labelStyle: AppTextStyles.textField,
                       errorText: signupState.numberError,
                     ),
                     keyboardType: TextInputType.phone,
                     onChanged: signupNotifier.onNumberChanged,
-                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _birthDateController,
                     decoration: InputDecoration(
                       labelText: 'Fecha de nacimiento (opcional)',
+                      labelStyle: AppTextStyles.textField,
                       errorText: signupState.birthDateError,
                     ),
                     readOnly: true,
                     onTap: () => _selectBirthDate(signupState),
-                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String?>(
