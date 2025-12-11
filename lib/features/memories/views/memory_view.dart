@@ -444,31 +444,45 @@ Widget _buildMixedTimeline({
             return const Text('Todavía no hay recuerdos compartidos.');
           }
           return Column(
-            children: entries
-                .map(
-                  (entry) => Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: AppSizes.paddingMedium,
-                    ),
-                    child: entry.kind == _TimelineEntryKind.media
-                        ? _VerticalMediaAttachment(asset: entry.media!)
-                        : MemoryCommentCard(
-                            comment: entry.comment!,
-                            onDelete:
-                                currentUser != null &&
-                                    memory.id != null &&
-                                    entry.comment!.user.id == currentUser.id
-                                ? () => _confirmDeleteComment(
-                                    context,
-                                    ref,
-                                    memory.id!,
-                                    entry.comment!.id,
-                                  )
-                                : null,
-                          ),
+            children: entries.asMap().entries.map((mapEntry) {
+              final entry = mapEntry.value;
+
+              if (entry.kind == _TimelineEntryKind.media) {
+                // Calculate the index of this media within the galleryMedia list
+                final mediaIndex = galleryMedia.indexOf(entry.media!);
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppSizes.paddingMedium,
                   ),
-                )
-                .toList(),
+                  child: _VerticalMediaAttachment(
+                    asset: entry.media!,
+                    onTap: () => _showFullScreenGallery(
+                      context,
+                      galleryMedia,
+                      mediaIndex,
+                    ),
+                  ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
+                child: MemoryCommentCard(
+                  comment: entry.comment!,
+                  onDelete:
+                      currentUser != null &&
+                          memory.id != null &&
+                          entry.comment!.user.id == currentUser.id
+                      ? () => _confirmDeleteComment(
+                          context,
+                          ref,
+                          memory.id!,
+                          entry.comment!.id,
+                        )
+                      : null,
+                ),
+              );
+            }).toList(),
           );
         },
       );
@@ -477,9 +491,15 @@ Widget _buildMixedTimeline({
 }
 
 class _VerticalMediaAttachment extends StatelessWidget {
-  const _VerticalMediaAttachment({required this.asset});
+  const _VerticalMediaAttachment({
+    required this.asset,
+    this.onTap,
+    this.isFullScreen = false,
+  });
 
   final MemoryMedia asset;
+  final VoidCallback? onTap;
+  final bool isFullScreen;
 
   @override
   Widget build(BuildContext context) {
@@ -518,8 +538,25 @@ class _VerticalMediaAttachment extends StatelessWidget {
         message: 'Imagen sin ruta pública disponible.',
       );
     }
+
+    // If we are already in full screen, we might not want gesture handling for opening gallery,
+    // or we might want to toggle controls. For now, simple image.
+    if (isFullScreen) {
+      return Image.network(
+        url,
+        fit: BoxFit.contain, // Full screen should likely contain
+        width: double.infinity,
+        height: double.infinity,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const Center(child: CircularProgressIndicator.adaptive());
+        },
+        errorBuilder: (_, _, _) => const Center(child: Icon(Icons.error)),
+      );
+    }
+
     return GestureDetector(
-      onTap: () => _showFullScreenImage(context, url),
+      onTap: onTap,
       onLongPress: () => _copyMediaLink(context, url),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSizes.borderRadius),
@@ -615,21 +652,182 @@ class _InlineMediaNotice extends StatelessWidget {
   }
 }
 
+Future<void> _showFullScreenGallery(
+  BuildContext context,
+  List<MemoryMedia> galleryMedia,
+  int initialIndex,
+) async {
+  await Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => FullScreenMediaGallery(
+        media: galleryMedia,
+        initialIndex: initialIndex,
+      ),
+      fullscreenDialog: true,
+    ),
+  );
+}
+
+class FullScreenMediaGallery extends StatefulWidget {
+  const FullScreenMediaGallery({
+    required this.media,
+    required this.initialIndex,
+    super.key,
+  });
+
+  final List<MemoryMedia> media;
+  final int initialIndex;
+
+  @override
+  State<FullScreenMediaGallery> createState() => _FullScreenMediaGalleryState();
+}
+
+class _FullScreenMediaGalleryState extends State<FullScreenMediaGallery> {
+  late PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  String _formatDateForGallery(DateTime date) {
+    final months = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentMedia = widget.media[_currentIndex];
+
+    return Scaffold(
+      backgroundColor: Colors.black, // Dark background fallback
+      body: Stack(
+        children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(AppIcons.initWorldBG, fit: BoxFit.cover),
+          ),
+          // Gallery PageView
+          Positioned.fill(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: widget.media.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                final item = widget.media[index];
+                if (item.kind == MemoryMediaKind.video) {
+                  // Placeholder for video, reusing action card or a simple player placeholder
+                  // Request asked for swipe "como si fuera una galeria", "que permita hacer zoom" (usually for images)
+                  // "y lo que no se vea que nada mas extra"
+                  return Center(
+                    child: _VerticalMediaAttachment(
+                      asset: item,
+                      isFullScreen: true,
+                    ),
+                  );
+                }
+
+                final url = item.publicUrl;
+                if (url == null) return const SizedBox.shrink();
+
+                return InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator.adaptive(),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Custom Header
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.paddingLarge,
+                AppSizes.upperPadding, // Use standard upper padding
+                AppSizes.paddingLarge,
+                AppSizes.paddingMedium,
+              ),
+              color: AppColors.primaryColor.withValues(
+                alpha: 0.0,
+              ), // Transparent to show media behind if needed, or colored?
+              // User said: "manteniendo el navbar de debajo implicito" (this refers to bottom nav usually, but here likely means
+              // the system UI or just the implicit nature).
+              // "y añadiendole el boton de chevron left ... y que a la derecha ... ponga la fecha"
+              // "lo que no se vea que nada mas extra, zona con color primaryColor" -> Background is primaryColor.
+              child: SafeArea(
+                top: false,
+                bottom: false,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: SvgPicture.asset(AppIcons.chevronLeft),
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: AppButtonStyles.circularIconButton,
+                    ),
+                    const SizedBox(width: AppSizes.paddingSmallMedium),
+                    Text(
+                      _formatDateForGallery(currentMedia.createdAt),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Future<void> _copyMediaLink(BuildContext context, String value) async {
   await Clipboard.setData(ClipboardData(text: value));
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(content: Text('Enlace copiado al portapapeles')),
-  );
-}
-
-Future<void> _showFullScreenImage(BuildContext context, String url) async {
-  await showDialog<void>(
-    context: context,
-    builder: (dialogContext) => Dialog(
-      insetPadding: const EdgeInsets.all(AppSizes.paddingLarge),
-      child: InteractiveViewer(child: Image.network(url, fit: BoxFit.contain)),
-    ),
   );
 }
 

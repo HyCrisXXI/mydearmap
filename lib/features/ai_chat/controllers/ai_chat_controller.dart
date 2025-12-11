@@ -33,6 +33,12 @@ class ChatState {
   }
 }
 
+class ChatPrompt {
+  final String label;
+  final String query;
+  const ChatPrompt({required this.label, required this.query});
+}
+
 class AiChatNotifier extends Notifier<ChatState> {
   static const List<String> _coordinateKeywords = <String>[
     'coordenada',
@@ -45,15 +51,39 @@ class AiChatNotifier extends Notifier<ChatState> {
     'ubicacion precisa',
     'gps',
   ];
-  static const List<String> _fallbackPrompts = <String>[
-    'Cafetería acogedora',
-    'Mirador urbano',
-    'Playa cercana',
-    'Bosque tranquilo',
-    'Mercado local',
-    'Ruta ciclista',
-    'Bar de tapas',
-    'Pueblo mágico',
+  static const List<ChatPrompt> _fallbackPrompts = <ChatPrompt>[
+    ChatPrompt(
+      label: 'Cafetería acogedora',
+      query: 'Recomiéndame una cafetería acogedora cerca',
+    ),
+    ChatPrompt(
+      label: 'Mirador urbano',
+      query: '¿Dónde puedo encontrar un buen mirador urbano?',
+    ),
+    ChatPrompt(
+      label: 'Playa cercana',
+      query: 'Busco una playa cercana para relajarme',
+    ),
+    ChatPrompt(
+      label: 'Bosque tranquilo',
+      query: 'Quiero pasear por un bosque tranquilo',
+    ),
+    ChatPrompt(
+      label: 'Mercado local',
+      query: '¿Hay algún mercado local interesante?',
+    ),
+    ChatPrompt(
+      label: 'Ruta ciclista',
+      query: 'Sugiéreme una ruta ciclista escénica',
+    ),
+    ChatPrompt(
+      label: 'Bar de tapas',
+      query: 'Me gustaría ir a un bar de tapas auténtico',
+    ),
+    ChatPrompt(
+      label: 'Pueblo mágico',
+      query: '¿Conoces algún pueblo mágico por la zona?',
+    ),
   ];
   late final GeminiChatService _chatService;
   DateFormat? _dateFormat;
@@ -114,8 +144,8 @@ class AiChatNotifier extends Notifier<ChatState> {
     }
   }
 
-  Future<List<String>> generateSuggestedPrompts({int count = 4}) async {
-    final prompts = <String>{};
+  Future<List<ChatPrompt>> generateSuggestedPrompts({int count = 4}) async {
+    final prompts = <ChatPrompt>{};
     while (prompts.length < count) {
       final fallback =
           _fallbackPrompts[_random.nextInt(_fallbackPrompts.length)];
@@ -284,7 +314,9 @@ final aiChatControllerProvider = NotifierProvider<AiChatNotifier, ChatState>(
   },
 );
 
-final chatSuggestionsProvider = FutureProvider.autoDispose<List<String>>((ref) {
+final chatSuggestionsProvider = FutureProvider.autoDispose<List<ChatPrompt>>((
+  ref,
+) {
   final notifier = ref.watch(aiChatControllerProvider.notifier);
   return notifier.generateSuggestedPrompts();
 });
