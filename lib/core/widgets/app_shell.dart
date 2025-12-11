@@ -24,6 +24,8 @@ class AppShellState extends State<AppShell>
   late int _currentIndex;
   int? _previousIndex;
   late AnimationController _animationController;
+  DateTime? _lastBackPressed;
+  final Duration _exitWarningDuration = const Duration(seconds: 1);
 
   // GlobalKeys for each tab's navigator to maintain their navigation stacks
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [
@@ -80,10 +82,7 @@ class AppShellState extends State<AppShell>
           if (popped) return;
         }
 
-        // Exit App
-        if (context.mounted) {
-          SystemNavigator.pop();
-        }
+        await _handleShellBack();
       },
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -160,5 +159,40 @@ class AppShellState extends State<AppShell>
         return MaterialPageRoute(builder: (context) => child);
       },
     );
+  }
+
+  Future<void> _handleShellBack() async {
+    if (_currentIndex != 2) {
+      _navigateToMapTab();
+      return;
+    }
+
+    final now = DateTime.now();
+    if (_lastBackPressed == null ||
+        now.difference(_lastBackPressed!) > _exitWarningDuration) {
+      _lastBackPressed = now;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            duration: Duration(seconds: 1),
+            content: Text('Vuelve a tocar para salir'),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (context.mounted) {
+      SystemNavigator.pop();
+    }
+  }
+
+  void _navigateToMapTab() {
+    setState(() {
+      _previousIndex = _currentIndex;
+      _currentIndex = 2;
+    });
+    _animationController.reset();
+    _animationController.forward();
   }
 }

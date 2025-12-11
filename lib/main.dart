@@ -109,6 +109,15 @@ class MyApp extends StatelessWidget {
           ),
         ),
         inputDecorationTheme: AppInputStyles.defaultInputDecorationTheme,
+        // Estilo global del snackBar
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          contentTextStyle: const TextStyle(color: Colors.white),
+        ),
       ),
       routes: appRoutes,
       initialRoute: '/auth',
