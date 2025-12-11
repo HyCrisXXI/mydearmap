@@ -78,23 +78,42 @@ class MemoryDetailView extends ConsumerWidget {
                       orElse: () => const Text('Detalle del recuerdo'),
                     ),
                   ),
-                  IconButton(
-                    icon: SvgPicture.asset(AppIcons.pencil),
+                  PopupMenuButton<_MemoryDetailMenuAction>(
+                    icon: SvgPicture.asset(AppIcons.ellipsisVertical),
                     style: AppButtonStyles.circularIconButton,
-                    tooltip: 'Editar recuerdo',
-                    onPressed: () async {
-                      final refreshed = await Navigator.of(context).push<bool>(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              MemoryDetailEditView(memoryId: memoryId),
-                        ),
-                      );
-                      if (!context.mounted) return;
-                      if (refreshed == true) {
-                        ref.invalidate(memoryDetailProvider(memoryId));
-                        ref.invalidate(memoryMediaProvider(memoryId));
+                    tooltip: 'Más opciones',
+                    onSelected: (action) async {
+                      switch (action) {
+                        case _MemoryDetailMenuAction.editMemory:
+                          final refreshed = await Navigator.of(context)
+                              .push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      MemoryDetailEditView(memoryId: memoryId),
+                                ),
+                              );
+                          if (!context.mounted) return;
+                          if (refreshed == true) {
+                            ref.invalidate(memoryDetailProvider(memoryId));
+                            ref.invalidate(memoryMediaProvider(memoryId));
+                          }
+                          break;
+                        case _MemoryDetailMenuAction.createComment:
+                          if (!context.mounted) return;
+                          await _showCommentComposer(context, ref, memoryId);
+                          break;
                       }
                     },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: _MemoryDetailMenuAction.editMemory,
+                        child: Text('Editar recuerdo'),
+                      ),
+                      PopupMenuItem(
+                        value: _MemoryDetailMenuAction.createComment,
+                        child: Text('Crear comentario'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -126,145 +145,130 @@ class MemoryDetailView extends ConsumerWidget {
                       .bodyMedium
                       ?.copyWith(color: AppColors.accentColor);
 
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingLarge,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 6),
-                              Center(
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: AppSizes.modalMaxWidth,
-                                  ),
-                                  child: Row(
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSizes.paddingLarge),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 6),
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: AppSizes.modalMaxWidth,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                SvgPicture.asset(
-                                                  AppIcons.calendar,
-                                                  width: 18,
-                                                  height: 18,
-                                                  colorFilter: ColorFilter.mode(
-                                                    Theme.of(context)
-                                                            .textTheme
-                                                            .bodySmall
-                                                            ?.color ??
-                                                        Theme.of(
-                                                          context,
-                                                        ).colorScheme.onSurface,
-                                                    BlendMode.srcIn,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  _formatDate(happenedAt),
-                                                  style: Theme.of(
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SvgPicture.asset(
+                                            AppIcons.calendar,
+                                            width: 18,
+                                            height: 18,
+                                            colorFilter: ColorFilter.mode(
+                                              Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.color ??
+                                                  Theme.of(
                                                     context,
-                                                  ).textTheme.bodySmall,
-                                                ),
-                                              ],
+                                                  ).colorScheme.onSurface,
+                                              BlendMode.srcIn,
                                             ),
-                                            if (latLng != null) ...[
-                                              const SizedBox(height: 6),
-                                              Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.place,
-                                                    size: 16,
-                                                    color:
-                                                        AppColors.accentColor,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            _formatDate(happenedAt),
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                      if (latLng != null) ...[
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.place,
+                                              size: 16,
+                                              color: AppColors.accentColor,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child:
+                                                  locationLabelAsync?.maybeWhen(
+                                                    data: (value) => Text(
+                                                      value,
+                                                      style: locationTextStyle,
+                                                    ),
+                                                    orElse: () => Text(
+                                                      _formatLocationLabel(
+                                                        latLng,
+                                                      ),
+                                                      style: locationTextStyle,
+                                                    ),
+                                                  ) ??
+                                                  Text(
+                                                    _formatLocationLabel(
+                                                      latLng,
+                                                    ),
+                                                    style: locationTextStyle,
                                                   ),
-                                                  const SizedBox(width: 6),
-                                                  Expanded(
-                                                    child:
-                                                        locationLabelAsync?.maybeWhen(
-                                                          data: (value) => Text(
-                                                            value,
-                                                            style:
-                                                                locationTextStyle,
-                                                          ),
-                                                          orElse: () => Text(
-                                                            _formatLocationLabel(
-                                                              latLng,
-                                                            ),
-                                                            style:
-                                                                locationTextStyle,
-                                                          ),
-                                                        ) ??
-                                                        Text(
-                                                          _formatLocationLabel(
-                                                            latLng,
-                                                          ),
-                                                          style:
-                                                              locationTextStyle,
-                                                        ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
+                                            ),
                                           ],
                                         ),
-                                      ),
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.topRight,
-                                          child: memory.participants.isNotEmpty
-                                              ? _ParticipantsHeaderPreview(
-                                                  participants:
-                                                      memory.participants,
-                                                  onTap: () =>
-                                                      _showParticipantsSheet(
-                                                        context,
-                                                        memory.participants,
-                                                      ),
-                                                )
-                                              : const SizedBox.shrink(),
-                                        ),
-                                      ),
+                                      ],
                                     ],
                                   ),
                                 ),
-                              ),
-                              if (description.isNotEmpty) ...[
-                                const SizedBox(height: AppSizes.paddingLarge),
-                                Center(
-                                  child: Text(
-                                    description,
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context).textTheme.bodyLarge
-                                        ?.copyWith(height: 1.0),
+                                Expanded(
+                                  child: Align(
+                                    alignment: Alignment.topRight,
+                                    child: memory.participants.isNotEmpty
+                                        ? _ParticipantsHeaderPreview(
+                                            participants: memory.participants,
+                                            onTap: () => _showParticipantsSheet(
+                                              context,
+                                              memory.participants,
+                                            ),
+                                          )
+                                        : const SizedBox.shrink(),
                                   ),
                                 ),
                               ],
-                              const SizedBox(height: AppSizes.paddingLarge),
-                              _buildMixedTimeline(
-                                context: context,
-                                mediaAsync: mediaAsync,
-                                commentsAsync: commentsAsync,
-                                memory: memory,
-                                ref: ref,
-                                currentUser: currentUser,
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                      _CommentInput(memoryId: memoryId),
-                    ],
+                        if (description.isNotEmpty) ...[
+                          const SizedBox(height: AppSizes.paddingLarge),
+                          Center(
+                            child: Text(
+                              description,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.copyWith(height: 1.0),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: AppSizes.paddingLarge),
+                        _buildMixedTimeline(
+                          context: context,
+                          mediaAsync: mediaAsync,
+                          commentsAsync: commentsAsync,
+                          memory: memory,
+                          ref: ref,
+                          currentUser: currentUser,
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -276,171 +280,7 @@ class MemoryDetailView extends ConsumerWidget {
   }
 }
 
-class _CommentInput extends ConsumerStatefulWidget {
-  const _CommentInput({required this.memoryId});
-  final String memoryId;
-
-  @override
-  ConsumerState<_CommentInput> createState() => _CommentInputState();
-}
-
-class _CommentInputState extends ConsumerState<_CommentInput> {
-  final _controller = TextEditingController();
-  var _isSubmitting = false;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
-
-    setState(() => _isSubmitting = true);
-    try {
-      final user = await ref.read(currentUserProvider.future);
-      if (user == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Inicia sesión para comentar')),
-        );
-        setState(() => _isSubmitting = false);
-        return;
-      }
-
-      await ref
-          .read(memoryRepositoryProvider)
-          .addComment(
-            memoryId: widget.memoryId,
-            userId: user.id,
-            content: text,
-          );
-
-      _controller.clear();
-      ref.invalidate(memoryCommentsProvider(widget.memoryId));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.paddingMedium,
-        vertical: 12,
-      ),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(top: BorderSide(color: Colors.grey.shade300)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                enabled: !_isSubmitting,
-                decoration: InputDecoration(
-                  hintText: 'Escribe un comentario...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                ),
-                textCapitalization: TextCapitalization.sentences,
-                onSubmitted: (_) => _submit(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              onPressed: _isSubmitting ? null : _submit,
-              icon: _isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : SvgPicture.asset(
-                      AppIcons.send,
-                      width: 24,
-                      height: 24,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.blue,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-Future<void> _confirmDeleteComment(
-  BuildContext context,
-  WidgetRef ref,
-  String memoryId,
-  String commentId,
-) async {
-  final shouldDelete = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Eliminar comentario'),
-      content: const Text(
-        'Esta acción no se puede deshacer. ¿Deseas continuar?',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            if (!context.mounted) return;
-            Navigator.of(dialogContext).pop(false);
-          },
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (!context.mounted) return;
-            Navigator.of(dialogContext).pop(true);
-          },
-          child: const Text('Eliminar'),
-        ),
-      ],
-    ),
-  );
-
-  if (shouldDelete == true) {
-    try {
-      final repository = ref.read(memoryRepositoryProvider);
-      await repository.deleteComment(commentId);
-      ref.invalidate(memoryCommentsProvider(memoryId));
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Comentario eliminado')));
-    } catch (error) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('No se pudo eliminar: $error')));
-    }
-  }
-}
+enum _MemoryDetailMenuAction { editMemory, createComment }
 
 class _ParticipantsHeaderPreview extends StatelessWidget {
   const _ParticipantsHeaderPreview({required this.participants, this.onTap});
@@ -604,31 +444,45 @@ Widget _buildMixedTimeline({
             return const Text('Todavía no hay recuerdos compartidos.');
           }
           return Column(
-            children: entries
-                .map(
-                  (entry) => Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: AppSizes.paddingMedium,
-                    ),
-                    child: entry.kind == _TimelineEntryKind.media
-                        ? _VerticalMediaAttachment(asset: entry.media!)
-                        : MemoryCommentCard(
-                            comment: entry.comment!,
-                            onDelete:
-                                currentUser != null &&
-                                    memory.id != null &&
-                                    entry.comment!.user.id == currentUser.id
-                                ? () => _confirmDeleteComment(
-                                    context,
-                                    ref,
-                                    memory.id!,
-                                    entry.comment!.id,
-                                  )
-                                : null,
-                          ),
+            children: entries.asMap().entries.map((mapEntry) {
+              final entry = mapEntry.value;
+
+              if (entry.kind == _TimelineEntryKind.media) {
+                // Calculate the index of this media within the galleryMedia list
+                final mediaIndex = galleryMedia.indexOf(entry.media!);
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppSizes.paddingMedium,
                   ),
-                )
-                .toList(),
+                  child: _VerticalMediaAttachment(
+                    asset: entry.media!,
+                    onTap: () => _showFullScreenGallery(
+                      context,
+                      galleryMedia,
+                      mediaIndex,
+                    ),
+                  ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
+                child: MemoryCommentCard(
+                  comment: entry.comment!,
+                  onDelete:
+                      currentUser != null &&
+                          memory.id != null &&
+                          entry.comment!.user.id == currentUser.id
+                      ? () => _confirmDeleteComment(
+                          context,
+                          ref,
+                          memory.id!,
+                          entry.comment!.id,
+                        )
+                      : null,
+                ),
+              );
+            }).toList(),
           );
         },
       );
@@ -637,9 +491,15 @@ Widget _buildMixedTimeline({
 }
 
 class _VerticalMediaAttachment extends StatelessWidget {
-  const _VerticalMediaAttachment({required this.asset});
+  const _VerticalMediaAttachment({
+    required this.asset,
+    this.onTap,
+    this.isFullScreen = false,
+  });
 
   final MemoryMedia asset;
+  final VoidCallback? onTap;
+  final bool isFullScreen;
 
   @override
   Widget build(BuildContext context) {
@@ -678,8 +538,25 @@ class _VerticalMediaAttachment extends StatelessWidget {
         message: 'Imagen sin ruta pública disponible.',
       );
     }
+
+    // If we are already in full screen, we might not want gesture handling for opening gallery,
+    // or we might want to toggle controls. For now, simple image.
+    if (isFullScreen) {
+      return Image.network(
+        url,
+        fit: BoxFit.contain, // Full screen should likely contain
+        width: double.infinity,
+        height: double.infinity,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const Center(child: CircularProgressIndicator.adaptive());
+        },
+        errorBuilder: (_, _, _) => const Center(child: Icon(Icons.error)),
+      );
+    }
+
     return GestureDetector(
-      onTap: () => _showFullScreenImage(context, url),
+      onTap: onTap,
       onLongPress: () => _copyMediaLink(context, url),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSizes.borderRadius),
@@ -775,21 +652,182 @@ class _InlineMediaNotice extends StatelessWidget {
   }
 }
 
+Future<void> _showFullScreenGallery(
+  BuildContext context,
+  List<MemoryMedia> galleryMedia,
+  int initialIndex,
+) async {
+  await Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => FullScreenMediaGallery(
+        media: galleryMedia,
+        initialIndex: initialIndex,
+      ),
+      fullscreenDialog: true,
+    ),
+  );
+}
+
+class FullScreenMediaGallery extends StatefulWidget {
+  const FullScreenMediaGallery({
+    required this.media,
+    required this.initialIndex,
+    super.key,
+  });
+
+  final List<MemoryMedia> media;
+  final int initialIndex;
+
+  @override
+  State<FullScreenMediaGallery> createState() => _FullScreenMediaGalleryState();
+}
+
+class _FullScreenMediaGalleryState extends State<FullScreenMediaGallery> {
+  late PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  String _formatDateForGallery(DateTime date) {
+    final months = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentMedia = widget.media[_currentIndex];
+
+    return Scaffold(
+      backgroundColor: Colors.black, // Dark background fallback
+      body: Stack(
+        children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(AppIcons.initWorldBG, fit: BoxFit.cover),
+          ),
+          // Gallery PageView
+          Positioned.fill(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: widget.media.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                final item = widget.media[index];
+                if (item.kind == MemoryMediaKind.video) {
+                  // Placeholder for video, reusing action card or a simple player placeholder
+                  // Request asked for swipe "como si fuera una galeria", "que permita hacer zoom" (usually for images)
+                  // "y lo que no se vea que nada mas extra"
+                  return Center(
+                    child: _VerticalMediaAttachment(
+                      asset: item,
+                      isFullScreen: true,
+                    ),
+                  );
+                }
+
+                final url = item.publicUrl;
+                if (url == null) return const SizedBox.shrink();
+
+                return InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator.adaptive(),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Custom Header
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.paddingLarge,
+                AppSizes.upperPadding, // Use standard upper padding
+                AppSizes.paddingLarge,
+                AppSizes.paddingMedium,
+              ),
+              color: AppColors.primaryColor.withValues(
+                alpha: 0.0,
+              ), // Transparent to show media behind if needed, or colored?
+              // User said: "manteniendo el navbar de debajo implicito" (this refers to bottom nav usually, but here likely means
+              // the system UI or just the implicit nature).
+              // "y añadiendole el boton de chevron left ... y que a la derecha ... ponga la fecha"
+              // "lo que no se vea que nada mas extra, zona con color primaryColor" -> Background is primaryColor.
+              child: SafeArea(
+                top: false,
+                bottom: false,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: SvgPicture.asset(AppIcons.chevronLeft),
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: AppButtonStyles.circularIconButton,
+                    ),
+                    const SizedBox(width: AppSizes.paddingSmallMedium),
+                    Text(
+                      _formatDateForGallery(currentMedia.createdAt),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Future<void> _copyMediaLink(BuildContext context, String value) async {
   await Clipboard.setData(ClipboardData(text: value));
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(content: Text('Enlace copiado al portapapeles')),
-  );
-}
-
-Future<void> _showFullScreenImage(BuildContext context, String url) async {
-  await showDialog<void>(
-    context: context,
-    builder: (dialogContext) => Dialog(
-      insetPadding: const EdgeInsets.all(AppSizes.paddingLarge),
-      child: InteractiveViewer(child: Image.network(url, fit: BoxFit.contain)),
-    ),
   );
 }
 
@@ -886,4 +924,265 @@ String _formatLocationLabel(LatLng point) {
   final lat = point.latitude.toStringAsFixed(4);
   final lng = point.longitude.toStringAsFixed(4);
   return 'Lat $lat, Lon $lng';
+}
+
+class _CommentComposerDialog extends ConsumerStatefulWidget {
+  const _CommentComposerDialog({required this.memoryId});
+
+  final String memoryId;
+
+  @override
+  ConsumerState<_CommentComposerDialog> createState() =>
+      _CommentComposerDialogState();
+}
+
+class _CommentComposerDialogState
+    extends ConsumerState<_CommentComposerDialog> {
+  late final TextEditingController _contentController;
+  late final TextEditingController _subtitleController;
+  final _formKey = GlobalKey<FormState>();
+  var _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _contentController = TextEditingController();
+    _subtitleController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _contentController.dispose();
+    _subtitleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    return Dialog(
+      insetPadding: const EdgeInsets.all(AppSizes.paddingLarge),
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.only(bottom: viewInsets),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSizes.paddingLarge),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Nuevo comentario',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Cerrar',
+                        onPressed: _isSubmitting
+                            ? null
+                            : () {
+                                if (!context.mounted) return;
+                                Navigator.of(context).pop(false);
+                              },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.paddingMedium),
+                  TextFormField(
+                    controller: _contentController,
+                    decoration: const InputDecoration(
+                      labelText: 'Título',
+                      hintText: 'Describe el momento',
+                    ),
+                    minLines: 1,
+                    maxLines: 6,
+                    autofocus: true,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Escribe un título';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: AppSizes.paddingMedium),
+                  TextFormField(
+                    controller: _subtitleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Subtexto (opcional)',
+                      hintText: 'Describe el momento',
+                    ),
+                    minLines: 1,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: AppSizes.paddingLarge),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () {
+                                if (!context.mounted) return;
+                                Navigator.of(context).pop(false);
+                              },
+                        child: const Text('Cancelar'),
+                      ),
+                      const Spacer(),
+                      FilledButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () async {
+                                if (!_formKey.currentState!.validate()) {
+                                  return;
+                                }
+                                setState(() => _isSubmitting = true);
+                                try {
+                                  final user = await ref.read(
+                                    currentUserProvider.future,
+                                  );
+                                  if (user == null) {
+                                    setState(() => _isSubmitting = false);
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Debes iniciar sesión para comentar.',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  final repository = ref.read(
+                                    memoryRepositoryProvider,
+                                  );
+                                  final content = _contentController.text
+                                      .trim();
+                                  final subtitle = _subtitleController.text
+                                      .trim();
+                                  await repository.addComment(
+                                    memoryId: widget.memoryId,
+                                    userId: user.id,
+                                    content: content,
+                                    subtitle: subtitle.isNotEmpty
+                                        ? subtitle
+                                        : null,
+                                  );
+                                  ref.invalidate(
+                                    memoryCommentsProvider(widget.memoryId),
+                                  );
+                                  if (!context.mounted) return;
+                                  if (Navigator.of(context).canPop()) {
+                                    Navigator.of(context).pop(true);
+                                  }
+                                } catch (error) {
+                                  setState(() => _isSubmitting = false);
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'No se pudo publicar: $error',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Publicar'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showCommentComposer(
+  BuildContext context,
+  WidgetRef ref,
+  String memoryId,
+) async {
+  final shouldNotify = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _CommentComposerDialog(memoryId: memoryId),
+  );
+
+  if (shouldNotify == true) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Comentario publicado')));
+  }
+}
+
+Future<void> _confirmDeleteComment(
+  BuildContext context,
+  WidgetRef ref,
+  String memoryId,
+  String commentId,
+) async {
+  final shouldDelete = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Eliminar comentario'),
+      content: const Text(
+        'Esta acción no se puede deshacer. ¿Deseas continuar?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            if (!context.mounted) return;
+            Navigator.of(dialogContext).pop(false);
+          },
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (!context.mounted) return;
+            Navigator.of(dialogContext).pop(true);
+          },
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+
+  if (shouldDelete == true) {
+    try {
+      final repository = ref.read(memoryRepositoryProvider);
+      await repository.deleteComment(commentId);
+      ref.invalidate(memoryCommentsProvider(memoryId));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Comentario eliminado')));
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo eliminar: $error')));
+    }
+  }
 }
