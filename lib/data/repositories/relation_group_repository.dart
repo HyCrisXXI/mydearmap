@@ -17,6 +17,7 @@ class RelationGroupRepository {
 
   final SupabaseClient _client;
   static const _storageBucket = 'media';
+  static const _storageFolder = 'groups';
 
   Future<List<RelationGroup>> fetchGroups(String userId) async {
     final membershipRaw = await _client
@@ -77,27 +78,22 @@ class RelationGroupRepository {
     String? photoFilename,
     List<String> memberIds = const [],
   }) async {
-    String? photoUrl;
+    String? photoFileName;
     if (photoBytes != null && photoBytes.isNotEmpty) {
-      final storage = _client.storage.from(_storageBucket);
-      final objectPath = _buildStoragePath(
+      photoFileName = await _uploadGroupPhotoBytes(
         creatorId: creatorId,
+        bytes: photoBytes,
         originalFilename: photoFilename,
       );
-      await storage.uploadBinary(
-        objectPath,
-        photoBytes,
-        fileOptions: FileOptions(
-          upsert: true,
-          contentType: _inferMimeType(photoFilename),
-        ),
-      );
-      photoUrl = storage.getPublicUrl(objectPath);
     }
 
     final inserted = await _client
         .from('relation_groups')
-        .insert({'name': name, 'photo_url': photoUrl, 'creator_id': creatorId})
+        .insert({
+          'name': name,
+          'photo_url': photoFileName,
+          'creator_id': creatorId,
+        })
         .select()
         .single();
 
@@ -135,37 +131,52 @@ class RelationGroupRepository {
     required Uint8List bytes,
     String? filename,
   }) async {
-    final storage = _client.storage.from(_storageBucket);
-    final objectPath = _buildStoragePath(
+    return _uploadGroupPhotoBytes(
       creatorId: creatorId,
+      bytes: bytes,
       originalFilename: filename,
     );
-    await storage.uploadBinary(
-      objectPath,
-      bytes,
-      fileOptions: FileOptions(
-        upsert: true,
-        contentType: _inferMimeType(filename),
-      ),
-    );
-    return storage.getPublicUrl(objectPath);
   }
 
   Future<void> updateGroup({
     required String groupId,
     String? name,
-    String? photoUrl,
+    String? photoFileName,
   }) async {
     final updates = <String, dynamic>{};
     if (name != null) updates['name'] = name;
-    if (photoUrl != null) updates['photo_url'] = photoUrl;
+    if (photoFileName != null) updates['photo_url'] = photoFileName;
 
     if (updates.isEmpty) return;
 
     await _client.from('relation_groups').update(updates).eq('id', groupId);
   }
 
-  String _buildStoragePath({
+  Future<String> _uploadGroupPhotoBytes({
+    required String creatorId,
+    required Uint8List bytes,
+    String? originalFilename,
+  }) async {
+    final storage = _client.storage.from(_storageBucket);
+    final fileName = _generatePhotoFileName(
+      creatorId: creatorId,
+      originalFilename: originalFilename,
+    );
+    final objectPath = _buildStoragePath(fileName);
+    await storage.uploadBinary(
+      objectPath,
+      bytes,
+      fileOptions: FileOptions(
+        upsert: true,
+        contentType: _inferMimeType(originalFilename),
+      ),
+    );
+    return fileName;
+  }
+
+  String _buildStoragePath(String fileName) => '$_storageFolder/$fileName';
+
+  String _generatePhotoFileName({
     required String creatorId,
     String? originalFilename,
   }) {
@@ -173,8 +184,12 @@ class RelationGroupRepository {
         (originalFilename != null && originalFilename.contains('.'))
         ? originalFilename.split('.').last
         : 'jpg';
-    final sanitizedExt = extension.toLowerCase();
-    return 'groupps/$creatorId/${const Uuid().v4()}.$sanitizedExt';
+    final sanitizedExt = extension.toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9]'),
+      '',
+    );
+    final normalizedExt = sanitizedExt.isEmpty ? 'jpg' : sanitizedExt;
+    return '${creatorId}_${const Uuid().v4()}.$normalizedExt';
   }
 
   String _inferMimeType(String? filename) {

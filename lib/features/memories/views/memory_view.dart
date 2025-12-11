@@ -16,6 +16,7 @@ import 'package:mydearmap/features/memories/controllers/memory_controller.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/memories/widgets/memory_comment_card.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/utils/avatar_url.dart';
 
 final memoryDetailProvider = FutureProvider.family<Memory, String>((
   ref,
@@ -689,19 +690,7 @@ Future<void> _showParticipantsSheet(
   );
 }
 
-String? _resolveAvatarUrl(String? raw) {
-  if (raw == null || raw.isEmpty) return null;
-  if (raw.startsWith('http')) return raw;
-
-  const baseUrl =
-      'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media';
-
-  if (raw.startsWith('avatars/')) {
-    return '$baseUrl/$raw';
-  }
-
-  return '$baseUrl/avatars/$raw';
-}
+String? _resolveAvatarUrl(String? raw) => buildAvatarUrl(raw);
 
 LatLng? _resolveMemoryLocation(
   Memory memory,

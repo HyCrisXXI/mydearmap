@@ -140,7 +140,7 @@ class _RelationGroupDetailViewState
       orElse: () => widget.group,
     );
 
-    final photoUrl = currentGroup.photoUrl?.trim();
+    final photoUrl = buildGroupPhotoUrl(currentGroup.photoUrl);
     final members = currentGroup.members;
     final currentUserAsync = ref.watch(currentUserProvider);
     final memoriesAsync = ref.watch(groupMemoriesProvider(widget.group.id));

@@ -92,6 +92,7 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                   20,
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     IconButton(
                       icon: SvgPicture.asset(AppIcons.trash),

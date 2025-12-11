@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
@@ -69,6 +70,7 @@ class MemoryMediaEditor extends ConsumerStatefulWidget {
 }
 
 class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
+  static const int _jpegQuality = 85;
   bool _isUploading = false;
   bool _isPicking = false;
   final List<PendingMemoryMediaDraft> _pendingDrafts =
@@ -238,7 +240,28 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     String memoryId,
   ) async {
     final client = Supabase.instance.client;
-    final sanitizedName = _buildSanitizedFileName(fileName, fileExtension);
+    String? effectiveExtension = fileExtension;
+    Uint8List uploadBytes = bytes;
+
+    if (kind == MemoryMediaKind.image) {
+      try {
+        uploadBytes = _convertImageBytesToJpg(bytes);
+        effectiveExtension = 'jpg';
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'No se pudo procesar la imagen seleccionada: $error',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    final sanitizedName = _buildSanitizedFileName(fileName, effectiveExtension);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final folder = kindToStorageSegment(kind);
     final storagePath =
@@ -252,7 +275,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
           .from('media')
           .uploadBinary(
             storagePath,
-            bytes,
+            uploadBytes,
             fileOptions: const FileOptions(upsert: true),
           );
 
@@ -288,6 +311,16 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
+  }
+
+  Uint8List _convertImageBytesToJpg(Uint8List originalBytes) {
+    final decoded = img.decodeImage(originalBytes);
+    if (decoded == null) {
+      throw Exception('Formato de imagen no soportado');
+    }
+    final normalized = img.bakeOrientation(decoded);
+    final encoded = img.encodeJpg(normalized, quality: _jpegQuality);
+    return Uint8List.fromList(encoded);
   }
 
   String _buildSanitizedFileName(String fileName, String? extension) {

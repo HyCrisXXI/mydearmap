@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/data/models/comment.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/utils/avatar_url.dart';
 
 class MemoryCommentCard extends StatelessWidget {
   const MemoryCommentCard({super.key, required this.comment, this.onDelete});
@@ -229,8 +230,4 @@ class _CommentActionsButton extends StatelessWidget {
 
 enum _CommentAction { delete }
 
-String? _resolveAvatarUrl(String? raw) {
-  if (raw == null || raw.isEmpty) return null;
-  if (raw.startsWith('http')) return raw;
-  return 'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/$raw';
-}
+String? _resolveAvatarUrl(String? raw) => buildAvatarUrl(raw);

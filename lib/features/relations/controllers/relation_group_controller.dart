@@ -49,12 +49,15 @@ class RelationGroupController extends AsyncNotifier<void> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final photoUrl = await _repository.uploadGroupPhoto(
+      final photoFileName = await _repository.uploadGroupPhoto(
         creatorId: currentUserId,
         bytes: bytes,
         filename: filename,
       );
-      await _repository.updateGroup(groupId: groupId, photoUrl: photoUrl);
+      await _repository.updateGroup(
+        groupId: groupId,
+        photoFileName: photoFileName,
+      );
 
       ref.invalidate(userRelationGroupsProvider(currentUserId));
       state = const AsyncValue.data(null);

@@ -9,6 +9,7 @@ import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
+import 'package:mydearmap/core/utils/avatar_url.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:mydearmap/core/constants/constants.dart';
@@ -1613,15 +1614,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     }
   }
 
-  String? _resolveAvatarUrl(String? raw) {
-    if (raw == null || raw.isEmpty) return null;
-    if (raw.startsWith('http')) return raw;
-
-    const baseUrl =
-        'https://oomglkpxogeiwrrfphon.supabase.co/storage/v1/object/public/media/avatars/';
-
-    return '$baseUrl$raw';
-  }
+  String? _resolveAvatarUrl(String? raw) => buildAvatarUrl(raw);
 
   String _mediaLabel(MemoryMedia asset) => _kindLabel(asset.kind);
 

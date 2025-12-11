@@ -9,13 +9,17 @@ String? buildAvatarUrl(String? rawProfileUrl) {
   if (rawProfileUrl == null || rawProfileUrl.isEmpty) {
     return null;
   }
-  if (rawProfileUrl.startsWith('http')) {
-    return rawProfileUrl;
+  // Aqui antes había comprobacion de si empezaba con http, para aceptar enlaces directos
+  // ahora no, ya que la app no lo hace ni lo hará en un futuro cercano
+
+  final trimmed = rawProfileUrl.trim();
+  return buildMediaUrl('avatars/$trimmed');
+}
+
+String? buildGroupPhotoUrl(String? rawFileName) {
+  if (rawFileName == null || rawFileName.isEmpty) {
+    return null;
   }
-
-  final normalizedPath = rawProfileUrl.contains('/')
-      ? rawProfileUrl
-      : 'avatars/$rawProfileUrl';
-
-  return buildMediaUrl(normalizedPath);
+  final trimmed = rawFileName.trim();
+  return buildMediaUrl('groups/$trimmed');
 }

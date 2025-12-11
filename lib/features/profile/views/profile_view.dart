@@ -236,6 +236,7 @@ class ProfileView extends ConsumerWidget {
                                         userAchievement.achievement;
 
                                     return Card(
+                                      elevation: 0,
                                       child: ListTile(
                                         leading: achievement?.iconUrl != null
                                             ? Image.network(

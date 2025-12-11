@@ -313,6 +313,7 @@ class _NotificationTile extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
+        elevation: 0,
         color: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         child: InkWell(
@@ -966,6 +967,7 @@ class _CapsuleExpandedTile extends StatelessWidget {
           );
 
     return Card(
+      elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: child,
     );

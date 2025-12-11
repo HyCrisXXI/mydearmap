@@ -146,7 +146,7 @@ class MemoriesGrid extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                   child: Row(
                     children: [
-                      const Text("Destacados", style: AppTextStyles.subtitle),
+                      const Text("Destacados", style: AppTextStyles.textField),
                       const SizedBox(width: 8),
                       SvgPicture.asset(
                         AppIcons.starFilled,
@@ -184,7 +184,7 @@ class MemoriesGrid extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Text("Todos", style: AppTextStyles.subtitle),
+                      const Text("Todos", style: AppTextStyles.textField),
                       const SizedBox(width: 8),
                       IconButton(
                         style: AppButtonStyles.circularIconButton,

@@ -117,11 +117,10 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
       final client = Supabase.instance.client;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
-      // Ensure extension is .jpg
+      // Ensure extension is .jpg and store only the file name in the DB
       final sanitizedName = 'avatar_$timestamp.jpg';
-
-      final storagePath =
-          'avatars/${widget.user.id}_${timestamp}_$sanitizedName';
+      final fileName = '${widget.user.id}_$sanitizedName';
+      final storagePath = 'avatars/$fileName';
 
       await client.storage
           .from('media')
@@ -134,8 +133,8 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
             ),
           );
 
-      // Guardar solo el nombre del archivo, no la URL completa
-      setState(() => _newProfileUrl = storagePath);
+      // Guardar solo el nombre del archivo, no la ruta completa
+      setState(() => _newProfileUrl = fileName);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

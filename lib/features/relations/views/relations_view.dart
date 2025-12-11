@@ -130,7 +130,7 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
     RelationGroup group,
     String currentUserId,
   ) {
-    final photoUrl = group.photoUrl?.trim();
+    final photoUrl = buildGroupPhotoUrl(group.photoUrl);
     final trimmedName = group.name.trim();
     final displayLetter = trimmedName.isNotEmpty
         ? trimmedName[0].toUpperCase()
@@ -406,7 +406,7 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
                         controller: _searchController,
                         decoration: InputDecoration(
                           hintText: 'Buscar vínculos o grupos',
-                          suffixIcon: const Icon(Icons.search),
+                          suffixIcon: SvgPicture.asset(AppIcons.search),
                           suffixIconConstraints: const BoxConstraints(
                             minHeight: 24,
                             minWidth: 40,
