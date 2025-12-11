@@ -165,13 +165,23 @@ class MapViewModel extends Notifier<MapViewState> {
     }
   }
 
+  String? _lastLocationQuery;
+
   Future<void> searchLocation(String query) async {
     if (query.trim().isEmpty) return;
+
+    _lastLocationQuery = query;
+    final currentQuery = query;
+
     final url = Uri.parse(
       'https://api.maptiler.com/geocoding/${Uri.encodeComponent(query)}.json?key=${EnvConstants.mapTilesApiKey}',
     );
     try {
       final response = await http.get(url);
+
+      // Si la query cambió mientras buscábamos, descartamos (race cond)
+      if (_lastLocationQuery != currentQuery) return;
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final features = data['features'] as List<dynamic>? ?? const [];
@@ -189,7 +199,10 @@ class MapViewModel extends Notifier<MapViewState> {
         throw Exception('Error en la API de geocodificación.');
       }
     } catch (e) {
-      state = state.copyWith(searchedLocation: null);
+      // Solo limpiamos si seguimos en la misma query
+      if (_lastLocationQuery == currentQuery) {
+        state = state.copyWith(searchedLocation: null);
+      }
       rethrow;
     }
   }
@@ -199,11 +212,18 @@ class MapViewModel extends Notifier<MapViewState> {
       clearLocationSuggestions();
       return;
     }
+
+    _lastLocationQuery = query;
+    final currentQuery = query;
+
     final url = Uri.parse(
       'https://api.maptiler.com/geocoding/${Uri.encodeComponent(query)}.json?autocomplete=true&key=${EnvConstants.mapTilesApiKey}',
     );
     try {
       final response = await http.get(url);
+
+      if (_lastLocationQuery != currentQuery) return;
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final features = data['features'] as List<dynamic>? ?? const [];
@@ -220,12 +240,18 @@ class MapViewModel extends Notifier<MapViewState> {
         state = state.copyWith(locationSuggestions: []);
       }
     } catch (_) {
-      state = state.copyWith(locationSuggestions: []);
+      if (_lastLocationQuery == currentQuery) {
+        state = state.copyWith(locationSuggestions: []);
+      }
     }
   }
 
   void selectLocationSuggestion(LatLng location) {
     state = state.copyWith(searchedLocation: location, locationSuggestions: []);
+  }
+
+  void clearSearchedLocation() {
+    state = state.copyWith(searchedLocation: null);
   }
 
   void selectMemorySuggestion() {

@@ -349,7 +349,7 @@ class _SuggestionChips extends StatelessWidget {
     required this.onRefresh,
   });
 
-  final AsyncValue<List<String>> prompts;
+  final AsyncValue<List<ChatPrompt>> prompts;
   final bool disabled;
   final void Function(String prompt) onPromptTap;
   final VoidCallback onRefresh;
@@ -381,14 +381,14 @@ class _SuggestionChips extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
               border: Border.all(color: AppColors.buttonBackground),
             ),
-            child: Text(prompt, style: TextStyle(color: textColor)),
+            child: Text(prompt.label, style: TextStyle(color: textColor)),
           );
 
           return Material(
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(999),
-              onTap: disabled ? null : () => onPromptTap(prompt),
+              onTap: disabled ? null : () => onPromptTap(prompt.query),
               child: chipBody,
             ),
           );
@@ -437,52 +437,69 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isUser = message.isUser == true;
-    const aiBorderColor = Color.fromARGB(255, 233, 226, 138);
-    const userBaseColor = Color.fromARGB(255, 85, 111, 168);
-    final bubbleColor = isUser ? userBaseColor : Colors.transparent;
-    final borderColor = isUser
-        ? userBaseColor
-        : aiBorderColor.withValues(alpha: .6);
+    final bubbleColor = isUser ? AppColors.blue : Colors.transparent;
     final textColor = isUser ? Colors.white : Colors.black87;
+
+    // User: Fixed Width 264. AI: Max Width 85%.
+    final constraints = isUser
+        ? const BoxConstraints(minWidth: 264, maxWidth: 264)
+        : BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85);
+
+    // User: Padding handled inside children (Stack). AI: Padding on container.
+    final containerPadding = isUser
+        ? EdgeInsets.zero
+        : const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.6,
-        ),
+        padding: containerPadding,
+        constraints: constraints,
         decoration: BoxDecoration(
           color: bubbleColor,
-          border: isUser ? Border.all(color: borderColor, width: 1.2) : null,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: isUser
+              ? const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(2),
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                )
+              : null,
         ),
-        child: Column(
-          crossAxisAlignment: isUser
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            isUser
-                ? Text(message.content, style: TextStyle(color: textColor))
-                : MarkdownBody(
-                    data: message.content,
-                    styleSheet: MarkdownStyleSheet(
-                      p: TextStyle(color: textColor),
-                      listBullet: TextStyle(color: textColor),
-                      strong: TextStyle(color: textColor),
+        child: isUser
+            ? Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: 18,
+                      bottom: 18,
+                      left: 19,
+                      right: 19,
+                    ),
+                    child: Text(
+                      message.content,
+                      style: TextStyle(color: textColor),
                     ),
                   ),
-            const SizedBox(height: 2),
-            Text(
-              _formatTime(message.timestamp),
-              style: TextStyle(
-                fontSize: 10,
-                color: isUser ? Colors.white70 : Colors.black54,
+                  Positioned(
+                    top: 6,
+                    right: 12,
+                    child: Text(
+                      _formatTime(message.timestamp),
+                      style: TextStyle(fontSize: 10, color: Colors.white70),
+                    ),
+                  ),
+                ],
+              )
+            : MarkdownBody(
+                data: message.content,
+                styleSheet: MarkdownStyleSheet(
+                  p: TextStyle(color: textColor),
+                  listBullet: TextStyle(color: textColor),
+                  strong: TextStyle(color: textColor),
+                ),
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

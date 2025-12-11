@@ -52,32 +52,58 @@ class _TimelineBody extends StatelessWidget {
       ..sort((a, b) => _dateOf(b).compareTo(_dateOf(a)));
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: SvgPicture.asset(AppIcons.chevronLeft),
-          onPressed: () => Navigator.of(context).pop(),
-          style: AppButtonStyles.circularIconButton,
-        ),
-        title: const Text('Timeline'),
-      ),
-      body: events.isEmpty
-          ? const _TimelineEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              itemCount: events.length,
-              itemBuilder: (context, index) {
-                final memory = events[index];
-                final alignLeft = index.isEven;
-                final isFirst = index == 0;
-                final isLast = index == events.length - 1;
-                return _TimelineEventTile(
-                  memory: memory,
-                  alignLeft: alignLeft,
-                  isFirst: isFirst,
-                  isLast: isLast,
-                );
-              },
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            // Custom Header matching RelationsView
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSizes.upperPadding,
+                bottom: 8.0,
+                left: 16,
+                right: 30.0,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: SvgPicture.asset(AppIcons.chevronLeft),
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: AppButtonStyles.circularIconButton,
+                    ),
+                  ),
+                  const Text('Timeline', style: AppTextStyles.title),
+                ],
+              ),
             ),
+            // Content
+            Expanded(
+              child: events.isEmpty
+                  ? const _TimelineEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      itemCount: events.length,
+                      itemBuilder: (context, index) {
+                        final memory = events[index];
+                        final alignLeft = index.isEven;
+                        final isFirst = index == 0;
+                        final isLast = index == events.length - 1;
+                        return _TimelineEventTile(
+                          memory: memory,
+                          alignLeft: alignLeft,
+                          isFirst: isFirst,
+                          isLast: isLast,
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -165,13 +191,7 @@ class _TimelineEventCard extends StatelessWidget {
             border: Border.all(
               color: colorScheme.primary.withValues(alpha: 0.12),
             ),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 10,
-                offset: Offset(0, 6),
-              ),
-            ],
+            // Shadow removed as requested
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -284,7 +304,7 @@ class _CenterLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.grey.shade300
+      ..color = AppColors.blue.withValues(alpha: 0.4)
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round;
 

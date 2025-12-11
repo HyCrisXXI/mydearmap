@@ -78,42 +78,23 @@ class MemoryDetailView extends ConsumerWidget {
                       orElse: () => const Text('Detalle del recuerdo'),
                     ),
                   ),
-                  PopupMenuButton<_MemoryDetailMenuAction>(
-                    icon: SvgPicture.asset(AppIcons.ellipsisVertical),
+                  IconButton(
+                    icon: SvgPicture.asset(AppIcons.pencil),
                     style: AppButtonStyles.circularIconButton,
-                    tooltip: 'Más opciones',
-                    onSelected: (action) async {
-                      switch (action) {
-                        case _MemoryDetailMenuAction.editMemory:
-                          final refreshed = await Navigator.of(context)
-                              .push<bool>(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      MemoryDetailEditView(memoryId: memoryId),
-                                ),
-                              );
-                          if (!context.mounted) return;
-                          if (refreshed == true) {
-                            ref.invalidate(memoryDetailProvider(memoryId));
-                            ref.invalidate(memoryMediaProvider(memoryId));
-                          }
-                          break;
-                        case _MemoryDetailMenuAction.createComment:
-                          if (!context.mounted) return;
-                          await _showCommentComposer(context, ref, memoryId);
-                          break;
+                    tooltip: 'Editar recuerdo',
+                    onPressed: () async {
+                      final refreshed = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              MemoryDetailEditView(memoryId: memoryId),
+                        ),
+                      );
+                      if (!context.mounted) return;
+                      if (refreshed == true) {
+                        ref.invalidate(memoryDetailProvider(memoryId));
+                        ref.invalidate(memoryMediaProvider(memoryId));
                       }
                     },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: _MemoryDetailMenuAction.editMemory,
-                        child: Text('Editar recuerdo'),
-                      ),
-                      PopupMenuItem(
-                        value: _MemoryDetailMenuAction.createComment,
-                        child: Text('Crear comentario'),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -145,130 +126,145 @@ class MemoryDetailView extends ConsumerWidget {
                       .bodyMedium
                       ?.copyWith(color: AppColors.accentColor);
 
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(AppSizes.paddingLarge),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 6),
-                        Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: AppSizes.modalMaxWidth,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.paddingLarge,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 6),
+                              Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: AppSizes.modalMaxWidth,
+                                  ),
+                                  child: Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SvgPicture.asset(
-                                            AppIcons.calendar,
-                                            width: 18,
-                                            height: 18,
-                                            colorFilter: ColorFilter.mode(
-                                              Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.color ??
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                              BlendMode.srcIn,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            _formatDate(happenedAt),
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodySmall,
-                                          ),
-                                        ],
-                                      ),
-                                      if (latLng != null) ...[
-                                        const SizedBox(height: 6),
-                                        Row(
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Icon(
-                                              Icons.place,
-                                              size: 16,
-                                              color: AppColors.accentColor,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Expanded(
-                                              child:
-                                                  locationLabelAsync?.maybeWhen(
-                                                    data: (value) => Text(
-                                                      value,
-                                                      style: locationTextStyle,
-                                                    ),
-                                                    orElse: () => Text(
-                                                      _formatLocationLabel(
-                                                        latLng,
-                                                      ),
-                                                      style: locationTextStyle,
-                                                    ),
-                                                  ) ??
-                                                  Text(
-                                                    _formatLocationLabel(
-                                                      latLng,
-                                                    ),
-                                                    style: locationTextStyle,
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                SvgPicture.asset(
+                                                  AppIcons.calendar,
+                                                  width: 18,
+                                                  height: 18,
+                                                  colorFilter: ColorFilter.mode(
+                                                    Theme.of(context)
+                                                            .textTheme
+                                                            .bodySmall
+                                                            ?.color ??
+                                                        Theme.of(
+                                                          context,
+                                                        ).colorScheme.onSurface,
+                                                    BlendMode.srcIn,
                                                   ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  _formatDate(happenedAt),
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.bodySmall,
+                                                ),
+                                              ],
                                             ),
+                                            if (latLng != null) ...[
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.place,
+                                                    size: 16,
+                                                    color:
+                                                        AppColors.accentColor,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Expanded(
+                                                    child:
+                                                        locationLabelAsync?.maybeWhen(
+                                                          data: (value) => Text(
+                                                            value,
+                                                            style:
+                                                                locationTextStyle,
+                                                          ),
+                                                          orElse: () => Text(
+                                                            _formatLocationLabel(
+                                                              latLng,
+                                                            ),
+                                                            style:
+                                                                locationTextStyle,
+                                                          ),
+                                                        ) ??
+                                                        Text(
+                                                          _formatLocationLabel(
+                                                            latLng,
+                                                          ),
+                                                          style:
+                                                              locationTextStyle,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ],
                                         ),
-                                      ],
+                                      ),
+                                      Expanded(
+                                        child: Align(
+                                          alignment: Alignment.topRight,
+                                          child: memory.participants.isNotEmpty
+                                              ? _ParticipantsHeaderPreview(
+                                                  participants:
+                                                      memory.participants,
+                                                  onTap: () =>
+                                                      _showParticipantsSheet(
+                                                        context,
+                                                        memory.participants,
+                                                      ),
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
-                                Expanded(
-                                  child: Align(
-                                    alignment: Alignment.topRight,
-                                    child: memory.participants.isNotEmpty
-                                        ? _ParticipantsHeaderPreview(
-                                            participants: memory.participants,
-                                            onTap: () => _showParticipantsSheet(
-                                              context,
-                                              memory.participants,
-                                            ),
-                                          )
-                                        : const SizedBox.shrink(),
+                              ),
+                              if (description.isNotEmpty) ...[
+                                const SizedBox(height: AppSizes.paddingLarge),
+                                Center(
+                                  child: Text(
+                                    description,
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(height: 1.0),
                                   ),
                                 ),
                               ],
-                            ),
+                              const SizedBox(height: AppSizes.paddingLarge),
+                              _buildMixedTimeline(
+                                context: context,
+                                mediaAsync: mediaAsync,
+                                commentsAsync: commentsAsync,
+                                memory: memory,
+                                ref: ref,
+                                currentUser: currentUser,
+                              ),
+                            ],
                           ),
                         ),
-                        if (description.isNotEmpty) ...[
-                          const SizedBox(height: AppSizes.paddingLarge),
-                          Center(
-                            child: Text(
-                              description,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge?.copyWith(height: 1.0),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: AppSizes.paddingLarge),
-                        _buildMixedTimeline(
-                          context: context,
-                          mediaAsync: mediaAsync,
-                          commentsAsync: commentsAsync,
-                          memory: memory,
-                          ref: ref,
-                          currentUser: currentUser,
-                        ),
-                      ],
-                    ),
+                      ),
+                      _CommentInput(memoryId: memoryId),
+                    ],
                   );
                 },
               ),
@@ -280,7 +276,171 @@ class MemoryDetailView extends ConsumerWidget {
   }
 }
 
-enum _MemoryDetailMenuAction { editMemory, createComment }
+class _CommentInput extends ConsumerStatefulWidget {
+  const _CommentInput({required this.memoryId});
+  final String memoryId;
+
+  @override
+  ConsumerState<_CommentInput> createState() => _CommentInputState();
+}
+
+class _CommentInputState extends ConsumerState<_CommentInput> {
+  final _controller = TextEditingController();
+  var _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      final user = await ref.read(currentUserProvider.future);
+      if (user == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Inicia sesión para comentar')),
+        );
+        setState(() => _isSubmitting = false);
+        return;
+      }
+
+      await ref
+          .read(memoryRepositoryProvider)
+          .addComment(
+            memoryId: widget.memoryId,
+            userId: user.id,
+            content: text,
+          );
+
+      _controller.clear();
+      ref.invalidate(memoryCommentsProvider(widget.memoryId));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.paddingMedium,
+        vertical: 12,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(top: BorderSide(color: Colors.grey.shade300)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                enabled: !_isSubmitting,
+                decoration: InputDecoration(
+                  hintText: 'Escribe un comentario...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                ),
+                textCapitalization: TextCapitalization.sentences,
+                onSubmitted: (_) => _submit(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _isSubmitting ? null : _submit,
+              icon: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : SvgPicture.asset(
+                      AppIcons.send,
+                      width: 24,
+                      height: 24,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.blue,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _confirmDeleteComment(
+  BuildContext context,
+  WidgetRef ref,
+  String memoryId,
+  String commentId,
+) async {
+  final shouldDelete = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Eliminar comentario'),
+      content: const Text(
+        'Esta acción no se puede deshacer. ¿Deseas continuar?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            if (!context.mounted) return;
+            Navigator.of(dialogContext).pop(false);
+          },
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (!context.mounted) return;
+            Navigator.of(dialogContext).pop(true);
+          },
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+
+  if (shouldDelete == true) {
+    try {
+      final repository = ref.read(memoryRepositoryProvider);
+      await repository.deleteComment(commentId);
+      ref.invalidate(memoryCommentsProvider(memoryId));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Comentario eliminado')));
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo eliminar: $error')));
+    }
+  }
+}
 
 class _ParticipantsHeaderPreview extends StatelessWidget {
   const _ParticipantsHeaderPreview({required this.participants, this.onTap});
@@ -726,265 +886,4 @@ String _formatLocationLabel(LatLng point) {
   final lat = point.latitude.toStringAsFixed(4);
   final lng = point.longitude.toStringAsFixed(4);
   return 'Lat $lat, Lon $lng';
-}
-
-class _CommentComposerDialog extends ConsumerStatefulWidget {
-  const _CommentComposerDialog({required this.memoryId});
-
-  final String memoryId;
-
-  @override
-  ConsumerState<_CommentComposerDialog> createState() =>
-      _CommentComposerDialogState();
-}
-
-class _CommentComposerDialogState
-    extends ConsumerState<_CommentComposerDialog> {
-  late final TextEditingController _contentController;
-  late final TextEditingController _subtitleController;
-  final _formKey = GlobalKey<FormState>();
-  var _isSubmitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _contentController = TextEditingController();
-    _subtitleController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _contentController.dispose();
-    _subtitleController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
-    return Dialog(
-      insetPadding: const EdgeInsets.all(AppSizes.paddingLarge),
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.only(bottom: viewInsets),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSizes.paddingLarge),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Nuevo comentario',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Cerrar',
-                        onPressed: _isSubmitting
-                            ? null
-                            : () {
-                                if (!context.mounted) return;
-                                Navigator.of(context).pop(false);
-                              },
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSizes.paddingMedium),
-                  TextFormField(
-                    controller: _contentController,
-                    decoration: const InputDecoration(
-                      labelText: 'Título',
-                      hintText: 'Describe el momento',
-                    ),
-                    minLines: 1,
-                    maxLines: 6,
-                    autofocus: true,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Escribe un título';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: AppSizes.paddingMedium),
-                  TextFormField(
-                    controller: _subtitleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Subtexto (opcional)',
-                      hintText: 'Describe el momento',
-                    ),
-                    minLines: 1,
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: AppSizes.paddingLarge),
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: _isSubmitting
-                            ? null
-                            : () {
-                                if (!context.mounted) return;
-                                Navigator.of(context).pop(false);
-                              },
-                        child: const Text('Cancelar'),
-                      ),
-                      const Spacer(),
-                      FilledButton(
-                        onPressed: _isSubmitting
-                            ? null
-                            : () async {
-                                if (!_formKey.currentState!.validate()) {
-                                  return;
-                                }
-                                setState(() => _isSubmitting = true);
-                                try {
-                                  final user = await ref.read(
-                                    currentUserProvider.future,
-                                  );
-                                  if (user == null) {
-                                    setState(() => _isSubmitting = false);
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Debes iniciar sesión para comentar.',
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  final repository = ref.read(
-                                    memoryRepositoryProvider,
-                                  );
-                                  final content = _contentController.text
-                                      .trim();
-                                  final subtitle = _subtitleController.text
-                                      .trim();
-                                  await repository.addComment(
-                                    memoryId: widget.memoryId,
-                                    userId: user.id,
-                                    content: content,
-                                    subtitle: subtitle.isNotEmpty
-                                        ? subtitle
-                                        : null,
-                                  );
-                                  ref.invalidate(
-                                    memoryCommentsProvider(widget.memoryId),
-                                  );
-                                  if (!context.mounted) return;
-                                  if (Navigator.of(context).canPop()) {
-                                    Navigator.of(context).pop(true);
-                                  }
-                                } catch (error) {
-                                  setState(() => _isSubmitting = false);
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'No se pudo publicar: $error',
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Publicar'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-Future<void> _showCommentComposer(
-  BuildContext context,
-  WidgetRef ref,
-  String memoryId,
-) async {
-  final shouldNotify = await showDialog<bool>(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => _CommentComposerDialog(memoryId: memoryId),
-  );
-
-  if (shouldNotify == true) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Comentario publicado')));
-  }
-}
-
-Future<void> _confirmDeleteComment(
-  BuildContext context,
-  WidgetRef ref,
-  String memoryId,
-  String commentId,
-) async {
-  final shouldDelete = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Eliminar comentario'),
-      content: const Text(
-        'Esta acción no se puede deshacer. ¿Deseas continuar?',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            if (!context.mounted) return;
-            Navigator.of(dialogContext).pop(false);
-          },
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (!context.mounted) return;
-            Navigator.of(dialogContext).pop(true);
-          },
-          child: const Text('Eliminar'),
-        ),
-      ],
-    ),
-  );
-
-  if (shouldDelete == true) {
-    try {
-      final repository = ref.read(memoryRepositoryProvider);
-      await repository.deleteComment(commentId);
-      ref.invalidate(memoryCommentsProvider(memoryId));
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Comentario eliminado')));
-    } catch (error) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('No se pudo eliminar: $error')));
-    }
-  }
 }

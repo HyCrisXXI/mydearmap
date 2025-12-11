@@ -58,6 +58,8 @@ class _MapViewState extends ConsumerState<MapView> {
 
     if (trimmedQuery.isEmpty) {
       viewModel.clearMemorySuggestions();
+      viewModel.clearLocationSuggestions();
+      viewModel.clearSearchedLocation();
       return;
     }
 
@@ -501,6 +503,12 @@ class _MapViewState extends ConsumerState<MapView> {
                       },
                       onTap: (_, _) {
                         FocusManager.instance.primaryFocus?.unfocus();
+                        ref
+                            .read(mapViewModelProvider.notifier)
+                            .clearMemorySuggestions();
+                        ref
+                            .read(mapViewModelProvider.notifier)
+                            .clearLocationSuggestions();
 
                         if (_selectedMemory != null) {
                           setState(() {
