@@ -46,14 +46,14 @@ class AiChatNotifier extends Notifier<ChatState> {
     'gps',
   ];
   static const List<String> _fallbackPrompts = <String>[
-    'Recuérdame algo emotivo que haya guardado.',
-    'Sugiere un plan rápido para hoy.',
-    '¿Cómo puedo revivir un recuerdo especial?',
-    'Dame ideas para registrar nuevos recuerdos.',
-    '¿Qué playlist o mood me podrías recomendar?',
-    'Ayúdame a organizar mis recuerdos favoritos.',
-    '¿Qué recuerdo debería compartir con alguien hoy?',
-    'Recomiéndame una actividad para relajarme.',
+    'Cafetería acogedora',
+    'Mirador urbano',
+    'Playa cercana',
+    'Bosque tranquilo',
+    'Mercado local',
+    'Ruta ciclista',
+    'Bar de tapas',
+    'Pueblo mágico',
   ];
   late final GeminiChatService _chatService;
   DateFormat? _dateFormat;
@@ -114,7 +114,7 @@ class AiChatNotifier extends Notifier<ChatState> {
     }
   }
 
-  Future<List<String>> generateSuggestedPrompts({int count = 5}) async {
+  Future<List<String>> generateSuggestedPrompts({int count = 4}) async {
     final prompts = <String>{};
     while (prompts.length < count) {
       final fallback =

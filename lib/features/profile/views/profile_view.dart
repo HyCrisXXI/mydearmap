@@ -145,21 +145,47 @@ class ProfileView extends ConsumerWidget {
                             ),
                             const SizedBox(height: AppSizes.paddingMedium),
                             Card(
+                              color: Colors.transparent,
+                              elevation: 0,
                               child: ListTile(
-                                title: const Text('Wishlist'),
+                                title: Text(
+                                  'Wishlist',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        fontSize: 22,
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    SizedBox(height: 6),
-                                    Divider(height: 1, thickness: 1),
-                                    SizedBox(height: 6),
-                                    Text(
-                                      'Todos los lugares o planes que estás deseando hacer.',
+                                  children: [
+                                    const SizedBox(height: 6),
+                                    const Divider(),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: const [
+                                        Expanded(
+                                          child: Text(
+                                            'Todos los lugares o planes que\nestás deseando hacer.',
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Icon(
+                                          Icons.chevron_right,
+                                          color: Colors.black,
+                                          size: 34,
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                                trailing: const Icon(Icons.chevron_right),
                                 onTap: () {
                                   showDialog<void>(
                                     context: context,

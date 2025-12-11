@@ -100,20 +100,23 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                     ),
                     const SizedBox(width: 20),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Mapi',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'Tu asistente de aventuras',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.black87),
-                          ),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 36),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mapi',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Tu asistente de aventuras',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: AppColors.textColor),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -129,15 +132,20 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                               constraints: BoxConstraints(
                                 minHeight: constraints.maxHeight,
                               ),
-                              child: Center(
+                              child: Align(
+                                alignment: Alignment.topCenter,
                                 child: Padding(
-                                  padding: const EdgeInsets.all(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppSizes.paddingMedium,
+                                    AppSizes.paddingLarge * 4,
+                                    AppSizes.paddingMedium,
                                     AppSizes.paddingMedium,
                                   ),
                                   child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     children: [
-                                      const SizedBox(height: 16),
                                       RichText(
                                         textAlign: TextAlign.center,
                                         text: TextSpan(
@@ -145,7 +153,7 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                                               .textTheme
                                               .bodyLarge
                                               ?.copyWith(
-                                                color: Colors.grey[700],
+                                                color: AppColors.textColor,
                                               ),
                                           children: [
                                             TextSpan(
@@ -154,7 +162,7 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                                               style: const TextStyle(
                                                 fontSize: 22,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.black87,
+                                                color: AppColors.textColor,
                                               ),
                                             ),
                                             const TextSpan(text: '\n'),
@@ -214,7 +222,7 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                       Text(
                         'Estoy pensando...',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: AppColors.textGray,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -253,7 +261,7 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(999),
                             borderSide: BorderSide(
-                              color: Colors.grey[400]!,
+                              color: AppColors.textGray,
                               width: 1,
                             ),
                           ),
@@ -291,7 +299,7 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                                 radius: 20,
                                 backgroundColor: canSend
                                     ? Theme.of(context).primaryColor
-                                    : const Color.fromARGB(255, 255, 255, 255),
+                                    : AppColors.primaryColor,
                                 child: SvgPicture.asset(
                                   AppIcons.send,
                                   width: 18,
@@ -356,18 +364,12 @@ class _SuggestionChips extends StatelessWidget {
             label: const Text('Generar ideas'),
           );
         }
-        final primary = Theme.of(context).primaryColor;
-        final chips = items.map((prompt) {
-          final int borderAlphaLow = (255 * 0.3).round(); // 77
-          final int borderAlphaHigh = (255 * 0.6).round(); // 153
 
+        final chips = items.map((prompt) {
           final int textAlphaLow = (255 * 0.5).round(); // 128
           final int textAlphaHigh = 255; // 1.0 = 255
 
-          final borderColor = primary.withAlpha(
-            disabled ? borderAlphaLow : borderAlphaHigh,
-          );
-          final textColor = Colors.black87.withAlpha(
+          final textColor = AppColors.textColor.withAlpha(
             disabled ? textAlphaLow : textAlphaHigh,
           );
 
@@ -376,7 +378,7 @@ class _SuggestionChips extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.transparent,
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: borderColor),
+              border: Border.all(color: AppColors.buttonBackground),
             ),
             child: Text(prompt, style: TextStyle(color: textColor)),
           );
@@ -398,12 +400,6 @@ class _SuggestionChips extends StatelessWidget {
               runSpacing: 8,
               alignment: WrapAlignment.center,
               children: chips,
-            ),
-            const SizedBox(height: 12),
-            TextButton.icon(
-              onPressed: disabled ? null : onRefresh,
-              icon: const Icon(Icons.autorenew),
-              label: const Text('Nuevas ideas'),
             ),
           ],
         );
@@ -451,15 +447,15 @@ class _MessageBubble extends StatelessWidget {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
+          maxWidth: MediaQuery.of(context).size.width * 0.6,
         ),
         decoration: BoxDecoration(
           color: bubbleColor,
           border: isUser ? Border.all(color: borderColor, width: 1.2) : null,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
           crossAxisAlignment: isUser
@@ -476,11 +472,11 @@ class _MessageBubble extends StatelessWidget {
                       strong: TextStyle(color: textColor),
                     ),
                   ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               _formatTime(message.timestamp),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 10,
                 color: isUser ? Colors.white70 : Colors.black54,
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/wishlist_provider.dart';
@@ -32,31 +33,39 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
     final wishlistsAsync = ref.watch(userWishlistProvider);
 
     return Dialog(
+      backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.all(24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440, maxHeight: 520),
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 380),
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.paddingLarge),
           child: Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Mi Wishlist',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+              SizedBox(
+                height: 48,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Center(
+                      child: Text(
+                        'Mi Wishlist',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    tooltip: 'Cerrar',
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
+                    Positioned(
+                      right: -8,
+                      child: IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Cerrar',
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const Divider(),
               Expanded(
@@ -86,41 +95,49 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
               Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _titleController,
-                      decoration: InputDecoration(
-                        labelText: 'Añadir nuevo deseo... ',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(32),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(32),
-                          borderSide: const BorderSide(
-                            color: Colors.black26,
-                            width: 1,
+                    child: SizedBox(
+                      height: 46,
+                      child: TextField(
+                        controller: _titleController,
+                        style: const TextStyle(color: Colors.grey),
+                        textAlignVertical: TextAlignVertical.center,
+                        decoration: InputDecoration(
+                          labelText: 'Añadir nuevo deseo... ',
+                          labelStyle: const TextStyle(color: Colors.grey),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(32),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(32),
+                            borderSide: const BorderSide(
+                              color: Colors.black26,
+                              width: 1,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(32),
+                            borderSide: const BorderSide(
+                              color: AppColors.primaryColor,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
                           ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(32),
-                          borderSide: const BorderSide(
-                            color: AppColors.primaryColor,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
-                        ),
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _handleCreateWishlist(),
                       ),
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _handleCreateWishlist(),
                     ),
                   ),
                   const SizedBox(width: AppSizes.paddingSmall),
                   SizedBox(
-                    height: 56,
+                    height: 46,
                     width: 56,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.textGray,
+                        foregroundColor: AppColors.backgroundColor,
                         shape: const CircleBorder(),
                         padding: EdgeInsets.zero,
                       ),
@@ -134,7 +151,15 @@ class _WishlistDialogState extends ConsumerState<WishlistDialog> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(Icons.add),
+                            : SvgPicture.asset(
+                                AppIcons.plus,
+                                width: 30,
+                                height: 30,
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.backgroundColor,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -317,11 +342,11 @@ class _WishlistList extends StatelessWidget {
       thumbVisibility: true,
       child: RefreshIndicator(
         onRefresh: onRefresh,
-        child: ListView.separated(
+        child: ListView.builder(
           controller: scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
           itemCount: visibleWishlists.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final wishlist = visibleWishlists[index];
             final isCompleted = completionResolver(wishlist);
@@ -358,28 +383,38 @@ class _WishlistCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: Colors.white,
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shadowColor: AppColors.buttonDisabledBackground,
+      surfaceTintColor: Colors.white,
       child: ListTile(
+        dense: true,
+        visualDensity: const VisualDensity(vertical: -3, horizontal: -4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 2),
         leading: InkWell(
           onTap: isUpdatingCompletion ? null : onToggle,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: 32,
-            height: 32,
+            width: 26,
+            height: 26,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isCompleted
-                  ? const Color.fromARGB(255, 194, 10, 240)
-                  : Colors.white,
+              color: isCompleted ? AppColors.accentColor : Colors.white,
               border: Border.all(
-                color: isCompleted
-                    ? const Color.fromARGB(255, 0, 0, 0)
-                    : Colors.black87,
+                color: isCompleted ? AppColors.accentColor : AppColors.textGray,
                 width: 2,
               ),
             ),
             child: isCompleted
-                ? const Icon(Icons.check, size: 18, color: Colors.white)
+                ? SvgPicture.asset(
+                    AppIcons.check,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.white,
+                      BlendMode.srcIn,
+                    ),
+                  )
                 : null,
           ),
         ),
@@ -387,14 +422,15 @@ class _WishlistCard extends StatelessWidget {
         title: Text(
           wishlist.title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontSize: 15,
             decoration: isCompleted
                 ? TextDecoration.lineThrough
                 : TextDecoration.none,
-            color: isCompleted ? Colors.black54 : null,
+            color: Colors.black,
           ),
         ),
         trailing: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.close, size: 20),
           tooltip: 'Eliminar deseo',
           onPressed: onDelete,
         ),
