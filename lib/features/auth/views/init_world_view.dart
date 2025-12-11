@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mydearmap/core/constants/constants.dart';
-import 'package:mydearmap/core/widgets/app_nav_bar.dart';
-import 'package:mydearmap/core/widgets/app_shell.dart';
 
 class InitWorldView extends StatefulWidget {
   const InitWorldView({super.key, this.userName, this.onEnterWorld});
@@ -57,14 +55,14 @@ class _InitWorldViewState extends State<InitWorldView>
                       Text(
                         'Because every memory\ndeserves a place',
                         textAlign: TextAlign.center,
-                        style: AppTextStyles.initWorldSubtitle,
+                        style: AppTextStyles.textButton,
                       ),
                       SizedBox(
                         width: iconDiameter,
                         height: iconDiameter * 1.0,
                         child: OverflowBox(
-                          maxWidth: iconDiameter * 1.2,
-                          minWidth: iconDiameter * 1.2,
+                          maxWidth: iconDiameter * 1.1,
+                          minWidth: iconDiameter * 1.1,
                           minHeight: 0,
                           maxHeight: double.infinity,
                           alignment: Alignment.topCenter,
@@ -75,24 +73,12 @@ class _InitWorldViewState extends State<InitWorldView>
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                Expanded(child: Container()),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSizes.paddingLarge,
-                    0,
-                    AppSizes.paddingLarge,
-                    AppSizes.paddingLarge,
-                  ),
-                  child: Column(
-                    children: [
+                      const SizedBox(height: 50),
                       Align(
                         alignment: Alignment.center,
                         child: FilledButton(
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF000000), // Negro
+                            backgroundColor: const Color(0xFF000000),
                             foregroundColor: Colors.white,
                             fixedSize: const Size(100, 36),
                             padding: const EdgeInsets.symmetric(
@@ -118,15 +104,14 @@ class _InitWorldViewState extends State<InitWorldView>
                               : const Text(
                                   'Iniciar',
                                   style: TextStyle(
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w400,
                                     letterSpacing: 0.5,
-                                    fontSize: 13,
+                                    fontSize: 14,
                                     fontFamily: 'TikTokSans',
                                   ),
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -134,17 +119,6 @@ class _InitWorldViewState extends State<InitWorldView>
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: AppNavBar(
-        currentIndex: 2,
-        onItemTapped: (index) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (context) => AppShell(initialIndex: index),
-            ),
-            (route) => false,
-          );
-        },
       ),
     );
   }

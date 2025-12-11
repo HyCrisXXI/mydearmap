@@ -110,80 +110,96 @@ class _LoginViewState extends ConsumerState<LoginView> {
             child: Image.asset(AppIcons.authBG, fit: BoxFit.cover),
           ),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(
-                left: 60.0,
-                right: 60.0,
-                top: 125.0,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Text('MyDearMap', style: AppTextStyles.myDearMapTitle),
-                  const SizedBox(height: 60),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('Iniciar sesión', style: AppTextStyles.title),
-                  ),
-                  const SizedBox(height: 30),
-                  TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      errorText: loginState.emailError,
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    onChanged: loginNotifier.onEmailChanged,
-                    onSubmitted: (_) => _signIn(),
-                    style: baseTextStyle,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'Contraseña',
-                      errorText: loginState.passwordError,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          loginState.obscurePassword
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: loginState.passwordError != null
-                              ? theme.colorScheme.error
-                              : AppColors.textColor,
-                        ),
-                        onPressed: loginNotifier.togglePasswordVisibility,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 125.0),
+                  child: Text('MyDearMap', style: AppTextStyles.myDearMapTitle),
+                ),
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 60.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Iniciar sesión',
+                              style: AppTextStyles.title,
+                            ),
+                          ),
+                          const SizedBox(height: 30),
+                          TextField(
+                            controller: _emailController,
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              errorText: loginState.emailError,
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            onChanged: loginNotifier.onEmailChanged,
+                            onSubmitted: (_) => _signIn(),
+                            style: AppTextStyles.textField,
+                          ),
+                          const SizedBox(height: 52),
+                          TextField(
+                            controller: _passwordController,
+                            decoration: InputDecoration(
+                              labelText: 'Contraseña',
+                              errorText: loginState.passwordError,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  loginState.obscurePassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                  color: loginState.passwordError != null
+                                      ? theme.colorScheme.error
+                                      : AppColors.textColor,
+                                ),
+                                onPressed:
+                                    loginNotifier.togglePasswordVisibility,
+                              ),
+                            ),
+                            obscureText: loginState.obscurePassword,
+                            onChanged: loginNotifier.onPasswordChanged,
+                            onSubmitted: (_) => _signIn(),
+                            style: AppTextStyles.textField,
+                          ),
+                          const SizedBox(height: 60),
+                          AppFormButtons(
+                            primaryLabel: 'Iniciar sesión',
+                            onPrimaryPressed: loginState.canSubmit
+                                ? _signIn
+                                : null,
+                            isProcessing: loginState.isSubmitting,
+                            secondaryLabel: 'Registrarse',
+                            onSecondaryPressed: loginState.isSubmitting
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const SignupView(),
+                                      ),
+                                    );
+                                  },
+                            secondaryIsCompact: false,
+                            secondaryOutlined: true,
+                          ),
+                        ],
                       ),
                     ),
-                    obscureText: loginState.obscurePassword,
-                    onChanged: loginNotifier.onPasswordChanged,
-                    onSubmitted: (_) => _signIn(),
                   ),
-                  const SizedBox(height: 60),
-                  AppFormButtons(
-                    primaryLabel: 'Iniciar sesión',
-                    onPrimaryPressed: loginState.canSubmit ? _signIn : null,
-                    isProcessing: loginState.isSubmitting,
-                    secondaryLabel: 'Registrarse',
-                    onSecondaryPressed: loginState.isSubmitting
-                        ? null
-                        : () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const SignupView(),
-                              ),
-                            );
-                          },
-                    secondaryIsCompact: false,
-                    secondaryOutlined: true,
-                  ),
-                  const SizedBox(height: 40),
-                  const Text(
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 150.0),
+                  child: Text(
                     'Comienza a guardar recuerdos',
-                    style: AppTextStyles.text,
+                    style: AppTextStyles.textButton,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

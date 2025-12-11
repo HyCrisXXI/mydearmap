@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/features/auth/controllers/signup_view_model.dart';
 import 'package:mydearmap/core/widgets/app_form_buttons.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class SignupView extends ConsumerStatefulWidget {
   const SignupView({super.key});
@@ -154,6 +155,7 @@ class _SignupViewState extends ConsumerState<SignupView> {
                       errorText: signupState.nameError,
                     ),
                     onChanged: signupNotifier.onNameChanged,
+                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -164,6 +166,7 @@ class _SignupViewState extends ConsumerState<SignupView> {
                     ),
                     keyboardType: TextInputType.emailAddress,
                     onChanged: signupNotifier.onEmailChanged,
+                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -182,6 +185,7 @@ class _SignupViewState extends ConsumerState<SignupView> {
                     ),
                     obscureText: signupState.obscurePassword,
                     onChanged: signupNotifier.onPasswordChanged,
+                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -192,42 +196,48 @@ class _SignupViewState extends ConsumerState<SignupView> {
                     ),
                     keyboardType: TextInputType.phone,
                     onChanged: signupNotifier.onNumberChanged,
+                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _birthDateController,
                     decoration: InputDecoration(
-                      labelText: 'Fecha de nacimiento (opcional) DD/MM/AAAA',
+                      labelText: 'Fecha de nacimiento (opcional)',
                       errorText: signupState.birthDateError,
                     ),
                     readOnly: true,
                     onTap: () => _selectBirthDate(signupState),
+                    style: AppTextStyles.textField,
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String?>(
                     key: ValueKey(signupState.form.gender),
                     initialValue: signupState.form.gender,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Género (opcional)',
-                      border: OutlineInputBorder(),
+                    dropdownColor: AppColors.primaryColor.withValues(alpha: .9),
+                    icon: Padding(
+                      padding: const EdgeInsets.only(right: 12.0),
+                      child: SvgPicture.asset(AppIcons.chevronDown),
                     ),
                     items: const [
                       DropdownMenuItem<String?>(
                         value: null,
-                        child: Text('Sin especificar'),
+                        child: Text(
+                          'Sin especificar',
+                          style: AppTextStyles.text,
+                        ),
                       ),
                       DropdownMenuItem<String?>(
                         value: 'male',
-                        child: Text('Masculino'),
+                        child: Text('Masculino', style: AppTextStyles.text),
                       ),
                       DropdownMenuItem<String?>(
                         value: 'female',
-                        child: Text('Femenino'),
+                        child: Text('Femenino', style: AppTextStyles.text),
                       ),
                       DropdownMenuItem<String?>(
                         value: 'other',
-                        child: Text('Otro'),
+                        child: Text('Otro', style: AppTextStyles.text),
                       ),
                     ],
                     onChanged: signupNotifier.onGenderChanged,

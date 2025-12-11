@@ -68,6 +68,14 @@ class AppTextStyles {
     color: AppColors.textGray,
   );
 
+  // Estilo para campos de texto
+  static const TextStyle textField = TextStyle(
+    fontFamily: _fontFamily,
+    fontSize: 18.0,
+    fontWeight: FontWeight.w500, // w500 es Medium
+    color: AppColors.textColor,
+  );
+
   // Estilo para Texto
   static const TextStyle text = TextStyle(
     fontFamily: _fontFamily,
@@ -90,15 +98,6 @@ class AppTextStyles {
     color: const Color(0xFF000000), // Negro
     fontStyle: FontStyle.normal,
   );
-
-  static const TextStyle initWorldSubtitle = TextStyle(
-    fontFamily: _fontFamily,
-    fontSize: 14.0,
-    fontWeight: FontWeight.w400,
-    color: Color(0xFF000000), // Negro
-    fontStyle: FontStyle.normal,
-    height: null,
-  );
 }
 
 class AppButtonStyles {
@@ -117,7 +116,7 @@ class AppInputStyles {
           borderSide: BorderSide(color: AppColors.textColor),
         ),
         enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.textColor),
+          borderSide: BorderSide(color: AppColors.textColor, width: 1.5),
         ),
         focusedBorder: UnderlineInputBorder(
           borderSide: BorderSide(color: AppColors.textColor, width: 2.0),
