@@ -305,7 +305,7 @@ class _MapViewState extends ConsumerState<MapView> {
               ),
             ),
             // Separación vertical entre filtros y búsqueda
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 42.0,
@@ -334,137 +334,11 @@ class _MapViewState extends ConsumerState<MapView> {
                         onPressed: () => _searchAndMove(searchController.text),
                       ),
                     ),
-                    onSubmitted: _searchAndMove,
                   ),
-                  if (currentSearchType == SearchType.memory &&
-                      memorySuggestions.isNotEmpty)
-                    Container(
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryColor,
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(AppSizes.borderRadius),
-                          bottomRight: Radius.circular(AppSizes.borderRadius),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withValues(alpha: .2),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: memorySuggestions.length,
-                        itemBuilder: (context, index) {
-                          final suggestion = memorySuggestions[index];
-                          String? imageUrl;
-                          if (suggestion.media.isNotEmpty) {
-                            final images = suggestion.media
-                                .where(
-                                  (m) =>
-                                      m.type == MediaType.image &&
-                                      m.url != null,
-                                )
-                                .toList();
-                            if (images.isNotEmpty) {
-                              images.sort(
-                                (a, b) =>
-                                    (a.order ?? 0).compareTo(b.order ?? 0),
-                              );
-                              imageUrl = buildMediaPublicUrl(images.first.url);
-                            }
-                          }
-                          final avatarSize = 32.0;
-                          return ListTile(
-                            leading: imageUrl != null
-                                ? Container(
-                                    width: avatarSize,
-                                    height: avatarSize,
-                                    decoration: AppDecorations.profileAvatar(
-                                      NetworkImage(imageUrl),
-                                    ),
-                                  )
-                                : Container(
-                                    width: avatarSize,
-                                    height: avatarSize,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Center(
-                                      child: SvgPicture.asset(
-                                        AppIcons.pin,
-                                        width: 20.0,
-                                        height: 20.0,
-                                        colorFilter: const ColorFilter.mode(
-                                          AppColors.accentColor,
-                                          BlendMode.srcIn,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                            title: Text(suggestion.title),
-                            onTap: () {
-                              searchController.text = suggestion.title;
-                              ref
-                                  .read(mapViewModelProvider.notifier)
-                                  .selectMemorySuggestion();
-                              _searchAndMove(suggestion.title);
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  if (currentSearchType == SearchType.place &&
-                      locationSuggestions.isNotEmpty)
-                    Container(
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryColor,
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(AppSizes.borderRadius),
-                          bottomRight: Radius.circular(AppSizes.borderRadius),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withValues(alpha: .2),
-                            spreadRadius: 2,
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: locationSuggestions.length,
-                        itemBuilder: (context, index) {
-                          final suggestion = locationSuggestions[index];
-                          return ListTile(
-                            title: Text(suggestion.name),
-                            onTap: () {
-                              searchController.text = suggestion.name;
-                              mapController.move(suggestion.location, 15.0);
-                              ref
-                                  .read(mapViewModelProvider.notifier)
-                                  .clearLocationSuggestions();
-                              // Opcional: actualizar searchedLocation para mostrar el marcador
-                              ref
-                                  .read(mapViewModelProvider.notifier)
-                                  .selectLocationSuggestion(
-                                    suggestion.location,
-                                  );
-                            },
-                          );
-                        },
-                      ),
-                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             Expanded(
               child: Stack(
                 children: [
@@ -546,6 +420,33 @@ class _MapViewState extends ConsumerState<MapView> {
                               ],
                             )
                           : const SizedBox.shrink(),
+                      if (searchedLocation != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: searchedLocation,
+                              width: 40,
+                              height: 40,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: SvgPicture.asset(
+                                    AppIcons.pin,
+                                    width: 28.0,
+                                    height: 28.0,
+                                    colorFilter: const ColorFilter.mode(
+                                      AppColors.accentColor,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ValueListenableBuilder<double>(
                         valueListenable: _zoomNotifier,
                         builder: (context, currentZoom, child) {
@@ -663,35 +564,131 @@ class _MapViewState extends ConsumerState<MapView> {
                           return MarkerLayer(markers: markers);
                         },
                       ),
-                      if (searchedLocation != null)
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: searchedLocation,
-                              width: 40,
-                              height: 40,
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: SvgPicture.asset(
-                                    AppIcons.pin,
-                                    width: 28.0,
-                                    height: 28.0,
-                                    colorFilter: const ColorFilter.mode(
-                                      AppColors.accentColor,
-                                      BlendMode.srcIn,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                     ],
                   ),
+
+                  // Suggestions Layer (Floating)
+                  if ((currentSearchType == SearchType.memory &&
+                          memorySuggestions.isNotEmpty) ||
+                      (currentSearchType == SearchType.place &&
+                          locationSuggestions.isNotEmpty))
+                    Positioned(
+                      top: 0,
+                      left: 42,
+                      right: 42,
+                      child: Container(
+                        constraints: const BoxConstraints(maxHeight: 170),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(8),
+                            topRight: Radius.circular(8),
+                            bottomLeft: Radius.circular(AppSizes.borderRadius),
+                            bottomRight: Radius.circular(AppSizes.borderRadius),
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(8),
+                            topRight: Radius.circular(8),
+                            bottomLeft: Radius.circular(AppSizes.borderRadius),
+                            bottomRight: Radius.circular(AppSizes.borderRadius),
+                          ),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: currentSearchType == SearchType.memory
+                                ? memorySuggestions.length
+                                : locationSuggestions.length,
+                            itemBuilder: (context, index) {
+                              if (currentSearchType == SearchType.memory) {
+                                final suggestion = memorySuggestions[index];
+                                String? imageUrl;
+                                if (suggestion.media.isNotEmpty) {
+                                  final images = suggestion.media
+                                      .where(
+                                        (m) =>
+                                            m.type == MediaType.image &&
+                                            m.url != null,
+                                      )
+                                      .toList();
+                                  if (images.isNotEmpty) {
+                                    images.sort(
+                                      (a, b) => (a.order ?? 0).compareTo(
+                                        b.order ?? 0,
+                                      ),
+                                    );
+                                    imageUrl = buildMediaPublicUrl(
+                                      images.first.url,
+                                    );
+                                  }
+                                }
+                                const avatarSize = 32.0;
+                                return ListTile(
+                                  leading: imageUrl != null
+                                      ? Container(
+                                          width: avatarSize,
+                                          height: avatarSize,
+                                          decoration:
+                                              AppDecorations.profileAvatar(
+                                                NetworkImage(imageUrl),
+                                              ),
+                                        )
+                                      : Container(
+                                          width: avatarSize,
+                                          height: avatarSize,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Center(
+                                            child: SvgPicture.asset(
+                                              AppIcons.pin,
+                                              width: 20.0,
+                                              height: 20.0,
+                                              colorFilter:
+                                                  const ColorFilter.mode(
+                                                    AppColors.accentColor,
+                                                    BlendMode.srcIn,
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                  title: Text(suggestion.title),
+                                  onTap: () {
+                                    searchController.text = suggestion.title;
+                                    ref
+                                        .read(mapViewModelProvider.notifier)
+                                        .selectMemorySuggestion();
+                                    _searchAndMove(suggestion.title);
+                                  },
+                                );
+                              } else {
+                                final suggestion = locationSuggestions[index];
+                                return ListTile(
+                                  title: Text(suggestion.name),
+                                  onTap: () {
+                                    searchController.text = suggestion.name;
+                                    mapController.move(
+                                      suggestion.location,
+                                      15.0,
+                                    );
+                                    ref
+                                        .read(mapViewModelProvider.notifier)
+                                        .clearLocationSuggestions();
+                                    ref
+                                        .read(mapViewModelProvider.notifier)
+                                        .selectLocationSuggestion(
+                                          suggestion.location,
+                                        );
+                                  },
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
 
                   if (_selectedMemory != null)
                     Align(

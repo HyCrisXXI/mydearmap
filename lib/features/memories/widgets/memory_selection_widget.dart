@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
@@ -56,83 +57,109 @@ class _MemorySelectionWidgetState extends State<MemorySelectionWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Seleccionar Recuerdos'),
-        actions: [
-          TextButton(
-            onPressed: () => widget.onSelectionDone(_selected),
-            child: const Text('Listo'),
+      backgroundColor: Colors.transparent,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(
+              top: AppSizes.upperPadding,
+              left: 16,
+              right: 30,
+              bottom: 16,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: SvgPicture.asset(AppIcons.chevronLeft),
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: AppButtonStyles.circularIconButton,
+                ),
+                const Text('Tus recuerdos', style: AppTextStyles.title),
+                TextButton(
+                  onPressed: () => widget.onSelectionDone(_selected),
+                  child: const Text('Listo'),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: AppCardMemory.aspectRatio,
-        ),
-        itemCount: widget.availableMemories.length,
-        itemBuilder: (context, index) {
-          final memory = widget.availableMemories[index];
-          final isSelected = _isMemorySelected(memory);
-          final mainMedia = memory.media.isNotEmpty ? memory.media.first : null;
-          final imageUrl = mainMedia != null && mainMedia.url != null
-              ? buildMediaPublicUrl(mainMedia.url)
-              : null;
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: AppCardMemory.aspectRatio,
+              ),
+              itemCount: widget.availableMemories.length,
+              itemBuilder: (context, index) {
+                final memory = widget.availableMemories[index];
+                final isSelected = _isMemorySelected(memory);
+                final mainMedia = memory.media.isNotEmpty
+                    ? memory.media.first
+                    : null;
+                final imageUrl = mainMedia != null && mainMedia.url != null
+                    ? buildMediaPublicUrl(mainMedia.url)
+                    : null;
 
-          final overlay = widget.overlayBuilder != null
-              ? widget.overlayBuilder!(
-                  context,
-                  memory,
-                  isSelected,
-                  () => _toggleMemory(memory),
-                )
-              : Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 10, right: 10),
-                    child: GestureDetector(
-                      onTap: () => _toggleMemory(memory),
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected
-                              ? AppColors.blue
-                              : Colors.transparent,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: .15),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                final overlay = widget.overlayBuilder != null
+                    ? widget.overlayBuilder!(
+                        context,
+                        memory,
+                        isSelected,
+                        () => _toggleMemory(memory),
+                      )
+                    : Align(
+                        alignment: Alignment.topRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 5.5, right: 5.5),
+                          child: GestureDetector(
+                            onTap: () => _toggleMemory(memory),
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSelected
+                                    ? AppColors.blue
+                                    : Colors.transparent,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: .15),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 24,
+                                    )
+                                  : null,
                             ),
-                          ],
+                          ),
                         ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 18,
-                              )
-                            : null,
-                      ),
-                    ),
+                      );
+
+                return GestureDetector(
+                  onTap: () => _toggleMemory(memory),
+                  child: MemoryCard(
+                    memory: memory,
+                    imageUrl: imageUrl,
+                    overlay: overlay,
                   ),
                 );
-
-          return GestureDetector(
-            onTap: () => _toggleMemory(memory),
-            child: MemoryCard(
-              memory: memory,
-              imageUrl: imageUrl,
-              overlay: overlay,
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

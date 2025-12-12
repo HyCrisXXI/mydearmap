@@ -151,7 +151,7 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
                 data: (memories) {
                   if (memories.isEmpty) {
                     return const Center(
-                      child: Text('Todavía no has guardado ningún recuerdo.'),
+                      child: Text('Dale un lugar a tus recuerdos'),
                     );
                   }
 

@@ -105,7 +105,8 @@ class AppButtonStyles {
     backgroundColor: WidgetStatePropertyAll(AppColors.primaryColor),
     shape: WidgetStatePropertyAll(CircleBorder()),
     padding: WidgetStatePropertyAll(EdgeInsets.all(1)),
-    fixedSize: WidgetStatePropertyAll(Size(34, 34)),
+    fixedSize: WidgetStatePropertyAll(Size(36, 36)),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
   );
 }
 
