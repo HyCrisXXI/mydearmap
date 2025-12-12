@@ -74,7 +74,7 @@ class MemoriesGrid extends StatelessWidget {
             padding: gridPadding,
             child: Wrap(
               spacing: wrapSpacing,
-              runSpacing: wrapRunSpacing, // <-- MÁS ESPACIO ENTRE FILAS
+              runSpacing: wrapRunSpacing,
               children: [
                 for (final memory in sortedMemories)
                   SizedBox(
@@ -143,11 +143,11 @@ class MemoriesGrid extends StatelessWidget {
               // Header Destacados
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 34, 16, 26),
                   child: Row(
                     children: [
                       const Text("Destacados", style: AppTextStyles.textField),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       SvgPicture.asset(
                         AppIcons.starFilled,
                         colorFilter: const ColorFilter.mode(
@@ -161,7 +161,6 @@ class MemoriesGrid extends StatelessWidget {
                   ),
                 ),
               ),
-
               // Carrusel Horizontal
               SliverToBoxAdapter(
                 child: _FeaturedCarousel(
@@ -170,22 +169,36 @@ class MemoriesGrid extends StatelessWidget {
                   showFavoriteOverlay: showFavoriteOverlay,
                 ),
               ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
             ],
 
             // --- SECCIÓN TODOS ---
             if (showFeatured)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: 30,
+                    top: 52,
+                    bottom: 8,
                   ),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Todos", style: AppTextStyles.textField),
-                      const SizedBox(width: 8),
+                      Row(
+                        children: [
+                          const Text("Todos", style: AppTextStyles.textField),
+                          const SizedBox(width: 12),
+                          SvgPicture.asset(
+                            AppIcons.folderOpen,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.textColor,
+                              BlendMode.srcIn,
+                            ),
+                            width: 24,
+                            height: 24,
+                          ),
+                        ],
+                      ),
                       IconButton(
                         style: AppButtonStyles.circularIconButton,
                         icon: SvgPicture.asset(
@@ -210,7 +223,7 @@ class MemoriesGrid extends StatelessWidget {
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  crossAxisSpacing: 12,
+                  crossAxisSpacing: 16,
                   mainAxisSpacing: 20, // Espacio entre filas
                   childAspectRatio: AppCardMemory.aspectRatio,
                 ),
@@ -404,7 +417,7 @@ class _FavoriteMemoryCardState extends State<_FavoriteMemoryCard> {
           ? Align(
               alignment: Alignment.topRight,
               child: Padding(
-                padding: const EdgeInsets.only(top: 10, right: 10),
+                padding: const EdgeInsets.only(top: 5.5, right: 5.5),
                 child: IconButton(
                   style: AppButtonStyles.circularIconButton,
                   onPressed: () async {
@@ -422,8 +435,6 @@ class _FavoriteMemoryCardState extends State<_FavoriteMemoryCard> {
                   },
                   icon: SvgPicture.asset(
                     isFavorite ? AppIcons.starFilled : AppIcons.star,
-                    width: 20,
-                    height: 20,
                   ),
                 ),
               ),

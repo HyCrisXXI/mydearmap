@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:mydearmap/core/constants/app_icons.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/timecapsule_provider.dart';
@@ -212,7 +214,7 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
                         ),
                         const Spacer(),
                         IconButton(
-                          icon: const Icon(Icons.add),
+                          icon: SvgPicture.asset(AppIcons.plus),
                           onPressed: _addMemories,
                         ),
                       ],
@@ -224,7 +226,7 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
                         (memory) => ListTile(
                           title: Text(memory.title),
                           trailing: IconButton(
-                            icon: const Icon(Icons.remove),
+                            icon: SvgPicture.asset(AppIcons.x),
                             onPressed: () => setState(
                               () => _selectedMemories.remove(memory),
                             ),

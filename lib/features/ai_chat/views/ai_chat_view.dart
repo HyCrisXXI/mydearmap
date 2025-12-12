@@ -73,267 +73,270 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(AppIcons.aiBG),
-            fit: BoxFit.cover,
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(AppIcons.aiBG),
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  16,
-                  AppSizes.upperPadding,
-                  16,
-                  20,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    IconButton(
-                      icon: SvgPicture.asset(AppIcons.trash),
-                      onPressed: () => chatNotifier.clearChat(),
-                      style: AppButtonStyles.circularIconButton,
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 36),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Mapi',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              'Tu asistente de aventuras',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: AppColors.textColor),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Lista de mensajes
-              Expanded(
-                child: chatState.messages.isEmpty
-                    ? LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: constraints.maxHeight,
-                              ),
-                              child: Align(
-                                alignment: Alignment.topCenter,
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    AppSizes.paddingMedium,
-                                    AppSizes.paddingLarge * 4,
-                                    AppSizes.paddingMedium,
-                                    AppSizes.paddingMedium,
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      RichText(
-                                        textAlign: TextAlign.center,
-                                        text: TextSpan(
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.copyWith(
-                                                color: AppColors.textColor,
-                                              ),
-                                          children: [
-                                            TextSpan(
-                                              text:
-                                                  'Hola${userName.isNotEmpty ? ', $userName' : ''}',
-                                              style: const TextStyle(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.textColor,
-                                              ),
-                                            ),
-                                            const TextSpan(text: '\n'),
-                                            TextSpan(
-                                              text: '¿Cuál es el plan de hoy?',
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 24),
-                                      _SuggestionChips(
-                                        prompts: suggestionsAsync,
-                                        disabled: chatState.isLoading,
-                                        onPromptTap: (prompt) =>
-                                            _handleSendMessage(
-                                              prompt,
-                                              chatNotifier,
-                                            ),
-                                        onRefresh: () => ref.refresh(
-                                          chatSuggestionsProvider,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: chatState.messages.length,
-                        itemBuilder: (context, index) {
-                          final message = chatState.messages[index];
-                          return _MessageBubble(message: message);
-                        },
-                      ),
-              ),
-              // Indicador de carga
-              if (chatState.isLoading)
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 16),
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Estoy pensando...',
-                        style: TextStyle(
-                          color: AppColors.textGray,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
+                  padding: const EdgeInsets.fromLTRB(
+                    16,
+                    AppSizes.upperPadding,
+                    16,
+                    20,
                   ),
-                ),
-              // Mostrar errores
-              if (chatState.error != null)
-                Container(
-                  color: Colors.red[100],
-                  padding: const EdgeInsets.all(12),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red[700]),
-                      const SizedBox(width: 12),
+                      IconButton(
+                        icon: SvgPicture.asset(AppIcons.trash),
+                        onPressed: () => chatNotifier.clearChat(),
+                        style: AppButtonStyles.circularIconButton,
+                      ),
+                      const SizedBox(width: 20),
                       Expanded(
-                        child: Text(
-                          chatState.error!,
-                          style: TextStyle(color: Colors.red[700]),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 36),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Mapi',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                'Tu asistente de aventuras',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: AppColors.textColor),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              // Campo de entrada
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        enabled: !chatState.isLoading,
-                        decoration: InputDecoration(
-                          hintText: 'Pregunta a Mapi',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(999),
-                            borderSide: BorderSide(
-                              color: AppColors.textGray,
-                              width: 1,
-                            ),
+                // Lista de mensajes
+                Expanded(
+                  child: chatState.messages.isEmpty
+                      ? LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.topCenter,
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      AppSizes.paddingMedium,
+                                      AppSizes.paddingLarge * 4,
+                                      AppSizes.paddingMedium,
+                                      AppSizes.paddingMedium,
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        RichText(
+                                          textAlign: TextAlign.center,
+                                          text: TextSpan(
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.copyWith(
+                                                  color: AppColors.textColor,
+                                                ),
+                                            children: [
+                                              TextSpan(
+                                                text:
+                                                    'Hola${userName.isNotEmpty ? ', $userName' : ''}',
+                                                style: const TextStyle(
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.textColor,
+                                                ),
+                                              ),
+                                              const TextSpan(text: '\n'),
+                                              TextSpan(
+                                                text:
+                                                    '¿Cuál es el plan de hoy?',
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 24),
+                                        _SuggestionChips(
+                                          prompts: suggestionsAsync,
+                                          disabled: chatState.isLoading,
+                                          onPromptTap: (prompt) =>
+                                              _handleSendMessage(
+                                                prompt,
+                                                chatNotifier,
+                                              ),
+                                          onRefresh: () => ref.refresh(
+                                            chatSuggestionsProvider,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: chatState.messages.length,
+                          itemBuilder: (context, index) {
+                            final message = chatState.messages[index];
+                            return _MessageBubble(message: message);
+                          },
+                        ),
+                ),
+                // Indicador de carga
+                if (chatState.isLoading)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Estoy pensando...',
+                          style: TextStyle(
+                            color: AppColors.textGray,
+                            fontStyle: FontStyle.italic,
                           ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(999),
-                            borderSide: BorderSide(
-                              color: Colors.grey[300]!,
-                              width: 1,
-                            ),
+                        ),
+                      ],
+                    ),
+                  ),
+                // Mostrar errores
+                if (chatState.error != null)
+                  Container(
+                    color: Colors.red[100],
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red[700]),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            chatState.error!,
+                            style: TextStyle(color: Colors.red[700]),
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(999),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          suffixIcon: Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: InkWell(
+                        ),
+                      ],
+                    ),
+                  ),
+                // Campo de entrada
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          enabled: !chatState.isLoading,
+                          decoration: InputDecoration(
+                            hintText: 'Pregunta a Mapi',
+                            border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(999),
-                              onTap: canSend
-                                  ? () => _handleSendMessage(
-                                      _messageController.text,
-                                      chatNotifier,
-                                    )
-                                  : null,
-                              child: CircleAvatar(
-                                radius: 20,
-                                backgroundColor: canSend
-                                    ? Theme.of(context).primaryColor
-                                    : AppColors.primaryColor,
-                                child: SvgPicture.asset(
-                                  AppIcons.send,
-                                  width: 18,
-                                  height: 18,
-                                  colorFilter: ColorFilter.mode(
-                                    canSend
-                                        ? Colors.white
-                                        : Colors.grey.shade600,
-                                    BlendMode.srcIn,
+                              borderSide: BorderSide(
+                                color: AppColors.textGray,
+                                width: 1,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(999),
+                              borderSide: BorderSide(
+                                color: Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(999),
+                              borderSide: BorderSide(
+                                color: Theme.of(context).primaryColor,
+                                width: 1.5,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            suffixIcon: Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(999),
+                                onTap: canSend
+                                    ? () => _handleSendMessage(
+                                        _messageController.text,
+                                        chatNotifier,
+                                      )
+                                    : null,
+                                child: CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: Colors.transparent,
+                                  child: SvgPicture.asset(
+                                    AppIcons.send,
+                                    width: 18,
+                                    height: 18,
+                                    colorFilter: ColorFilter.mode(
+                                      canSend
+                                          ? AppColors.blue
+                                          : AppColors.textColor,
+                                      BlendMode.srcIn,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
+                            suffixIconConstraints: const BoxConstraints(
+                              minHeight: 44,
+                              minWidth: 48,
+                            ),
                           ),
-                          suffixIconConstraints: const BoxConstraints(
-                            minHeight: 44,
-                            minWidth: 48,
-                          ),
+                          onChanged: (value) {
+                            setState(() {});
+                          },
+                          onSubmitted: (value) {
+                            if (!chatState.isLoading) {
+                              _handleSendMessage(value, chatNotifier);
+                            }
+                          },
                         ),
-                        onChanged: (value) {
-                          setState(() {});
-                        },
-                        onSubmitted: (value) {
-                          if (!chatState.isLoading) {
-                            _handleSendMessage(value, chatNotifier);
-                          }
-                        },
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
