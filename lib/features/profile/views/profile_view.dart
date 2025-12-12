@@ -10,6 +10,7 @@ import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/features/profile/views/profile_form_view.dart';
 import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:mydearmap/features/wishlist/views/wishlist_view.dart';
+import 'package:mydearmap/features/profile/widgets/achievements_dialog.dart';
 
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
@@ -68,9 +69,7 @@ class ProfileView extends ConsumerWidget {
                     // 4. Scrollable Content
                     Expanded(
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.paddingLarge,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 60),
                         child: Column(
                           children: [
                             const SizedBox(height: AppSizes.paddingSmall),
@@ -132,56 +131,78 @@ class ProfileView extends ConsumerWidget {
                               ],
                             ),
                             const SizedBox(height: AppSizes.paddingMedium),
-                            Text(
-                              user.name,
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              user.email,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: Colors.grey[600]),
-                            ),
-                            const SizedBox(height: AppSizes.paddingMedium),
                             Card(
                               color: Colors.transparent,
                               elevation: 0,
                               child: ListTile(
+                                contentPadding: EdgeInsets.zero,
                                 title: Text(
-                                  'Wishlist',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontSize: 22,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                  'Cuenta',
+                                  style: AppTextStyles.textField,
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const SizedBox(height: 6),
                                     const Divider(),
                                     const SizedBox(height: 6),
                                     Row(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.center,
-                                      children: const [
+                                      children: [
                                         Expanded(
-                                          child: Text(
-                                            'Todos los lugares o planes que\nestás deseando hacer.',
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                            ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                user.name,
+                                                style: AppTextStyles.textButton,
+                                              ),
+                                              Text(
+                                                user.email,
+                                                style: AppTextStyles.textButton,
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        SizedBox(width: 8),
-                                        Icon(
-                                          Icons.chevron_right,
-                                          color: Colors.black,
-                                          size: 34,
+                                        SvgPicture.asset(AppIcons.chevronRight),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                onTap: () =>
+                                    _navigateToEditProfile(context, ref, user),
+                              ),
+                            ),
+                            const SizedBox(height: 36),
+                            Card(
+                              color: Colors.transparent,
+                              elevation: 0,
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  'Wishlist',
+                                  style: AppTextStyles.textField,
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Divider(),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        const Expanded(
+                                          child: Text(
+                                            'Todos los lugares o planes que\nestás deseando hacer.',
+                                            style: AppTextStyles.textButton,
+                                          ),
                                         ),
+                                        const SizedBox(width: 8),
+                                        SvgPicture.asset(AppIcons.chevronRight),
                                       ],
                                     ),
                                   ],
@@ -195,90 +216,103 @@ class ProfileView extends ConsumerWidget {
                                 },
                               ),
                             ),
-                            const SizedBox(height: AppSizes.paddingLarge),
-                            const Divider(),
-                            const SizedBox(height: AppSizes.paddingMedium),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                'Logros desbloqueados',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                            const SizedBox(height: AppSizes.paddingMedium),
-                            achievementsAsync.when(
-                              loading: () => const Center(
-                                child: CircularProgressIndicator.adaptive(),
-                              ),
-                              error: (error, _) => Text(
-                                'Error al cargar los logros: $error',
-                                style: const TextStyle(color: Colors.redAccent),
-                              ),
-                              data: (achievements) {
-                                if (achievements.isEmpty) {
-                                  return const Text(
-                                    'Todavía no has desbloqueado ningún logro.',
-                                    style: TextStyle(color: Colors.black54),
-                                  );
-                                }
-
-                                return ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: achievements.length,
-                                  separatorBuilder: (_, _) => const SizedBox(
-                                    height: AppSizes.paddingSmall,
-                                  ),
-                                  itemBuilder: (context, index) {
-                                    final userAchievement = achievements[index];
-                                    final achievement =
-                                        userAchievement.achievement;
-
-                                    return Card(
-                                      elevation: 0,
-                                      child: ListTile(
-                                        leading: achievement?.iconUrl != null
-                                            ? Image.network(
-                                                achievement!.iconUrl!,
-                                                width: 48,
-                                                height: 48,
-                                                errorBuilder: (_, _, _) =>
-                                                    const Icon(
-                                                      Icons.emoji_events,
-                                                      size: 48,
-                                                      color: Colors.amber,
-                                                    ),
-                                              )
-                                            : const Icon(
-                                                Icons.emoji_events,
-                                                size: 48,
-                                                color: Colors.amber,
+                            const SizedBox(height: 36),
+                            Card(
+                              color: Colors.transparent,
+                              elevation: 0,
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  'Logros',
+                                  style: AppTextStyles.textField,
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Divider(),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: achievementsAsync.when(
+                                            loading: () => const Center(
+                                              child:
+                                                  CircularProgressIndicator.adaptive(),
+                                            ),
+                                            error: (error, _) => Text(
+                                              'Error: $error',
+                                              style: const TextStyle(
+                                                color: Colors.redAccent,
                                               ),
-                                        title: Text(
-                                          achievement?.name ?? 'Logro',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
+                                            ),
+                                            data: (achievements) {
+                                              if (achievements.isEmpty) {
+                                                return const Text(
+                                                  'Todavía no has desbloqueado ningún logro.',
+                                                  style: TextStyle(
+                                                    color: Colors.black54,
+                                                  ),
+                                                );
+                                              }
+                                              // Take max 5 icons for preview
+                                              final previewAchievements =
+                                                  achievements.take(5).toList();
+
+                                              return Wrap(
+                                                spacing: 8.0,
+                                                runSpacing: 4.0,
+                                                children: previewAchievements.map((
+                                                  userAchievement,
+                                                ) {
+                                                  final achievement =
+                                                      userAchievement
+                                                          .achievement;
+                                                  return achievement?.iconUrl !=
+                                                          null
+                                                      ? Image.network(
+                                                          achievement!.iconUrl!,
+                                                          width: 32,
+                                                          height: 32,
+                                                          errorBuilder:
+                                                              (
+                                                                _,
+                                                                _,
+                                                                _,
+                                                              ) => const Icon(
+                                                                Icons
+                                                                    .emoji_events,
+                                                                size: 32,
+                                                                color: Colors
+                                                                    .amber,
+                                                              ),
+                                                        )
+                                                      : const Icon(
+                                                          Icons.emoji_events,
+                                                          size: 32,
+                                                          color: Colors.amber,
+                                                        );
+                                                }).toList(),
+                                              );
+                                            },
                                           ),
                                         ),
-                                        subtitle: Text(
-                                          achievement?.description ?? '',
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        trailing: Text(
-                                          _formatDate(
-                                            userAchievement.unlockedAt,
-                                          ),
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodySmall,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+                                        const SizedBox(width: 8),
+                                        SvgPicture.asset(AppIcons.chevronRight),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                onTap: () {
+                                  showDialog<void>(
+                                    context: context,
+                                    barrierDismissible: true,
+                                    builder: (_) => const AchievementsDialog(),
+                                  );
+                                },
+                              ),
                             ),
                             const SizedBox(height: AppSizes.paddingLarge),
                             Padding(
@@ -317,12 +351,6 @@ class ProfileView extends ConsumerWidget {
         );
       },
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
   }
 
   void _showFullImage(BuildContext context, String? imageUrl) {
