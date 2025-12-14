@@ -36,22 +36,32 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
     final memoriesAsync = ref.watch(userMemoriesProvider);
 
     return relationsAsync.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, _) => Scaffold(body: Center(child: Text('Error: $error'))),
+      loading: () => const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: Text('Error: $error')),
+      ),
       data: (relations) {
         final relation = findRelationByUser(relations, widget.relatedUserId);
         if (relation == null) {
           return const Scaffold(
+            backgroundColor: Colors.transparent,
             body: Center(child: Text('Relación no encontrada')),
           );
         }
 
         return memoriesAsync.when(
-          loading: () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (error, _) =>
-              Scaffold(body: Center(child: Text('Error: $error'))),
+          loading: () => const Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Center(child: Text('Error: $error')),
+          ),
           data: (memories) {
             final shared = sharedMemoriesForRelation(
               allMemories: memories,
@@ -92,6 +102,7 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
             final avatarUrl = buildAvatarUrl(relation.relatedUser.profileUrl);
 
             return Scaffold(
+              backgroundColor: Colors.transparent,
               appBar: AppBar(
                 title: Text(displayName),
                 actions: [
