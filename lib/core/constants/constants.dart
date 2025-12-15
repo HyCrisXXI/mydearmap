@@ -90,6 +90,13 @@ class AppTextStyles {
     color: AppColors.textColor,
   );
 
+  static const TextStyle searchBarText = TextStyle(
+    fontFamily: _fontFamily,
+    fontSize: 16.0,
+    fontWeight: FontWeight.w400,
+    color: AppColors.textGray,
+  );
+
   static TextStyle get myDearMapTitle => GoogleFonts.archivo(
     fontSize: 24.0,
     fontWeight: FontWeight.w500,
@@ -124,6 +131,11 @@ class AppInputStyles {
         floatingLabelStyle: TextStyle(color: AppColors.textColor),
         contentPadding: EdgeInsets.symmetric(vertical: 8.0),
       );
+
+  static const EdgeInsets searchBarContentPadding = EdgeInsets.symmetric(
+    horizontal: 38.0,
+    vertical: 12.0,
+  );
 }
 
 // Definición del esquema de colores claro

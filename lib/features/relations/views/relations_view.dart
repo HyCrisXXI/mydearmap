@@ -17,6 +17,7 @@ import 'package:mydearmap/features/relations/views/relation_create_view.dart';
 import 'package:mydearmap/features/relations/views/relation_group_create_view.dart';
 import 'package:mydearmap/features/relations/views/relation_group_detail_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/app_search_bar.dart';
 
 class RelationsView extends ConsumerStatefulWidget {
   const RelationsView({super.key});
@@ -115,13 +116,6 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
     if (count == 0) return 'Sin recuerdos';
     if (count == 1) return '1 recuerdo';
     return '$count recuerdos';
-  }
-
-  Widget _buildSectionHeader(BuildContext context, String label) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(label, style: Theme.of(context).textTheme.titleMedium),
-    );
   }
 
   Widget _buildGroupCard(
@@ -304,100 +298,92 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
 
               return _RelationsLayout(
                 onAddPressed: () => _showCreateOptions(context),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Buscar vínculos o grupos',
-                          suffixIcon: SvgPicture.asset(AppIcons.search),
-                          suffixIconConstraints: const BoxConstraints(
-                            minHeight: 24,
-                            minWidth: 40,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 20,
-                          ),
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: 40,
+                          right: 40,
+                          top: 20,
+                          bottom: 8,
                         ),
-                        textAlignVertical: TextAlignVertical.center,
+                        child: AppSearchBar(
+                          controller: _searchController,
+                          hintText: 'Buscar vínculos o grupos',
+                        ),
                       ),
                     ),
-                    Expanded(
-                      child: groupsAsync.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (error, _) =>
-                            Center(child: Text('Error: $error')),
-                        data: (groups) {
-                          final sortedGroups = [...groups]
-                            ..sort(
-                              (a, b) => a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              ),
-                            );
-                          final filteredGroups = _applyGroupSearch(
-                            sortedGroups,
-                          );
-                          final hasRelations = filtered.isNotEmpty;
-                          final hasGroups = filteredGroups.isNotEmpty;
-
-                          if (!hasRelations && !hasGroups) {
-                            final message = _searchQuery.isEmpty
-                                ? 'Aún no has creado vínculos ni grupos.'
-                                : 'No se encontraron resultados.';
-                            return Center(child: Text(message));
-                          }
-
-                          return ListView(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 8,
-                            ),
-                            children: [
-                              if (hasGroups) ...[
-                                _buildSectionHeader(context, 'Grupos'),
-                                const SizedBox(height: 10),
-                                for (
-                                  var i = 0;
-                                  i < filteredGroups.length;
-                                  i++
-                                ) ...[
-                                  _buildGroupCard(
-                                    context,
-                                    ref,
-                                    filteredGroups[i],
-                                    user.id,
-                                  ),
-                                  if (i < filteredGroups.length - 1)
-                                    const SizedBox(height: 10),
-                                ],
-                                if (hasRelations) const SizedBox(height: 24),
-                              ],
-                              if (hasRelations) ...[
-                                _buildSectionHeader(context, 'Vínculos'),
-                                const SizedBox(height: 10),
-                                for (var i = 0; i < filtered.length; i++) ...[
-                                  _buildRelationCard(
-                                    context: context,
-                                    relation: filtered[i],
-                                    memories: memories,
-                                    currentUserId: user.id,
-                                  ),
-                                  if (i < filtered.length - 1)
-                                    const SizedBox(height: 10),
-                                ],
-                              ],
-                            ],
-                          );
-                        },
+                    groupsAsync.when(
+                      loading: () => const SliverFillRemaining(
+                        child: Center(child: CircularProgressIndicator()),
                       ),
+                      error: (error, _) => SliverFillRemaining(
+                        child: Center(child: Text('Error: $error')),
+                      ),
+                      data: (groups) {
+                        final allItems = <dynamic>[
+                          ...filtered,
+                          ..._applyGroupSearch(groups),
+                        ];
+
+                        // Sort mixed list
+                        allItems.sort((a, b) {
+                          final nameA = a is RelationGroup
+                              ? a.name
+                              : _relationDisplayName(a as UserRelation);
+                          final nameB = b is RelationGroup
+                              ? b.name
+                              : _relationDisplayName(b as UserRelation);
+                          return nameA.toLowerCase().compareTo(
+                            nameB.toLowerCase(),
+                          );
+                        });
+
+                        if (allItems.isEmpty) {
+                          final message = _searchQuery.isEmpty
+                              ? 'Aún no has creado vínculos ni grupos.'
+                              : 'No se encontraron resultados.';
+                          return SliverFillRemaining(
+                            child: Center(child: Text(message)),
+                          );
+                        }
+
+                        return SliverPadding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final item = allItems[index];
+                              final Widget child;
+                              if (item is RelationGroup) {
+                                child = _buildGroupCard(
+                                  context,
+                                  ref,
+                                  item,
+                                  user.id,
+                                );
+                              } else {
+                                child = _buildRelationCard(
+                                  context: context,
+                                  relation: item as UserRelation,
+                                  memories: memories,
+                                  currentUserId: user.id,
+                                );
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: child,
+                              );
+                            }, childCount: allItems.length),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -427,48 +413,42 @@ class _RelationsLayout extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(
                 top: AppSizes.upperPadding,
-                bottom: 8.0,
                 left: 16,
                 right: 30.0,
               ),
-              child: Stack(
-                alignment: Alignment.center,
+              child: Row(
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: SvgPicture.asset(AppIcons.chevronLeft),
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: AppButtonStyles.circularIconButton,
-                    ),
+                  IconButton(
+                    icon: SvgPicture.asset(AppIcons.chevronLeft),
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: AppButtonStyles.circularIconButton,
                   ),
+                  const SizedBox(width: 8),
                   const Text('Vínculos', style: AppTextStyles.title),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: SvgPicture.asset(
-                            AppIcons.heartHandshake,
-                            colorFilter: const ColorFilter.mode(
-                              AppColors.blue,
-                              BlendMode.srcIn,
-                            ),
+                  const Spacer(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: SvgPicture.asset(
+                          AppIcons.heartHandshake,
+                          colorFilter: const ColorFilter.mode(
+                            AppColors.blue,
+                            BlendMode.srcIn,
                           ),
-                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: AppButtonStyles.circularIconButton,
+                      ),
+                      if (onAddPressed != null) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: SvgPicture.asset(AppIcons.plus),
+                          onPressed: onAddPressed,
                           style: AppButtonStyles.circularIconButton,
                         ),
-                        if (onAddPressed != null) ...[
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: SvgPicture.asset(AppIcons.plus),
-                            onPressed: onAddPressed,
-                            style: AppButtonStyles.circularIconButton,
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
                 ],
               ),
