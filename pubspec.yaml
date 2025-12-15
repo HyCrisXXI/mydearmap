@@ -43,9 +43,7 @@ dependencies:
   flutter_map: 8.1.1
   latlong2: ^0.9.1
   http: ^1.5.0
-  graphview: ^1.2.0
   file_picker: ^10.3.3
-  timelines: ^0.1.0
   cached_network_image: ^3.2.3
   intl: ^0.20.2
   riverpod_annotation: ^3.0.3
@@ -62,6 +60,8 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+
+  coverage: ^1.15.0
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your

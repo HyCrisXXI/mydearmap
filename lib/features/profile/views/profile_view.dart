@@ -276,23 +276,29 @@ class ProfileView extends ConsumerWidget {
                                                           achievement!.iconUrl!,
                                                           width: 32,
                                                           height: 32,
-                                                          errorBuilder:
-                                                              (
-                                                                _,
-                                                                _,
-                                                                _,
-                                                              ) => const Icon(
-                                                                Icons
-                                                                    .emoji_events,
-                                                                size: 32,
-                                                                color: Colors
-                                                                    .amber,
+                                                          errorBuilder: (_, _, _) =>
+                                                              SvgPicture.asset(
+                                                                AppIcons.star,
+                                                                width: 32,
+                                                                height: 32,
+                                                                colorFilter:
+                                                                    const ColorFilter.mode(
+                                                                      Colors
+                                                                          .amber,
+                                                                      BlendMode
+                                                                          .srcIn,
+                                                                    ),
                                                               ),
                                                         )
-                                                      : const Icon(
-                                                          Icons.emoji_events,
-                                                          size: 32,
-                                                          color: Colors.amber,
+                                                      : SvgPicture.asset(
+                                                          AppIcons.star,
+                                                          width: 32,
+                                                          height: 32,
+                                                          colorFilter:
+                                                              const ColorFilter.mode(
+                                                                Colors.amber,
+                                                                BlendMode.srcIn,
+                                                              ),
                                                         );
                                                 }).toList(),
                                               );

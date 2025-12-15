@@ -164,7 +164,7 @@ void main() {
         final pt = GeoPoint.tryParse(wkbHex);
 
         expect(pt, isNotNull);
-        expect(pt?.longitude, 1.0); // Nota: WKB suele ser Lon/Lat
+        expect(pt?.longitude, 1.0);
         expect(pt?.latitude, 1.0);
       });
 

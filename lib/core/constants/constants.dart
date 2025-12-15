@@ -9,11 +9,9 @@ class AppColors {
   static const backgroundColor = Color(0xFFFFF5E5);
   static const textColor = Color(0xFF000000);
   static const textGray = Color(0xFF686868);
-  static const blue = Color(0xFF5E67F2);
-  static const yellow = Color(0xFFFFE833);
+  static const blue = accentColor;
   static const orange = Color(0xFFFF9312);
   static const pink = Color(0xFFFFCCF1);
-  static const green = Color(0xFFADE4A6);
   static const buttonBackground = Color(0xFF000000);
   static const buttonForeground = Color(0xFFFFFFFF);
   static const buttonDisabledBackground = Color(0xFFD9D9D9);
