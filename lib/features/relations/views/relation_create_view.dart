@@ -147,10 +147,13 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
                       return TextFormField(
                         controller: controller,
                         focusNode: focusNode,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Usuario (nombre o email)',
                           hintText: 'Busca por nombre o email',
-                          prefixIcon: Icon(Icons.person_add),
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: SvgPicture.asset(AppIcons.userRound),
+                          ),
                         ),
                         validator: (v) =>
                             (_selectedUserId == null ||
@@ -183,8 +186,12 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
                                         user.profileUrl!,
                                       ),
                                     )
-                                  : const CircleAvatar(
-                                      child: Icon(Icons.person),
+                                  : CircleAvatar(
+                                      child: SvgPicture.asset(
+                                        AppIcons.userRound,
+                                        width: 24,
+                                        height: 24,
+                                      ),
                                     ),
                               title: Text(user.name),
                               subtitle: Text(user.email),
@@ -212,7 +219,13 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.save),
+                      : SvgPicture.asset(
+                          AppIcons.check,
+                          colorFilter: const ColorFilter.mode(
+                            Colors.white,
+                            BlendMode.srcIn,
+                          ),
+                        ),
                   label: Text(_loading ? 'Guardando...' : 'Guardar vínculo'),
                   onPressed: _loading ? null : _submit,
                 ),

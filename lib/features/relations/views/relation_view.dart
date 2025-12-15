@@ -5,6 +5,9 @@ import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
 import 'package:mydearmap/features/memories/widgets/memories_grid.dart';
+import 'package:mydearmap/features/memories/views/memory_view.dart';
+import 'package:mydearmap/core/constants/constants.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class RelationDetailView extends ConsumerStatefulWidget {
   const RelationDetailView({
@@ -88,14 +91,22 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                 : relation.relatedUser.email.trim();
 
             final Widget sharedContent = sortedShared.isEmpty
-                ? const Text('Aún no hay recuerdos en común.')
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Text('Aún no hay recuerdos en común.'),
+                  )
                 : MemoriesGrid(
                     memories: sortedShared.take(previewCount).toList(),
                     onMemoryTap: (memory) {
-                      // Puedes navegar a detalle si lo deseas
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              MemoryDetailView(memoryId: memory.id!),
+                        ),
+                      );
                     },
                     physics: const NeverScrollableScrollPhysics(),
-                    gridPadding: EdgeInsets.zero, // o el padding que desees
+                    gridPadding: EdgeInsets.zero,
                   );
 
             // Construir URL de avatar
@@ -103,74 +114,134 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
 
             return Scaffold(
               backgroundColor: Colors.transparent,
-              appBar: AppBar(
-                title: Text(displayName),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.more_horiz),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-              body: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
+              body: SafeArea(
+                top: false,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: avatarUrl == null
-                              ? Colors.white
-                              : Colors.grey.shade300,
-                          backgroundImage: avatarUrl != null
-                              ? NetworkImage(avatarUrl)
+                    // Header Bar
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: AppSizes.upperPadding,
+                        left: 16,
+                        right: 16,
+                        bottom: 0,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          IconButton(
+                            icon: SvgPicture.asset(AppIcons.chevronLeft),
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: AppButtonStyles.circularIconButton,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    displayName,
+                                    style: const TextStyle(
+                                      fontFamily: 'TikTokSans',
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.black,
+                                      height: 1.0,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 7),
+                                  Text(
+                                    sharedMemoriesLabel(sortedShared.length),
+                                    style: const TextStyle(
+                                      fontFamily: 'TikTokSans',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w400,
+                                      color: AppColors.textGray,
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Profile Image
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: 14,
+                        left: 20,
+                        right: 16,
+                      ),
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.primaryColor,
+                            width: 1.0,
+                          ),
+                          image: avatarUrl != null
+                              ? DecorationImage(
+                                  image: NetworkImage(avatarUrl),
+                                  fit: BoxFit.cover,
+                                )
                               : null,
-                          child: avatarUrl == null
-                              ? Text(
+                        ),
+                        child: avatarUrl == null
+                            ? Center(
+                                child: Text(
                                   (displayName.isNotEmpty
                                       ? displayName[0].toUpperCase()
                                       : '?'),
                                   style: const TextStyle(
-                                    fontSize: 28,
-                                    color: Colors.black,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.primaryColor,
                                   ),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 16.0),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                displayName,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineSmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                sharedMemoriesLabel(sortedShared.length),
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: Colors.black54),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                                ),
+                              )
+                            : null,
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Recuerdos en común',
-                      style: Theme.of(context).textTheme.titleMedium,
+
+                    // Scrollable Body
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Padding 22 from image to title
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 22,
+                                bottom: 24,
+                              ),
+                              child: Text(
+                                'Recuerdos en común',
+                                style: const TextStyle(
+                                  fontFamily: 'TikTokSans',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            sharedContent,
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    sharedContent,
                   ],
                 ),
               ),

@@ -17,6 +17,7 @@ import 'package:mydearmap/features/relations/views/relation_create_view.dart';
 import 'package:mydearmap/features/relations/views/relation_group_create_view.dart';
 import 'package:mydearmap/features/relations/views/relation_group_detail_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/app_search_bar.dart';
 
 class RelationsView extends ConsumerStatefulWidget {
   const RelationsView({super.key});
@@ -62,7 +63,7 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.person_add_alt_1),
+                leading: SvgPicture.asset(AppIcons.userRound),
                 title: const Text('Añadir vínculo'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
@@ -74,7 +75,7 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.group_add),
+                leading: SvgPicture.asset(AppIcons.usersRound),
                 title: const Text('Crear grupo'),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
@@ -117,13 +118,6 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
     return '$count recuerdos';
   }
 
-  Widget _buildSectionHeader(BuildContext context, String label) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(label, style: Theme.of(context).textTheme.titleMedium),
-    );
-  }
-
   Widget _buildGroupCard(
     BuildContext context,
     WidgetRef ref,
@@ -137,8 +131,13 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
         : '?';
     final memoriesAsync = ref.watch(groupMemoriesProvider(group.id));
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
+    return _RelationListCard(
+      title: group.name,
+      subtitle: memoriesAsync.when(
+        loading: () => const Text('Cargando recuerdos...'),
+        error: (error, _) => const Text('Error al cargar recuerdos'),
+        data: (memories) => Text(_groupMemoriesLabel(memories.length)),
+      ),
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -148,85 +147,28 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
       },
       onLongPress: () =>
           _confirmDeleteGroup(context, ref, group, currentUserId),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: Colors.grey.shade100,
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: photoUrl == null || photoUrl.isEmpty
-                  ? Colors.white
-                  : Colors.grey.shade300,
-              backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                  ? NetworkImage(photoUrl)
-                  : null,
-              child: photoUrl == null || photoUrl.isEmpty
-                  ? Text(
-                      displayLetter,
-                      style: const TextStyle(fontSize: 20, color: Colors.black),
-                    )
-                  : null,
+      photoUrl: photoUrl,
+      displayLetter: displayLetter,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(
+            AppIcons.usersRound,
+            height: 22,
+            colorFilter: const ColorFilter.mode(
+              AppColors.blue,
+              BlendMode.srcIn,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    group.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  memoriesAsync.when(
-                    loading: () => Text(
-                      'Cargando recuerdos...',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                    ),
-                    error: (error, _) => Text(
-                      'Error al cargar recuerdos',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.redAccent),
-                    ),
-                    data: (memories) => Text(
-                      _groupMemoriesLabel(memories.length),
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                    ),
-                  ),
-                ],
-              ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            group.members.length.toString(),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: AppColors.blue,
+              fontWeight: FontWeight.w600,
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SvgPicture.asset(
-                  AppIcons.usersRound,
-                  height: 22,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.blue,
-                    BlendMode.srcIn,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  group.members.length.toString(),
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.blue,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -291,8 +233,9 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
     final relationLabel = _relationDisplayName(relation);
     final avatarUrl = buildAvatarUrl(relation.relatedUser.profileUrl);
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
+    return _RelationListCard(
+      title: relationLabel,
+      subtitle: Text(_sharedMemoriesLabel(shared.length)),
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -303,53 +246,10 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
           ),
         );
       },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: Colors.grey.shade100,
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: avatarUrl == null
-                  ? Colors.white
-                  : Colors.grey.shade300,
-              backgroundImage: avatarUrl != null
-                  ? NetworkImage(avatarUrl)
-                  : null,
-              child: avatarUrl == null
-                  ? Text(
-                      (relationLabel.isNotEmpty
-                          ? relationLabel[0].toUpperCase()
-                          : '?'),
-                      style: const TextStyle(fontSize: 20, color: Colors.black),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    relationLabel,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _sharedMemoriesLabel(shared.length),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      photoUrl: avatarUrl,
+      displayLetter: relationLabel.isNotEmpty
+          ? relationLabel[0].toUpperCase()
+          : '?',
     );
   }
 
@@ -398,100 +298,92 @@ class _RelationsViewState extends ConsumerState<RelationsView> {
 
               return _RelationsLayout(
                 onAddPressed: () => _showCreateOptions(context),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Buscar vínculos o grupos',
-                          suffixIcon: SvgPicture.asset(AppIcons.search),
-                          suffixIconConstraints: const BoxConstraints(
-                            minHeight: 24,
-                            minWidth: 40,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 20,
-                          ),
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: 40,
+                          right: 40,
+                          top: 20,
+                          bottom: 8,
                         ),
-                        textAlignVertical: TextAlignVertical.center,
+                        child: AppSearchBar(
+                          controller: _searchController,
+                          hintText: 'Buscar vínculos o grupos',
+                        ),
                       ),
                     ),
-                    Expanded(
-                      child: groupsAsync.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (error, _) =>
-                            Center(child: Text('Error: $error')),
-                        data: (groups) {
-                          final sortedGroups = [...groups]
-                            ..sort(
-                              (a, b) => a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              ),
-                            );
-                          final filteredGroups = _applyGroupSearch(
-                            sortedGroups,
-                          );
-                          final hasRelations = filtered.isNotEmpty;
-                          final hasGroups = filteredGroups.isNotEmpty;
-
-                          if (!hasRelations && !hasGroups) {
-                            final message = _searchQuery.isEmpty
-                                ? 'Aún no has creado vínculos ni grupos.'
-                                : 'No se encontraron resultados.';
-                            return Center(child: Text(message));
-                          }
-
-                          return ListView(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 8,
-                            ),
-                            children: [
-                              if (hasGroups) ...[
-                                _buildSectionHeader(context, 'Grupos'),
-                                const SizedBox(height: 12),
-                                for (
-                                  var i = 0;
-                                  i < filteredGroups.length;
-                                  i++
-                                ) ...[
-                                  _buildGroupCard(
-                                    context,
-                                    ref,
-                                    filteredGroups[i],
-                                    user.id,
-                                  ),
-                                  if (i < filteredGroups.length - 1)
-                                    const SizedBox(height: 12),
-                                ],
-                                if (hasRelations) const SizedBox(height: 24),
-                              ],
-                              if (hasRelations) ...[
-                                _buildSectionHeader(context, 'Vínculos'),
-                                const SizedBox(height: 12),
-                                for (var i = 0; i < filtered.length; i++) ...[
-                                  _buildRelationCard(
-                                    context: context,
-                                    relation: filtered[i],
-                                    memories: memories,
-                                    currentUserId: user.id,
-                                  ),
-                                  if (i < filtered.length - 1)
-                                    const SizedBox(height: 12),
-                                ],
-                              ],
-                            ],
-                          );
-                        },
+                    groupsAsync.when(
+                      loading: () => const SliverFillRemaining(
+                        child: Center(child: CircularProgressIndicator()),
                       ),
+                      error: (error, _) => SliverFillRemaining(
+                        child: Center(child: Text('Error: $error')),
+                      ),
+                      data: (groups) {
+                        final allItems = <dynamic>[
+                          ...filtered,
+                          ..._applyGroupSearch(groups),
+                        ];
+
+                        // Sort mixed list
+                        allItems.sort((a, b) {
+                          final nameA = a is RelationGroup
+                              ? a.name
+                              : _relationDisplayName(a as UserRelation);
+                          final nameB = b is RelationGroup
+                              ? b.name
+                              : _relationDisplayName(b as UserRelation);
+                          return nameA.toLowerCase().compareTo(
+                            nameB.toLowerCase(),
+                          );
+                        });
+
+                        if (allItems.isEmpty) {
+                          final message = _searchQuery.isEmpty
+                              ? 'Aún no has creado vínculos ni grupos.'
+                              : 'No se encontraron resultados.';
+                          return SliverFillRemaining(
+                            child: Center(child: Text(message)),
+                          );
+                        }
+
+                        return SliverPadding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final item = allItems[index];
+                              final Widget child;
+                              if (item is RelationGroup) {
+                                child = _buildGroupCard(
+                                  context,
+                                  ref,
+                                  item,
+                                  user.id,
+                                );
+                              } else {
+                                child = _buildRelationCard(
+                                  context: context,
+                                  relation: item as UserRelation,
+                                  memories: memories,
+                                  currentUserId: user.id,
+                                );
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: child,
+                              );
+                            }, childCount: allItems.length),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -521,48 +413,42 @@ class _RelationsLayout extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(
                 top: AppSizes.upperPadding,
-                bottom: 8.0,
                 left: 16,
                 right: 30.0,
               ),
-              child: Stack(
-                alignment: Alignment.center,
+              child: Row(
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: SvgPicture.asset(AppIcons.chevronLeft),
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: AppButtonStyles.circularIconButton,
-                    ),
+                  IconButton(
+                    icon: SvgPicture.asset(AppIcons.chevronLeft),
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: AppButtonStyles.circularIconButton,
                   ),
+                  const SizedBox(width: 8),
                   const Text('Vínculos', style: AppTextStyles.title),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: SvgPicture.asset(
-                            AppIcons.heartHandshake,
-                            colorFilter: const ColorFilter.mode(
-                              AppColors.blue,
-                              BlendMode.srcIn,
-                            ),
+                  const Spacer(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: SvgPicture.asset(
+                          AppIcons.heartHandshake,
+                          colorFilter: const ColorFilter.mode(
+                            AppColors.blue,
+                            BlendMode.srcIn,
                           ),
-                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: AppButtonStyles.circularIconButton,
+                      ),
+                      if (onAddPressed != null) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: SvgPicture.asset(AppIcons.plus),
+                          onPressed: onAddPressed,
                           style: AppButtonStyles.circularIconButton,
                         ),
-                        if (onAddPressed != null) ...[
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: SvgPicture.asset(AppIcons.plus),
-                            onPressed: onAddPressed,
-                            style: AppButtonStyles.circularIconButton,
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -585,4 +471,89 @@ String _relationDisplayName(UserRelation relation) {
 
 String _sharedMemoriesLabel(int count) {
   return '$count recuerdos';
+}
+
+class _RelationListCard extends StatelessWidget {
+  const _RelationListCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.photoUrl,
+    this.displayLetter = '?',
+    this.onLongPress,
+    this.trailing,
+  });
+
+  final String title;
+  final Widget subtitle;
+  final VoidCallback onTap;
+  final String? photoUrl;
+  final String displayLetter;
+  final VoidCallback? onLongPress;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(40),
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Container(
+        height: 80,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(40),
+          color: Colors.white,
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 25,
+              backgroundColor: photoUrl == null || photoUrl!.isEmpty
+                  ? Colors.white
+                  : Colors.grey.shade300,
+              backgroundImage: photoUrl != null && photoUrl!.isNotEmpty
+                  ? NetworkImage(photoUrl!)
+                  : null,
+              child: photoUrl == null || photoUrl!.isEmpty
+                  ? Text(
+                      displayLetter,
+                      style: const TextStyle(fontSize: 20, color: Colors.black),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  DefaultTextStyle(
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.textGray,
+                    ),
+                    child: subtitle,
+                  ),
+                ],
+              ),
+            ),
+            if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+          ],
+        ),
+      ),
+    );
+  }
 }

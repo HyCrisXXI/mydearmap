@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:mydearmap/features/map/widgets/memory_info_card.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/features/memories/views/create_join_memory.dart';
+import 'package:mydearmap/core/widgets/app_search_bar.dart';
 import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -308,32 +309,18 @@ class _MapViewState extends ConsumerState<MapView> {
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: 42.0,
+                horizontal: 40.0,
               ), // Más margen a los lados
               child: Column(
                 children: [
-                  TextField(
+                  AppSearchBar(
                     controller: searchController,
                     onChanged: _onSearchQueryChanged,
-                    decoration: InputDecoration(
-                      hintText: currentSearchType == SearchType.place
-                          ? 'Buscar lugares'
-                          : 'Buscar recuerdos',
-                      hintStyle: const TextStyle(
-                        color: AppColors.textGray,
-                        fontSize: 16,
-                      ),
-                      border: const UnderlineInputBorder(),
-                      prefixIcon: null,
-                      suffixIcon: IconButton(
-                        icon: SvgPicture.asset(
-                          AppIcons.search,
-                          width: 22,
-                          height: 22,
-                        ),
-                        onPressed: () => _searchAndMove(searchController.text),
-                      ),
-                    ),
+                    hintText: currentSearchType == SearchType.place
+                        ? 'Buscar lugares'
+                        : 'Buscar recuerdos',
+                    onSuffixPressed: () =>
+                        _searchAndMove(searchController.text),
                   ),
                 ],
               ),
