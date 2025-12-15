@@ -173,46 +173,6 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                       ),
                     ),
 
-                    // Profile Image
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        top: 14,
-                        left: 20,
-                        right: 16,
-                      ),
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.primaryColor,
-                            width: 1.0,
-                          ),
-                          image: avatarUrl != null
-                              ? DecorationImage(
-                                  image: NetworkImage(avatarUrl),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: avatarUrl == null
-                            ? Center(
-                                child: Text(
-                                  (displayName.isNotEmpty
-                                      ? displayName[0].toUpperCase()
-                                      : '?'),
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.primaryColor,
-                                  ),
-                                ),
-                              )
-                            : null,
-                      ),
-                    ),
-
                     // Scrollable Body
                     Expanded(
                       child: SingleChildScrollView(
@@ -220,6 +180,44 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 14,
+                                left: 20,
+                                right: 16,
+                              ),
+                              child: Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.primaryColor,
+                                    width: 1.0,
+                                  ),
+                                  image: avatarUrl != null
+                                      ? DecorationImage(
+                                          image: NetworkImage(avatarUrl),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
+                                ),
+                                child: avatarUrl == null
+                                    ? Center(
+                                        child: Text(
+                                          (displayName.isNotEmpty
+                                              ? displayName[0].toUpperCase()
+                                              : '?'),
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppColors.primaryColor,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            ),
                             // Padding 22 from image to title
                             Padding(
                               padding: const EdgeInsets.only(

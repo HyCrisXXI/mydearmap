@@ -1,4 +1,6 @@
 // lib/features/map/views/map_view.dart
+import 'dart:math';
+
 import 'package:mydearmap/core/constants/env_constants.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/data/models/media.dart';
@@ -43,6 +45,8 @@ class _MapViewState extends ConsumerState<MapView> {
   MemoryFilterCriteria? _cachedFilters;
   // Mapa para cachear URLs de imágenes y orden
   final Map<String, String> _memoryImageUrlCache = {};
+
+  List<Marker> _cachedStaticMarkers = [];
 
   @override
   void dispose() {
@@ -155,6 +159,128 @@ class _MapViewState extends ConsumerState<MapView> {
     }
   }
 
+  void _updateCache(List<Memory> currentMemoriesData) {
+    _cachedMemories = currentMemoriesData;
+    _cachedFilters = _activeFilters;
+    _memoryImageUrlCache.clear();
+    _cachedFilteredWithImage = [];
+    _cachedFilteredWithoutImage = [];
+    _cachedStaticMarkers = [];
+
+    final filteredMemories = MemoryFilterUtils.applyFilters(
+      currentMemoriesData,
+      _activeFilters,
+    );
+
+    for (final memory in filteredMemories) {
+      if (memory.location != null && memory.id != null) {
+        final images = memory.media
+            .where((m) => m.type == MediaType.image && m.url != null)
+            .toList();
+
+        if (images.isNotEmpty) {
+          _cachedFilteredWithImage!.add(memory);
+          // Pre-calc url
+          images.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
+          final url = buildMediaPublicUrl(images.first.url);
+          if (url != null) {
+            _memoryImageUrlCache[memory.id!] = url;
+          }
+        } else {
+          _cachedFilteredWithoutImage!.add(memory);
+        }
+      }
+    }
+
+    // Pre-construir marcadores estáticos (zoom <= 14, size = 56.0 o 46.0)
+    final staticMarkers = <Marker>[];
+    if (_cachedFilteredWithoutImage != null) {
+      staticMarkers.addAll(
+        _cachedFilteredWithoutImage!.map((m) => _buildNoImageMarker(m, 46.0)),
+      );
+    }
+    if (_cachedFilteredWithImage != null) {
+      staticMarkers.addAll(
+        _cachedFilteredWithImage!.map((m) => _buildImageMarker(m, 56.0)),
+      );
+    }
+    _cachedStaticMarkers = staticMarkers;
+  }
+
+  Marker _buildNoImageMarker(Memory memory, double size) {
+    return MemoryMarker(
+      memory: memory,
+      point: LatLng(memory.location!.latitude, memory.location!.longitude),
+      width: size,
+      height: size,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedMemory = memory;
+          });
+        },
+        onLongPress: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => MemoryDetailView(memoryId: memory.id!),
+            ),
+          );
+        },
+        child: Container(
+          width: size,
+          height: size,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: SvgPicture.asset(
+              AppIcons.pin,
+              width: size * 0.7,
+              height: size * 0.7, // Proporcional
+              colorFilter: const ColorFilter.mode(
+                AppColors.accentColor,
+                BlendMode.srcIn,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Marker _buildImageMarker(Memory memory, double size) {
+    final imageUrl = _memoryImageUrlCache[memory.id];
+    if (imageUrl == null) {
+      return const Marker(point: LatLng(0, 0), child: SizedBox());
+    }
+    return MemoryMarker(
+      memory: memory,
+      point: LatLng(memory.location!.latitude, memory.location!.longitude),
+      width: size,
+      height: size,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedMemory = memory;
+          });
+        },
+        onLongPress: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => MemoryDetailView(memoryId: memory.id!),
+            ),
+          );
+        },
+        child: Container(
+          width: size,
+          height: size,
+          decoration: AppDecorations.profileAvatar(NetworkImage(imageUrl)),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final mapState = ref.watch(mapViewModelProvider);
@@ -175,36 +301,7 @@ class _MapViewState extends ConsumerState<MapView> {
           _cachedFilters != _activeFilters;
 
       if (shouldrecalculate) {
-        _cachedMemories = currentMemoriesData;
-        _cachedFilters = _activeFilters;
-        _memoryImageUrlCache.clear();
-        _cachedFilteredWithImage = [];
-        _cachedFilteredWithoutImage = [];
-
-        final filteredMemories = MemoryFilterUtils.applyFilters(
-          currentMemoriesData,
-          _activeFilters,
-        );
-
-        for (final memory in filteredMemories) {
-          if (memory.location != null && memory.id != null) {
-            final images = memory.media
-                .where((m) => m.type == MediaType.image && m.url != null)
-                .toList();
-            if (images.isNotEmpty) {
-              _cachedFilteredWithImage!.add(memory);
-              // Pre-calc url
-              images.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
-              final url = buildMediaPublicUrl(images.first.url);
-              if (url != null) {
-                _memoryImageUrlCache[memory.id!] = url;
-              }
-            } else {
-              // Limitar a un número razonable si hay demasiados (opcional, por ahora todo)
-              _cachedFilteredWithoutImage!.add(memory);
-            }
-          }
-        }
+        _updateCache(currentMemoriesData);
       }
     }
 
@@ -343,7 +440,7 @@ class _MapViewState extends ConsumerState<MapView> {
                           ),
                         );
                       },
-                      minZoom: 3,
+                      minZoom: 2,
                       maxZoom: 19,
                       cameraConstraint: CameraConstraint.contain(
                         bounds: LatLngBounds(
@@ -361,6 +458,11 @@ class _MapViewState extends ConsumerState<MapView> {
                       ),
                       onPositionChanged: (camera, hasGesture) {
                         _zoomNotifier.value = camera.zoom;
+                        if (hasGesture && _selectedMemory != null) {
+                          setState(() {
+                            _selectedMemory = null;
+                          });
+                        }
                       },
                       onTap: (_, _) {
                         FocusManager.instance.primaryFocus?.unfocus();
@@ -437,113 +539,31 @@ class _MapViewState extends ConsumerState<MapView> {
                       ValueListenableBuilder<double>(
                         valueListenable: _zoomNotifier,
                         builder: (context, currentZoom, child) {
+                          if (currentZoom <= 14 &&
+                              _cachedStaticMarkers.isNotEmpty) {
+                            return MarkerLayer(markers: _cachedStaticMarkers);
+                          }
+
                           final markers = <Marker>[];
 
                           // 1. Añadir marcadores sin imagen (tamaño fijo)
                           if (_cachedFilteredWithoutImage != null) {
                             markers.addAll(
                               _cachedFilteredWithoutImage!.map((memory) {
-                                return MemoryMarker(
-                                  memory: memory,
-                                  point: LatLng(
-                                    memory.location!.latitude,
-                                    memory.location!.longitude,
-                                  ),
-                                  width: 46.0, // Tamaño fijo
-                                  height: 46.0,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedMemory = memory;
-                                      });
-                                    },
-                                    onLongPress: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              MemoryDetailView(
-                                                memoryId: memory.id!,
-                                              ),
-                                        ),
-                                      );
-                                    },
-                                    child: Container(
-                                      width: 46.0,
-                                      height: 46.0,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Center(
-                                        child: SvgPicture.asset(
-                                          AppIcons.pin,
-                                          width: 32.0,
-                                          height: 32.0,
-                                          colorFilter: const ColorFilter.mode(
-                                            AppColors.accentColor,
-                                            BlendMode.srcIn,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
+                                return _buildNoImageMarker(memory, 46.0);
                               }),
                             );
                           }
 
                           // 2. Añadir marcadores con imagen (tamaño dinámico)
                           if (_cachedFilteredWithImage != null) {
-                            final size = currentZoom > 14
-                                ? 56.0 + (currentZoom - 14) * 30
-                                : 56.0;
+                            final size = 56.0 + pow(currentZoom - 14, 2) * 10;
                             // Clamp seguro
                             final clampedSize = size < 20.0 ? 20.0 : size;
 
                             markers.addAll(
                               _cachedFilteredWithImage!.map((memory) {
-                                final imageUrl =
-                                    _memoryImageUrlCache[memory.id];
-                                if (imageUrl == null) {
-                                  return const Marker(
-                                    point: LatLng(0, 0),
-                                    child: SizedBox(),
-                                  );
-                                }
-
-                                return MemoryMarker(
-                                  memory: memory,
-                                  point: LatLng(
-                                    memory.location!.latitude,
-                                    memory.location!.longitude,
-                                  ),
-                                  width: clampedSize,
-                                  height: clampedSize,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedMemory = memory;
-                                      });
-                                    },
-                                    onLongPress: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              MemoryDetailView(
-                                                memoryId: memory.id!,
-                                              ),
-                                        ),
-                                      );
-                                    },
-                                    child: Container(
-                                      width: clampedSize,
-                                      height: clampedSize,
-                                      decoration: AppDecorations.profileAvatar(
-                                        NetworkImage(imageUrl),
-                                      ),
-                                    ),
-                                  ),
-                                );
+                                return _buildImageMarker(memory, clampedSize);
                               }),
                             );
                           }

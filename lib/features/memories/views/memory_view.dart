@@ -425,9 +425,7 @@ Widget _buildMixedTimeline({
     ),
     error: (error, _) => Text('No se pudo cargar la galería: $error'),
     data: (media) {
-      final galleryMedia = media
-          .where((asset) => asset.kind != MemoryMediaKind.note)
-          .toList();
+      final galleryMedia = media;
       return commentsAsync.when(
         loading: () => const Padding(
           padding: EdgeInsets.symmetric(vertical: AppSizes.paddingLarge),
@@ -526,8 +524,6 @@ class _VerticalMediaAttachment extends StatelessWidget {
         return const _InlineMediaNotice(
           message: 'Este tipo de archivo no se puede mostrar.',
         );
-      case MemoryMediaKind.note:
-        return const SizedBox.shrink();
     }
   }
 
@@ -539,12 +535,10 @@ class _VerticalMediaAttachment extends StatelessWidget {
       );
     }
 
-    // If we are already in full screen, we might not want gesture handling for opening gallery,
-    // or we might want to toggle controls. For now, simple image.
     if (isFullScreen) {
       return Image.network(
         url,
-        fit: BoxFit.contain, // Full screen should likely contain
+        fit: BoxFit.contain,
         width: double.infinity,
         height: double.infinity,
         loadingBuilder: (context, child, progress) {
@@ -722,7 +716,7 @@ class _FullScreenMediaGalleryState extends State<FullScreenMediaGallery> {
     final currentMedia = widget.media[_currentIndex];
 
     return Scaffold(
-      backgroundColor: Colors.black, // Dark background fallback
+      backgroundColor: AppColors.primaryColor,
       body: Stack(
         children: [
           // Background Image
@@ -742,9 +736,6 @@ class _FullScreenMediaGalleryState extends State<FullScreenMediaGallery> {
               itemBuilder: (context, index) {
                 final item = widget.media[index];
                 if (item.kind == MemoryMediaKind.video) {
-                  // Placeholder for video, reusing action card or a simple player placeholder
-                  // Request asked for swipe "como si fuera una galeria", "que permita hacer zoom" (usually for images)
-                  // "y lo que no se vea que nada mas extra"
                   return Center(
                     child: _VerticalMediaAttachment(
                       asset: item,
@@ -788,13 +779,7 @@ class _FullScreenMediaGalleryState extends State<FullScreenMediaGallery> {
                 AppSizes.paddingLarge,
                 AppSizes.paddingMedium,
               ),
-              color: AppColors.primaryColor.withValues(
-                alpha: 0.0,
-              ), // Transparent to show media behind if needed, or colored?
-              // User said: "manteniendo el navbar de debajo implicito" (this refers to bottom nav usually, but here likely means
-              // the system UI or just the implicit nature).
-              // "y añadiendole el boton de chevron left ... y que a la derecha ... ponga la fecha"
-              // "lo que no se vea que nada mas extra, zona con color primaryColor" -> Background is primaryColor.
+              color: AppColors.primaryColor.withValues(alpha: 0.0),
               child: SafeArea(
                 top: false,
                 bottom: false,
