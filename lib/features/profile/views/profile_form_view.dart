@@ -256,7 +256,7 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
 
     String? currentAvatarUrl;
     if (_newProfileUrl != null) {
-      currentAvatarUrl = buildMediaUrl(_newProfileUrl!);
+      currentAvatarUrl = buildAvatarUrl(_newProfileUrl!);
     } else {
       currentAvatarUrl = buildAvatarUrl(widget.user.profileUrl);
     }

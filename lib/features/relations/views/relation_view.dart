@@ -186,36 +186,39 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                                 left: 20,
                                 right: 16,
                               ),
-                              child: Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.primaryColor,
-                                    width: 1.0,
+                              child: GestureDetector(
+                                onTap: () => _showFullImage(context, avatarUrl),
+                                child: Container(
+                                  width: 56,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.primaryColor,
+                                      width: 1.0,
+                                    ),
+                                    image: avatarUrl != null
+                                        ? DecorationImage(
+                                            image: NetworkImage(avatarUrl),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
                                   ),
-                                  image: avatarUrl != null
-                                      ? DecorationImage(
-                                          image: NetworkImage(avatarUrl),
-                                          fit: BoxFit.cover,
+                                  child: avatarUrl == null
+                                      ? Center(
+                                          child: Text(
+                                            (displayName.isNotEmpty
+                                                ? displayName[0].toUpperCase()
+                                                : '?'),
+                                            style: const TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w500,
+                                              color: AppColors.primaryColor,
+                                            ),
+                                          ),
                                         )
                                       : null,
                                 ),
-                                child: avatarUrl == null
-                                    ? Center(
-                                        child: Text(
-                                          (displayName.isNotEmpty
-                                              ? displayName[0].toUpperCase()
-                                              : '?'),
-                                          style: const TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.w500,
-                                            color: AppColors.primaryColor,
-                                          ),
-                                        ),
-                                      )
-                                    : null,
                               ),
                             ),
                             // Padding 22 from image to title
@@ -247,6 +250,20 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
           },
         );
       },
+    );
+  }
+
+  void _showFullImage(BuildContext context, String? imageUrl) {
+    if (imageUrl == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(500),
+          child: Image.network(imageUrl, fit: BoxFit.cover),
+        ),
+      ),
     );
   }
 }

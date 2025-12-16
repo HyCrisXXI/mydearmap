@@ -76,20 +76,11 @@ class MemoryCommentCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            comment.user.name,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        if (canDelete)
-                          _CommentActionsButton(onDelete: onDelete),
-                      ],
+                    Text(
+                      comment.user.name,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
@@ -115,6 +106,10 @@ class MemoryCommentCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (canDelete) ...[
+                const SizedBox(width: 8),
+                _CommentActionsButton(onDelete: onDelete),
+              ],
             ],
           ),
           const SizedBox(height: AppSizes.paddingSmall),
@@ -208,26 +203,51 @@ class _CommentActionsButton extends StatelessWidget {
 
   final VoidCallback? onDelete;
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar comentario'),
+        content: const Text(
+          '¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      onDelete?.call();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (onDelete == null) return const SizedBox.shrink();
-    return PopupMenuButton<_CommentAction>(
-      icon: const Icon(Icons.more_vert, size: 20),
-      onSelected: (action) {
-        if (action == _CommentAction.delete) {
-          onDelete!.call();
-        }
-      },
-      itemBuilder: (_) => const [
-        PopupMenuItem<_CommentAction>(
-          value: _CommentAction.delete,
-          child: Text('Eliminar'),
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: () => _confirmDelete(context),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.transparent,
         ),
-      ],
+        child: Center(child: SvgPicture.asset(AppIcons.trash)),
+      ),
     );
   }
 }
-
-enum _CommentAction { delete }
 
 String? _resolveAvatarUrl(String? raw) => buildAvatarUrl(raw);

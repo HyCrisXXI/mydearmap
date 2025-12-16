@@ -726,8 +726,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             deferUploads: true,
             onPendingDraftsChanged: _onPendingDraftsChanged,
           ),
-          const SizedBox(height: AppSizes.paddingSmall),
-          const SizedBox(height: AppSizes.paddingSmall),
+          const SizedBox(height: AppSizes.paddingMedium),
         ],
       ),
     );
@@ -865,34 +864,17 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                     scrollDirection: Axis.horizontal,
                     children: [
                       // Add Button
-                      GestureDetector(
-                        onTap: () => _showAddPeopleDialog(relations),
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 1,
-                                  ),
-                                  color: Colors.white.withAlpha(0x4D),
-                                ),
-                                child: SvgPicture.asset(
-                                  AppIcons.plus,
-                                  colorFilter: const ColorFilter.mode(
-                                    AppColors.textColor,
-                                    BlendMode.srcIn,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: () => _showAddPeopleDialog(relations),
+                              style: AppButtonStyles.circularIconButton,
+                              icon: SvgPicture.asset(AppIcons.plus),
+                            ),
+                          ],
                         ),
                       ),
                       // Selected People

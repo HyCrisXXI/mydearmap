@@ -76,6 +76,46 @@ class RelationGroupController extends AsyncNotifier<void> {
       await _repository.deleteGroup(groupId: groupId);
       ref.invalidate(userRelationGroupsProvider(currentUserId));
       state = const AsyncValue.data(null);
+    } catch (error) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateGroup({
+    required String groupId,
+    required String creatorId,
+    String? name,
+    Uint8List? photoBytes,
+    String? photoFilename,
+    List<String>? memberIds,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      String? photoFileName;
+      if (photoBytes != null && photoBytes.isNotEmpty) {
+        photoFileName = await _repository.uploadGroupPhoto(
+          creatorId: creatorId,
+          bytes: photoBytes,
+          filename: photoFilename,
+        );
+      }
+
+      await _repository.updateGroup(
+        groupId: groupId,
+        name: name,
+        photoFileName: photoFileName,
+      );
+
+      if (memberIds != null) {
+        await _repository.updateGroupMembers(
+          groupId: groupId,
+          memberIds: memberIds,
+          creatorId: creatorId,
+        );
+      }
+
+      ref.invalidate(userRelationGroupsProvider(creatorId));
+      state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
       rethrow;
