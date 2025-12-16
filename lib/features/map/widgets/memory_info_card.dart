@@ -83,9 +83,10 @@ class MemoryInfoCard extends StatelessWidget {
                     children: [
                       Text(
                         memory.title,
-                        style: AppTextStyles.subtitle.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.w500, // w500 es Medium
+                          color: AppColors.textColor,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

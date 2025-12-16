@@ -147,9 +147,66 @@ class RelationGroupRepository {
     if (name != null) updates['name'] = name;
     if (photoFileName != null) updates['photo_url'] = photoFileName;
 
-    if (updates.isEmpty) return;
+    if (updates.isNotEmpty) {
+      await _client.from('relation_groups').update(updates).eq('id', groupId);
+    }
+  }
 
-    await _client.from('relation_groups').update(updates).eq('id', groupId);
+  Future<void> updateGroupMembers({
+    required String groupId,
+    required List<String> memberIds,
+    required String creatorId,
+  }) async {
+    // 1. Get current members
+    final currentMembersRaw = await _client
+        .from('relation_group_members')
+        .select('user_id')
+        .eq('group_id', groupId);
+
+    final currentMemberIds = (currentMembersRaw as List<dynamic>)
+        .map((row) => (row as Map)['user_id'].toString())
+        .toSet();
+
+    final newMemberIds = memberIds.toSet();
+    // Always keep creator
+    newMemberIds.add(creatorId);
+
+    // 2. Diff
+    final toAdd = newMemberIds.difference(currentMemberIds);
+    final toRemove = currentMemberIds.difference(newMemberIds);
+
+    // 3. Apply changes
+    if (toRemove.isNotEmpty) {
+      // Don't remove the creator even if passed in toRemove somehow
+      toRemove.remove(creatorId);
+      if (toRemove.isNotEmpty) {
+        await _client
+            .from('relation_group_members')
+            .delete()
+            .eq('group_id', groupId)
+            .filter(
+              'user_id',
+              'in',
+              '(${toRemove.map((id) => '"$id"').join(',')})',
+            );
+      }
+    }
+
+    if (toAdd.isNotEmpty) {
+      await _client
+          .from('relation_group_members')
+          .insert(
+            toAdd
+                .map(
+                  (userId) => {
+                    'group_id': groupId,
+                    'user_id': userId,
+                    'role': userId == creatorId ? 'owner' : 'member',
+                  },
+                )
+                .toList(),
+          );
+    }
   }
 
   Future<String> _uploadGroupPhotoBytes({

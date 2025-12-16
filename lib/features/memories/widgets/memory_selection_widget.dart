@@ -76,9 +76,26 @@ class _MemorySelectionWidgetState extends State<MemorySelectionWidget> {
                   style: AppButtonStyles.circularIconButton,
                 ),
                 const Text('Tus recuerdos', style: AppTextStyles.title),
-                TextButton(
-                  onPressed: () => widget.onSelectionDone(_selected),
-                  child: const Text('Listo'),
+                SizedBox(
+                  width: 80,
+                  height: AppSizes.buttonHeight,
+                  child: FilledButton(
+                    onPressed: () => widget.onSelectionDone(_selected),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.buttonBackground,
+                      foregroundColor: AppColors.buttonForeground,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.borderRadius,
+                        ),
+                      ),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text(
+                      'Listo',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
               ],
             ),

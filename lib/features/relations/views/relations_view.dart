@@ -14,8 +14,8 @@ import 'package:mydearmap/features/relations/views/relation_view.dart';
 import 'package:mydearmap/features/relations/controllers/relations_controller.dart';
 import 'package:mydearmap/features/relations/controllers/relation_group_controller.dart';
 import 'package:mydearmap/features/relations/views/relation_create_view.dart';
-import 'package:mydearmap/features/relations/views/relation_group_create_view.dart';
-import 'package:mydearmap/features/relations/views/relation_group_detail_view.dart';
+import 'package:mydearmap/features/relations/views/group_form_view.dart';
+import 'package:mydearmap/features/relations/views/group_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mydearmap/core/widgets/app_search_bar.dart';
 

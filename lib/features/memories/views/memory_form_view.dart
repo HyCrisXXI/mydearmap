@@ -112,11 +112,12 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
 
   final MemoryMediaEditorController _mediaEditorController =
       MemoryMediaEditorController();
-  List<PendingMemoryMediaDraft> _pendingMediaDrafts =
-      const <PendingMemoryMediaDraft>[];
+  List<PendingMemoryMediaDraft> _pendingMediaDrafts = [];
+  final List<MemoryMedia> _visualMediaList = [];
+  final Map<String, PendingMemoryMediaDraft> _draftMap = {};
+  bool _visualListInitialized = false;
   List<UserRole> _relatedPeople = [];
   bool _committingMedia = false;
-  bool _reorderingMedia = false;
   bool _isInitialized = false;
   bool _locationDirty = false;
   String? _resolvedMemoryId;
@@ -128,6 +129,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     super.initState();
     if (widget.mode == MemoryUpsertMode.create) {
       _currentLocation = widget.initialLocation ?? _defaultLocation;
+      _selectedDate = DateTime.now();
       _isInitialized = true;
       _locationDirty = true;
     } else {
@@ -330,9 +332,42 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   }
 
   void _onPendingDraftsChanged(List<PendingMemoryMediaDraft> drafts) {
-    if (mounted) {
-      setState(() => _pendingMediaDrafts = drafts);
-    }
+    if (!mounted) return;
+    setState(() {
+      _pendingMediaDrafts = drafts;
+
+      // Sync _visualMediaList with new drafts
+      // 1. Remove drafts from visual list that are no longer in _pendingMediaDrafts
+      final currentDraftSet = Set<PendingMemoryMediaDraft>.from(drafts);
+      _visualMediaList.removeWhere((media) {
+        if (!media.id.startsWith('draft_')) return false; // Keep saved items
+        final draftId = media.id;
+        final draft = _draftMap[draftId];
+        if (draft == null || !currentDraftSet.contains(draft)) {
+          _draftMap.remove(draftId);
+          return true;
+        }
+        return false;
+      });
+
+      // 2. Add new drafts to the end of visual list
+      for (final draft in drafts) {
+        final draftId = 'draft_${draft.hashCode}';
+        if (!_draftMap.containsKey(draftId)) {
+          _draftMap[draftId] = draft;
+          _visualMediaList.add(
+            MemoryMedia(
+              id: draftId,
+              kind: draft.kind,
+              createdAt: DateTime.now(),
+              order: null, // Order will be determined by list position
+              previewBytes: draft.previewBytes,
+              publicUrl: null,
+            ),
+          );
+        }
+      }
+    });
   }
 
   String _roleDisplayName(MemoryRole role) {
@@ -378,8 +413,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   Scaffold _buildScaffold({Memory? memory}) {
     final isEdit = widget.mode == MemoryUpsertMode.edit;
     final memoryControllerState = ref.watch(memoryControllerProvider);
-    final isProcessing =
-        memoryControllerState.isLoading || _committingMedia || _reorderingMedia;
+    final isProcessing = memoryControllerState.isLoading || _committingMedia;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -619,10 +653,13 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 mapController: _mapController,
                 options: MapOptions(
                   initialCenter: _currentLocation,
-                  initialZoom: 17,
+                  initialZoom: 12,
                   minZoom: 2.0,
                   maxZoom: 18.0,
-                  onLongPress: (_, latLng) {
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                  ),
+                  onTap: (_, latLng) {
                     setState(() {
                       _currentLocation = latLng;
                       _locationDirty = true;
@@ -689,8 +726,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             deferUploads: true,
             onPendingDraftsChanged: _onPendingDraftsChanged,
           ),
-          const SizedBox(height: AppSizes.paddingSmall),
-          const SizedBox(height: AppSizes.paddingSmall),
+          const SizedBox(height: AppSizes.paddingMedium),
         ],
       ),
     );
@@ -828,31 +864,17 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                     scrollDirection: Axis.horizontal,
                     children: [
                       // Add Button
-                      GestureDetector(
-                        onTap: () => _showAddPeopleDialog(relations),
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 1,
-                                  ),
-                                  color: Colors.white.withAlpha(0x4D),
-                                ),
-                                child: const Icon(
-                                  Icons.add,
-                                  color: AppColors.textColor,
-                                ),
-                              ),
-                            ],
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: () => _showAddPeopleDialog(relations),
+                              style: AppButtonStyles.circularIconButton,
+                              icon: SvgPicture.asset(AppIcons.plus),
+                            ),
+                          ],
                         ),
                       ),
                       // Selected People
@@ -1157,10 +1179,22 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.person),
+                leading: SvgPicture.asset(
+                  AppIcons.userRound,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black,
+                    BlendMode.srcIn,
+                  ),
+                ),
                 title: const Text('Participante'),
                 trailing: person.role == MemoryRole.participant
-                    ? const Icon(Icons.check, color: AppColors.accentColor)
+                    ? SvgPicture.asset(
+                        AppIcons.check,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.accentColor,
+                          BlendMode.srcIn,
+                        ),
+                      )
                     : null,
                 onTap: () {
                   _updatePersonRole(person, MemoryRole.participant);
@@ -1168,10 +1202,22 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.person_outline),
+                leading: SvgPicture.asset(
+                  AppIcons.usersRound,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black,
+                    BlendMode.srcIn,
+                  ),
+                ),
                 title: const Text('Invitado'),
                 trailing: person.role == MemoryRole.guest
-                    ? const Icon(Icons.check, color: AppColors.accentColor)
+                    ? SvgPicture.asset(
+                        AppIcons.check,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.accentColor,
+                          BlendMode.srcIn,
+                        ),
+                      )
                     : null,
                 onTap: () {
                   _updatePersonRole(person, MemoryRole.guest);
@@ -1180,7 +1226,13 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
               ),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.delete, color: Colors.redAccent),
+                leading: SvgPicture.asset(
+                  AppIcons.trash,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.redAccent,
+                    BlendMode.srcIn,
+                  ),
+                ),
                 title: const Text(
                   'Eliminar',
                   style: TextStyle(color: Colors.redAccent),
@@ -1215,52 +1267,69 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   }
 
   Widget _buildReorderSection(AsyncValue<List<MemoryMedia>>? mediaAsync) {
+    if (mediaAsync != null && mediaAsync.hasValue && !_visualListInitialized) {
+      // Initialize visual list with saved assets
+      _visualMediaList.clear();
+      _visualMediaList.addAll(mediaAsync.value!);
+      // Drafts will be added via _onPendingDraftsChanged call or manually if needed,
+      // but typically we start with saved, and drafts come as added.
+      // If we are coming back with existing drafts (unlikely in this flow unless persisted separately in controller),
+      // we might need to sync. For now, assume drafts are fresh or synced via callback.
+
+      // Force sync with current drafts just in case
+      _visualListInitialized = true;
+      // We manually trigger sync logic for any existing drafts in controller
+      if (_mediaEditorController.hasPendingDrafts) {
+        // This is tricky because we need the draft objects.
+        // They come from callback.
+      }
+    } else if (mediaAsync != null &&
+        mediaAsync.isLoading &&
+        !_visualListInitialized) {
+      return const Padding(
+        padding: EdgeInsets.only(top: AppSizes.paddingMedium),
+        child: Center(child: CircularProgressIndicator.adaptive()),
+      );
+    } else if (mediaAsync != null &&
+        mediaAsync.hasError &&
+        !_visualListInitialized) {
+      return Padding(
+        padding: const EdgeInsets.only(top: AppSizes.paddingMedium),
+        child: Text(
+          'No se pudo cargar la galería: ${mediaAsync.error}',
+          style: const TextStyle(color: Colors.redAccent),
+        ),
+      );
+    }
+
+    // Always show the visual list
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Ordena tu recuerdo', style: AppTextStyles.subtitle),
         const SizedBox(height: AppSizes.paddingSmall),
-        if (_reorderingMedia)
-          const Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.paddingSmall),
-            child: LinearProgressIndicator(),
-          ),
 
-        if (mediaAsync != null)
-          mediaAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.only(top: AppSizes.paddingMedium),
-              child: Center(child: CircularProgressIndicator.adaptive()),
+        if (_visualMediaList.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: AppSizes.paddingSmall),
+            child: Text(
+              'No hay archivos guardados para organizar.',
+              style: TextStyle(color: Colors.black54),
             ),
-            error: (error, _) => Padding(
-              padding: const EdgeInsets.only(top: AppSizes.paddingMedium),
-              child: Text(
-                'No se pudo cargar la galería: $error',
-                style: const TextStyle(color: Colors.redAccent),
-              ),
+          )
+        else
+          Column(
+            children: List.generate(
+              _visualMediaList.length,
+              (index) => _buildMediaTile(_visualMediaList, index),
             ),
-            data: (assets) {
-              if (assets.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.only(top: AppSizes.paddingSmall),
-                  child: Text(
-                    'No hay archivos guardados para organizar.',
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                );
-              }
-              final orderedAssets = List<MemoryMedia>.from(assets);
-              return Column(
-                children: List.generate(
-                  orderedAssets.length,
-                  (index) => _buildMediaTile(orderedAssets, index),
-                ),
-              );
-            },
           ),
       ],
     );
   }
+
+  // _buildReorderList is no longer needed as logic is inline or simpler
+  // We keep _buildMediaTile which likely calls _reorderMediaAsset
 
   // Fix: restore upsert handler from original view (create/edit logic)
   Future<void> _handleUpsert(Memory? originalMemory) async {
@@ -1345,9 +1414,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
             }
           }
 
-          await _mediaEditorController.commitPendingChanges(
-            memoryId: createdId,
-          );
+          await _commitAndSyncGlobalOrder(memoryId: createdId);
 
           for (final relatedUserId in _selectedRelationUserRoles.keys) {
             if (relatedUserId == user.id) continue;
@@ -1429,7 +1496,7 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
 
     try {
       await memoryController.updateMemory(updatedMemory);
-      await _commitPendingMediaChanges(memoryId: widget.memoryId!);
+      await _commitAndSyncGlobalOrder(memoryId: widget.memoryId!);
       if (mounted) setState(() => _locationDirty = false);
 
       // Sync participants: add newly selected, remove deselected
@@ -1526,11 +1593,61 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     }
   }
 
-  Future<void> _commitPendingMediaChanges({required String memoryId}) async {
-    if (!_mediaEditorController.hasPendingDrafts) return;
+  Future<void> _commitAndSyncGlobalOrder({required String memoryId}) async {
+    if (_visualMediaList.isEmpty && !_mediaEditorController.hasPendingDrafts) {
+      return;
+    }
     setState(() => _committingMedia = true);
     try {
-      await _mediaEditorController.commitPendingChanges(memoryId: memoryId);
+      // Snapshot current state before upload triggers callbacks that modify the list
+      final currentVisualList = List<MemoryMedia>.from(_visualMediaList);
+      final currentDraftMap = Map<String, PendingMemoryMediaDraft>.from(
+        _draftMap,
+      );
+
+      // 1. Upload new drafts
+      final createdMap = await _mediaEditorController.commitPendingChanges(
+        memoryId: memoryId,
+      );
+
+      // 2. Build final payload for batch upsert using the SNAPSHOT
+      final payload = <Map<String, dynamic>>[];
+      int orderIndex = 0;
+
+      for (final media in currentVisualList) {
+        MemoryMedia? targetMedia;
+
+        if (media.id.startsWith('draft_')) {
+          final draftObj = currentDraftMap[media.id];
+          if (draftObj != null) {
+            targetMedia = createdMap[draftObj];
+          }
+        } else {
+          targetMedia = media;
+        }
+
+        if (targetMedia != null) {
+          payload.add({
+            'id': targetMedia.id,
+            'memory_id': memoryId,
+            'media_type': kindToDatabaseValue(targetMedia.kind),
+            'url': targetMedia.storagePath,
+            'content': targetMedia.content,
+            'order': orderIndex,
+            'created_at': targetMedia.createdAt.toIso8601String(),
+          });
+          orderIndex++;
+        }
+      }
+
+      // 3. Batch upsert to update all orders in one request
+      if (payload.isNotEmpty) {
+        final client = Supabase.instance.client;
+        await client.from('media').upsert(payload);
+      }
+
+      ref.invalidate(memoryMediaProvider(memoryId));
+      ref.invalidate(userMemoriesProvider);
     } finally {
       if (mounted) setState(() => _committingMedia = false);
     }
@@ -1587,7 +1704,22 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     }
   }
 
+  bool _isDraft(MemoryMedia asset) => asset.id.startsWith('draft_');
+
   Future<void> _deleteMediaAsset(MemoryMedia asset) async {
+    if (_isDraft(asset)) {
+      final draftId = asset.id;
+      final index = _pendingMediaDrafts.indexWhere(
+        (d) => 'draft_${d.hashCode}' == draftId,
+      );
+      if (index != -1) {
+        _mediaEditorController.removeDraftAt(index);
+        // Force rebuild to remove from list
+        setState(() {});
+      }
+      return;
+    }
+
     setState(() => _deletingMediaIds.add(asset.id));
     try {
       final client = Supabase.instance.client;
@@ -1599,6 +1731,11 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       ref.invalidate(userMemoriesProvider);
 
       if (!mounted) return;
+
+      setState(() {
+        _visualMediaList.removeWhere((item) => item.id == asset.id);
+      });
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Archivo eliminado')));
@@ -1627,7 +1764,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       case MemoryMediaKind.audio:
         return 'Audio';
       case MemoryMediaKind.unknown:
-      default:
         return 'Archivo';
     }
   }
@@ -1642,8 +1778,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
   Widget _buildMediaTile(List<MemoryMedia> assets, int index) {
     final asset = assets[index];
     final deleting = _deletingMediaIds.contains(asset.id);
-    final canMoveUp = index > 0;
-    final canMoveDown = index < assets.length - 1;
+
+    final bool canMoveUp = index > 0;
+    final bool canMoveDown = index < assets.length - 1;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4.0),
@@ -1678,13 +1815,9 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
               ),
             ),
             MediaActionButtons(
-              onMoveUp: _reorderingMedia
-                  ? null
-                  : () => _reorderMediaAsset(assets, index, index - 1),
+              onMoveUp: () => _reorderMediaAsset(assets, index, index - 1),
               showMoveUp: canMoveUp,
-              onMoveDown: _reorderingMedia
-                  ? null
-                  : () => _reorderMediaAsset(assets, index, index + 1),
+              onMoveDown: () => _reorderMediaAsset(assets, index, index + 1),
               showMoveDown: canMoveDown,
               onDelete: () => _deleteMediaAsset(asset),
               isDeleting: deleting,
@@ -1700,40 +1833,19 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
     int fromIndex,
     int toIndex,
   ) async {
-    if (widget.memoryId == null) return;
     if (fromIndex == toIndex) return;
-    if (toIndex < 0 || toIndex >= assets.length) return;
-
-    final reordered = List<MemoryMedia>.from(assets);
-    final movedItem = reordered.removeAt(fromIndex);
-    reordered.insert(toIndex, movedItem);
-
-    setState(() => _reorderingMedia = true);
-
-    try {
-      final client = Supabase.instance.client;
-      // Update order for all items to ensure consistency
-      for (var i = 0; i < reordered.length; i++) {
-        final asset = reordered[i];
-        final newOrder = i;
-        await client
-            .from('media')
-            .update({'order': newOrder})
-            .eq('id', asset.id);
-      }
-      ref.invalidate(memoryMediaProvider(widget.memoryId!));
-      ref.invalidate(userMemoriesProvider);
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo actualizar el orden: $error')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _reorderingMedia = false);
-      }
+    if (fromIndex < 0 ||
+        fromIndex >= _visualMediaList.length ||
+        toIndex < 0 ||
+        toIndex >= _visualMediaList.length) {
+      return;
     }
+
+    setState(() {
+      final item = _visualMediaList.removeAt(fromIndex);
+      _visualMediaList.insert(toIndex, item);
+      _locationDirty = _locationDirty; // force rebuild
+    });
   }
 
   void _openAssetPreview(MemoryMedia asset) {
@@ -1779,7 +1891,6 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
       case MemoryMediaKind.audio:
         return 'Audio adjunto';
       case MemoryMediaKind.unknown:
-      default:
         return 'Contenido adjunto';
     }
   }
@@ -1836,7 +1947,6 @@ class _MediaThumbnail extends StatelessWidget {
         );
         break;
       case MemoryMediaKind.unknown:
-      default:
         thumbnail = const Icon(
           Icons.insert_drive_file,
           color: Colors.grey,

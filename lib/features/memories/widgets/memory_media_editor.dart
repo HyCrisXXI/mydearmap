@@ -7,31 +7,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/memory_media_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
-import 'package:mydearmap/data/models/media.dart'
-    show MediaType, mediaOrderStride, mediaTypeOrderBase;
+import 'package:mydearmap/data/models/media.dart' show mediaOrderStride;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PendingMemoryMediaDraft {
   PendingMemoryMediaDraft({
     required this.kind,
     required this.label,
-    required Future<void> Function(String memoryId) uploader,
+    required Future<MemoryMedia?> Function(String memoryId) uploader,
     this.previewBytes,
   }) : _uploader = uploader;
 
   final MemoryMediaKind kind;
   final String label;
   final Uint8List? previewBytes;
-  final Future<void> Function(String memoryId) _uploader;
+  final Future<MemoryMedia?> Function(String memoryId) _uploader;
 
-  Future<void> upload(String memoryId) => _uploader(memoryId);
+  Future<MemoryMedia?> upload(String memoryId) => _uploader(memoryId);
 }
 
 class MemoryMediaEditorController {
   _MemoryMediaEditorState? _state;
 
-  Future<void> commitPendingChanges({required String memoryId}) async {
-    await _state?._commitPendingDrafts(memoryId);
+  Future<Map<PendingMemoryMediaDraft, MemoryMedia>> commitPendingChanges({
+    required String memoryId,
+  }) async {
+    return await _state?._commitPendingDrafts(memoryId) ?? {};
   }
 
   bool get hasPendingDrafts => _state?._hasPendingDrafts ?? false;
@@ -130,19 +131,27 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     widget.onPendingDraftsChanged?.call(List.unmodifiable(_pendingDrafts));
   }
 
-  Future<void> _commitPendingDrafts(String memoryId) async {
-    if (_pendingDrafts.isEmpty) return;
+  Future<Map<PendingMemoryMediaDraft, MemoryMedia>> _commitPendingDrafts(
+    String memoryId,
+  ) async {
+    if (_pendingDrafts.isEmpty) return {};
+    final results = <PendingMemoryMediaDraft, MemoryMedia>{};
     final drafts = List<PendingMemoryMediaDraft>.from(_pendingDrafts);
+
     for (final draft in drafts) {
-      await draft.upload(memoryId);
+      final created = await draft.upload(memoryId);
+      if (created != null) {
+        results[draft] = created;
+      }
       _clearDraft(draft);
     }
+    return results;
   }
 
   Future<void> _uploadOrDefer({
     required MemoryMediaKind kind,
     required String label,
-    required Future<void> Function(String memoryId) uploader,
+    required Future<MemoryMedia?> Function(String memoryId) uploader,
     Uint8List? previewBytes,
   }) async {
     if (!widget.deferUploads) {
@@ -209,7 +218,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     }
   }
 
-  Future<void> _uploadPickedFile(
+  Future<MemoryMedia?> _uploadPickedFile(
     MemoryMediaKind kind,
     PlatformFile file,
     String memoryId,
@@ -218,10 +227,16 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
     if (bytes == null) {
       throw Exception('No se pudo leer el archivo seleccionado.');
     }
-    await _performUpload(kind, file.name, file.extension, bytes, memoryId);
+    return await _performUpload(
+      kind,
+      file.name,
+      file.extension,
+      bytes,
+      memoryId,
+    );
   }
 
-  Future<void> _uploadPickedXFile(
+  Future<MemoryMedia?> _uploadPickedXFile(
     MemoryMediaKind kind,
     XFile file,
     Uint8List bytes,
@@ -229,10 +244,10 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
   ) async {
     final name = file.name;
     final ext = name.split('.').last;
-    await _performUpload(kind, name, ext, bytes, memoryId);
+    return await _performUpload(kind, name, ext, bytes, memoryId);
   }
 
-  Future<void> _performUpload(
+  Future<MemoryMedia?> _performUpload(
     MemoryMediaKind kind,
     String fileName,
     String? fileExtension,
@@ -257,7 +272,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
             ),
           );
         }
-        return;
+        return null;
       }
     }
 
@@ -279,14 +294,20 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
             fileOptions: const FileOptions(upsert: true),
           );
 
+      Map<String, dynamic> response;
       try {
-        await client.from('media').insert({
-          'memory_id': memoryId,
-          'media_type': kindToDatabaseValue(kind),
-          'url': storagePath,
-          'order': nextOrder,
-        });
+        response = await client
+            .from('media')
+            .insert({
+              'memory_id': memoryId,
+              'media_type': kindToDatabaseValue(kind),
+              'url': storagePath,
+              'order': nextOrder,
+            })
+            .select()
+            .single();
       } on PostgrestException {
+        // If insert fails, try to cleanup the file
         await client.storage.from('media').remove([storagePath]);
         rethrow;
       }
@@ -294,20 +315,19 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
       ref.invalidate(memoryMediaProvider(memoryId));
       ref.invalidate(userMemoriesProvider);
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$fileName subido correctamente')));
+      return MemoryMedia.fromJson(response);
     } on PostgrestException catch (error) {
-      if (!mounted) return;
+      if (!mounted) return null;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(_friendlyPostgrestMessage(error))));
+      return null;
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No se pudo subir el archivo: $error')),
       );
+      return null;
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -398,14 +418,13 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
   int _orderBaseForKind(MemoryMediaKind kind) {
     switch (kind) {
       case MemoryMediaKind.image:
-        return mediaTypeOrderBase(MediaType.image);
+        return 0;
       case MemoryMediaKind.video:
-        return mediaTypeOrderBase(MediaType.video);
+        return mediaOrderStride;
       case MemoryMediaKind.audio:
-        return mediaTypeOrderBase(MediaType.audio);
+        return mediaOrderStride * 2;
       case MemoryMediaKind.unknown:
-      default:
-        return mediaTypeOrderBase(MediaType.note) + mediaOrderStride;
+        return mediaOrderStride * 3;
     }
   }
 
@@ -518,7 +537,6 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
       case MemoryMediaKind.audio:
         return 'Audio';
       case MemoryMediaKind.unknown:
-      default:
         return 'Archivo';
     }
   }
@@ -535,7 +553,6 @@ class _MediaButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
 
-  @override
   @override
   Widget build(BuildContext context) {
     return SizedBox(

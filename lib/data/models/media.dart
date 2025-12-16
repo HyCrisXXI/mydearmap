@@ -27,8 +27,6 @@ class Media {
           return MediaType.video;
         case 'audio':
           return MediaType.audio;
-        case 'note':
-          return MediaType.note;
         default:
           throw Exception('Tipo de media desconocido: $type');
       }
@@ -72,7 +70,7 @@ class Media {
   }
 }
 
-enum MediaType { image, video, audio, note }
+enum MediaType { image, video, audio }
 
 const int mediaOrderStride = 100000;
 

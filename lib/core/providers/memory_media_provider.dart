@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mydearmap/data/models/media.dart' show mediaOrderStride;
 
-enum MemoryMediaKind { image, video, audio, note, unknown }
+enum MemoryMediaKind { image, video, audio, unknown }
 
 class MemoryMedia {
   const MemoryMedia({
@@ -25,6 +25,23 @@ class MemoryMedia {
   final String? publicUrl;
   final String? content;
   final Uint8List? previewBytes;
+
+  static MemoryMedia fromJson(Map<String, dynamic> json) {
+    return MemoryMedia(
+      id: json['id'] as String,
+      kind: _parseKind(json['media_type'] as String?),
+      storagePath: json['url'] as String?,
+      publicUrl: _resolvePublicUrl(
+        Supabase.instance.client,
+        json['url'] as String?,
+      ),
+      content: json['content'] as String?,
+      order: _parseOrder(json['order']),
+      createdAt:
+          DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
+    );
+  }
 }
 
 final memoryMediaProvider = FutureProvider.family
@@ -98,8 +115,6 @@ MemoryMediaKind _parseKind(String? value) {
       return MemoryMediaKind.video;
     case 'audio':
       return MemoryMediaKind.audio;
-    case 'note':
-      return MemoryMediaKind.note;
     default:
       return MemoryMediaKind.unknown;
   }
@@ -119,10 +134,8 @@ int _priorityForKind(MemoryMediaKind kind) {
       return 1;
     case MemoryMediaKind.audio:
       return 2;
-    case MemoryMediaKind.note:
-      return 3;
     case MemoryMediaKind.unknown:
-      return 4;
+      return 3;
   }
 }
 
@@ -158,8 +171,6 @@ String kindToStorageSegment(MemoryMediaKind kind) {
       return 'videos';
     case MemoryMediaKind.audio:
       return 'audios';
-    case MemoryMediaKind.note:
-      return 'notes';
     case MemoryMediaKind.unknown:
       return 'others';
   }
@@ -173,8 +184,6 @@ String kindToDatabaseValue(MemoryMediaKind kind) {
       return 'video';
     case MemoryMediaKind.audio:
       return 'audio';
-    case MemoryMediaKind.note:
-      return 'note';
     case MemoryMediaKind.unknown:
       return 'unknown';
   }

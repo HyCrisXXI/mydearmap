@@ -36,8 +36,7 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
     MemoryMediaKind.image: 0,
     MemoryMediaKind.video: 1,
     MemoryMediaKind.audio: 2,
-    MemoryMediaKind.note: 3,
-    MemoryMediaKind.unknown: 4,
+    MemoryMediaKind.unknown: 3,
   };
 
   @override
@@ -101,7 +100,7 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
   int _orderBaseForKind(MemoryMediaKind kind) {
     final mapped = _mediaTypeForKind(kind);
     if (mapped != null) return mediaTypeOrderBase(mapped);
-    return mediaTypeOrderBase(MediaType.note) + mediaOrderStride;
+    return mediaTypeOrderBase(MediaType.audio) + mediaOrderStride;
   }
 
   int _normalizeOrderForKind(int order, int base) {
@@ -124,8 +123,6 @@ class _MemoryMediaCarouselState extends State<MemoryMediaCarousel> {
         return MediaType.video;
       case MemoryMediaKind.audio:
         return MediaType.audio;
-      case MemoryMediaKind.note:
-        return MediaType.note;
       case MemoryMediaKind.unknown:
         return null;
     }
@@ -235,22 +232,6 @@ class _MediaCard extends StatelessWidget {
           onCopy: asset.publicUrl == null
               ? null
               : () => _copyToClipboard(context, asset.publicUrl!),
-        );
-      case MemoryMediaKind.note:
-        return Container(
-          padding: const EdgeInsets.all(AppSizes.paddingLarge),
-          decoration: BoxDecoration(
-            color: AppColors.accentColor.withValues(alpha: .1),
-            borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-          ),
-          child: SingleChildScrollView(
-            child: SelectableText(
-              asset.content?.trim().isNotEmpty == true
-                  ? asset.content!.trim()
-                  : 'Nota sin contenido.',
-              style: const TextStyle(height: 1.4),
-            ),
-          ),
         );
       case MemoryMediaKind.unknown:
         return const _MediaError(
