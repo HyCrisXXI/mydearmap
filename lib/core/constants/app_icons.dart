@@ -53,4 +53,13 @@ class AppIcons {
   static const String initWorld = '$_bgPath/init_world.png';
   static const String mainBG = '$_bgPath/main_bg.png';
   static const String profileBG = '$_bgPath/profile_bg.png';
+
+  // Badges
+  static const String _badgePath = 'assets/badges';
+
+  static const String collectionist = '$_badgePath/collectionist.svg';
+  static const String commentarist = '$_badgePath/commentarist.svg';
+  static const String firstMemory = '$_badgePath/first-memory.svg';
+  static const String historian = '$_badgePath/historian.svg';
+  static const String social = '$_badgePath/social.svg';
 }

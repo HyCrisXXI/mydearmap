@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:mydearmap/core/constants/app_icons.dart';
+import 'package:mydearmap/core/constants/constants.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/timecapsule_provider.dart';
@@ -43,7 +44,7 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
     final capsuleMemories = await ref.read(
       timeCapsuleMemoriesProvider(widget.capsuleId!).future,
     );
-    setState(() => _selectedMemories = capsuleMemories);
+    setState(() => _selectedMemories = [...capsuleMemories]);
 
     final capsule = await ref.read(
       timeCapsuleProvider(widget.capsuleId!).future,
@@ -185,9 +186,9 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.6),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
         ),
       ),
       child: Icon(
@@ -207,7 +208,7 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => placeholder,
+        errorBuilder: (_, _, _) => placeholder,
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
           return SizedBox(
@@ -226,80 +227,243 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: Text(
-          widget.capsuleId == null ? 'Crear Cápsula' : 'Editar Cápsula',
-        ),
-        actions: [
-          if (!_isLoading)
-            TextButton(onPressed: _save, child: const Text('Guardar')),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(labelText: 'Título *'),
-                      validator: (v) =>
-                          v?.trim().isEmpty ?? true ? 'Requerido' : null,
-                    ),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Descripción',
-                      ),
-                      maxLines: 3,
-                    ),
-                    ListTile(
-                      title: const Text('Fecha de apertura *'),
-                      subtitle: Text(
-                        _openAt != null
-                            ? '${_openAt!.day}/${_openAt!.month}/${_openAt!.year}'
-                            : 'Seleccionar',
-                      ),
-                      onTap: _pickOpenAt,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Text(
-                          'Recuerdos seleccionados:',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: SvgPicture.asset(AppIcons.plus),
-                          onPressed: _addMemories,
-                        ),
-                      ],
-                    ),
-                    if (_selectedMemories.isEmpty)
-                      const Text('Ninguno seleccionado')
-                    else
-                      ..._selectedMemories.map(
-                        (memory) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          minLeadingWidth: 0,
-                          leading: _buildMemoryThumbnail(memory),
-                          title: Text(memory.title),
-                          trailing: IconButton(
-                            icon: SvgPicture.asset(AppIcons.x),
-                            onPressed: () => setState(
-                              () => _selectedMemories.remove(memory),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+      body: Stack(
+        children: [
+          // Background
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(AppIcons.profileBG),
+                fit: BoxFit.cover,
               ),
             ),
+          ),
+          // Content
+          SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                // Custom Header
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppSizes.upperPadding,
+                    left: 20,
+                    right: 20,
+                    bottom: 10,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            PulseButton(
+                              child: IconButton(
+                                icon: SvgPicture.asset(AppIcons.chevronLeft),
+                                onPressed: () => Navigator.of(context).pop(),
+                                style: AppButtonStyles.circularIconButton,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                widget.capsuleId == null
+                                    ? 'Crear Cápsula'
+                                    : 'Editar Cápsula',
+                                style: AppTextStyles.title,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        width: 80,
+                        height: AppSizes.buttonHeight,
+                        child: FilledButton(
+                          onPressed: _isLoading ? null : _save,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.buttonBackground,
+                            foregroundColor: AppColors.buttonForeground,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppSizes.borderRadius,
+                              ),
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Guardar',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Form Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _titleController,
+                            decoration: const InputDecoration(
+                              labelText: 'Título',
+                              hintText: 'Ej: Cumpleaños 2025',
+                            ),
+                            style: AppTextStyles.textField.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            validator: (v) =>
+                                v?.trim().isEmpty ?? true ? 'Requerido' : null,
+                          ),
+                          const SizedBox(height: 24),
+                          TextFormField(
+                            controller: _descriptionController,
+                            decoration: const InputDecoration(
+                              labelText: 'Descripción (Opcional)',
+                              hintText: '¿De qué trata esta cápsula?',
+                            ),
+                            minLines: 1,
+                            maxLines: null,
+                          ),
+                          const SizedBox(height: 32),
+                          const Text(
+                            'Fecha de apertura',
+                            style: AppTextStyles.subtitle,
+                          ),
+                          const SizedBox(height: 12),
+                          InkWell(
+                            onTap: _pickOpenAt,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade400),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    color: AppColors.buttonBackground,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _openAt != null
+                                        ? '${_openAt!.day}/${_openAt!.month}/${_openAt!.year}'
+                                        : 'Seleccionar fecha',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: _openAt != null
+                                          ? AppColors.textColor
+                                          : Colors.grey,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Recuerdos',
+                                style: AppTextStyles.subtitle,
+                              ),
+                              PulseButton(
+                                child: IconButton(
+                                  onPressed: _addMemories,
+                                  style: AppButtonStyles.circularIconButton,
+                                  icon: SvgPicture.asset(AppIcons.plus),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          if (_selectedMemories.isEmpty)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24.0),
+                                child: Text(
+                                  'Añade recuerdos para guardar en esta cápsula.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                            )
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _selectedMemories.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final memory = _selectedMemories[index];
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(6.0),
+                                    child: ListTile(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                      leading: _buildMemoryThumbnail(memory),
+                                      title: Text(
+                                        memory.title,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      trailing: IconButton(
+                                        icon: SvgPicture.asset(AppIcons.trash),
+                                        onPressed: () => setState(
+                                          () =>
+                                              _selectedMemories.remove(memory),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          const SizedBox(height: 40),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

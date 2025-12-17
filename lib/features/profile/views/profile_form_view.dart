@@ -116,11 +116,7 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
     try {
       final bytes = await croppedFile.readAsBytes();
       final client = Supabase.instance.client;
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-
-      // Ensure extension is .jpg and store only the file name in the DB
-      final sanitizedName = 'avatar_$timestamp.jpg';
-      final fileName = '${widget.user.id}_$sanitizedName';
+      final fileName = '${widget.user.id}.jpg';
       final storagePath = 'avatars/$fileName';
 
       await client.storage
@@ -134,7 +130,6 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
             ),
           );
 
-      // Guardar solo el nombre del archivo, no la ruta completa
       setState(() => _newProfileUrl = fileName);
 
       if (!mounted) return;

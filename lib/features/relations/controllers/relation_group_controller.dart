@@ -50,7 +50,7 @@ class RelationGroupController extends AsyncNotifier<void> {
     state = const AsyncValue.loading();
     try {
       final photoFileName = await _repository.uploadGroupPhoto(
-        creatorId: currentUserId,
+        groupId: groupId,
         bytes: bytes,
         filename: filename,
       );
@@ -94,7 +94,7 @@ class RelationGroupController extends AsyncNotifier<void> {
       String? photoFileName;
       if (photoBytes != null && photoBytes.isNotEmpty) {
         photoFileName = await _repository.uploadGroupPhoto(
-          creatorId: creatorId,
+          groupId: groupId,
           bytes: photoBytes,
           filename: photoFilename,
         );

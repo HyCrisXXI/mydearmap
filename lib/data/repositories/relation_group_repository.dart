@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mydearmap/data/models/relation_group.dart';
 import 'package:mydearmap/data/models/user.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
-import 'package:uuid/uuid.dart';
 
 final relationGroupRepositoryProvider = Provider<RelationGroupRepository>((
   ref,
@@ -78,26 +77,30 @@ class RelationGroupRepository {
     String? photoFilename,
     List<String> memberIds = const [],
   }) async {
-    String? photoFileName;
-    if (photoBytes != null && photoBytes.isNotEmpty) {
-      photoFileName = await _uploadGroupPhotoBytes(
-        creatorId: creatorId,
-        bytes: photoBytes,
-        originalFilename: photoFilename,
-      );
-    }
-
     final inserted = await _client
         .from('relation_groups')
-        .insert({
-          'name': name,
-          'photo_url': photoFileName,
-          'creator_id': creatorId,
-        })
+        .insert({'name': name, 'photo_url': null, 'creator_id': creatorId})
         .select()
         .single();
 
     final groupId = inserted['id'].toString();
+
+    // 2. Upload photo if exists, using the new groupId
+    String? finalPhotoUrl;
+    if (photoBytes != null && photoBytes.isNotEmpty) {
+      finalPhotoUrl = await _uploadGroupPhotoBytes(
+        groupId: groupId,
+        bytes: photoBytes,
+      );
+
+      await _client
+          .from('relation_groups')
+          .update({'photo_url': finalPhotoUrl})
+          .eq('id', groupId);
+
+      inserted['photo_url'] = finalPhotoUrl;
+    }
+
     final uniqueMembers = <String>{creatorId, ...memberIds};
     if (uniqueMembers.isNotEmpty) {
       await _client
@@ -127,15 +130,11 @@ class RelationGroupRepository {
   }
 
   Future<String> uploadGroupPhoto({
-    required String creatorId,
+    required String groupId,
     required Uint8List bytes,
     String? filename,
   }) async {
-    return _uploadGroupPhotoBytes(
-      creatorId: creatorId,
-      bytes: bytes,
-      originalFilename: filename,
-    );
+    return _uploadGroupPhotoBytes(groupId: groupId, bytes: bytes);
   }
 
   Future<void> updateGroup({
@@ -210,50 +209,24 @@ class RelationGroupRepository {
   }
 
   Future<String> _uploadGroupPhotoBytes({
-    required String creatorId,
+    required String groupId,
     required Uint8List bytes,
-    String? originalFilename,
   }) async {
     final storage = _client.storage.from(_storageBucket);
-    final fileName = _generatePhotoFileName(
-      creatorId: creatorId,
-      originalFilename: originalFilename,
-    );
+    final fileName = _generatePhotoFileName(groupId: groupId);
     final objectPath = _buildStoragePath(fileName);
     await storage.uploadBinary(
       objectPath,
       bytes,
-      fileOptions: FileOptions(
-        upsert: true,
-        contentType: _inferMimeType(originalFilename),
-      ),
+      fileOptions: const FileOptions(upsert: true, contentType: 'image/jpeg'),
     );
     return fileName;
   }
 
   String _buildStoragePath(String fileName) => '$_storageFolder/$fileName';
 
-  String _generatePhotoFileName({
-    required String creatorId,
-    String? originalFilename,
-  }) {
-    final extension =
-        (originalFilename != null && originalFilename.contains('.'))
-        ? originalFilename.split('.').last
-        : 'jpg';
-    final sanitizedExt = extension.toLowerCase().replaceAll(
-      RegExp(r'[^a-z0-9]'),
-      '',
-    );
-    final normalizedExt = sanitizedExt.isEmpty ? 'jpg' : sanitizedExt;
-    return '${creatorId}_${const Uuid().v4()}.$normalizedExt';
-  }
-
-  String _inferMimeType(String? filename) {
-    final lower = filename?.toLowerCase() ?? '';
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    return 'image/jpeg';
+  String _generatePhotoFileName({required String groupId}) {
+    return '$groupId.jpg';
   }
 
   dynamic _normalizeRaw(dynamic raw) {

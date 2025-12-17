@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:mydearmap/core/constants/constants.dart';
 import 'user.dart';
 
 const String _supabaseAchievementsStorageUrl =
@@ -59,6 +60,17 @@ class Achievement {
       'description': description,
       'icon_url': iconUrl?.split('/').last,
       'criteria': jsonEncode(criteria),
+    };
+  }
+
+  String get localIconAsset {
+    return switch (name) {
+      'Coleccionista' => AppIcons.collectionist,
+      'Social' => AppIcons.social,
+      'Primer Recuerdo' => AppIcons.firstMemory,
+      'Comentarista' => AppIcons.commentarist,
+      'Historiador' => AppIcons.historian,
+      _ => AppIcons.star,
     };
   }
 }

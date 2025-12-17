@@ -9,7 +9,7 @@ class PulseButton extends StatefulWidget {
     super.key,
     required this.child,
     this.duration = const Duration(milliseconds: 100),
-    this.scaleFactor = 0.8,
+    this.scaleFactor = 0.7,
   });
 
   @override

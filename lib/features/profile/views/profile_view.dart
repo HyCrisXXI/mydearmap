@@ -10,7 +10,7 @@ import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/features/profile/views/profile_form_view.dart';
 import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:mydearmap/features/wishlist/views/wishlist_view.dart';
-import 'package:mydearmap/features/profile/widgets/achievements_dialog.dart';
+import 'package:mydearmap/features/profile/widgets/achievements_bottom_sheet.dart';
 import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class ProfileView extends ConsumerWidget {
@@ -266,44 +266,38 @@ class ProfileView extends ConsumerWidget {
                                                   achievements.take(5).toList();
 
                                               return Wrap(
-                                                spacing: 8.0,
-                                                runSpacing: 4.0,
+                                                spacing: 12.0,
+                                                runSpacing: 8.0,
                                                 children: previewAchievements.map((
                                                   userAchievement,
                                                 ) {
                                                   final achievement =
                                                       userAchievement
                                                           .achievement;
-                                                  return achievement?.iconUrl !=
-                                                          null
-                                                      ? Image.network(
-                                                          achievement!.iconUrl!,
-                                                          width: 32,
-                                                          height: 32,
-                                                          errorBuilder: (_, _, _) =>
-                                                              SvgPicture.asset(
-                                                                AppIcons.star,
-                                                                width: 32,
-                                                                height: 32,
-                                                                colorFilter:
-                                                                    const ColorFilter.mode(
-                                                                      Colors
-                                                                          .amber,
-                                                                      BlendMode
-                                                                          .srcIn,
-                                                                    ),
-                                                              ),
-                                                        )
-                                                      : SvgPicture.asset(
-                                                          AppIcons.star,
-                                                          width: 32,
-                                                          height: 32,
-                                                          colorFilter:
-                                                              const ColorFilter.mode(
-                                                                Colors.amber,
-                                                                BlendMode.srcIn,
-                                                              ),
-                                                        );
+                                                  final iconAsset =
+                                                      achievement
+                                                          ?.localIconAsset ??
+                                                      AppIcons.star;
+
+                                                  return Container(
+                                                    width:
+                                                        54, // Made bigger as requested
+                                                    height: 54,
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                          10,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors
+                                                          .primaryColor,
+                                                      shape: BoxShape.circle,
+                                                      // Mimicking circularIconButton: no border, no shadow by default in that style
+                                                    ),
+                                                    child: SvgPicture.asset(
+                                                      iconAsset,
+                                                      fit: BoxFit.contain,
+                                                    ),
+                                                  );
                                                 }).toList(),
                                               );
                                             },
@@ -316,10 +310,12 @@ class ProfileView extends ConsumerWidget {
                                   ],
                                 ),
                                 onTap: () {
-                                  showDialog<void>(
+                                  showModalBottomSheet<void>(
                                     context: context,
-                                    barrierDismissible: true,
-                                    builder: (_) => const AchievementsDialog(),
+                                    isScrollControlled: true,
+                                    showDragHandle: true,
+                                    builder: (_) =>
+                                        const AchievementsBottomSheet(),
                                   );
                                 },
                               ),

@@ -1,53 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/achievement_provider.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 
-class AchievementsDialog extends ConsumerWidget {
-  const AchievementsDialog({super.key});
+class AchievementsBottomSheet extends ConsumerWidget {
+  const AchievementsBottomSheet({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
 
-    return Dialog(
-      backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.all(24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    return SafeArea(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+        constraints: const BoxConstraints(maxHeight: 500),
         child: Padding(
-          padding: const EdgeInsets.all(AppSizes.paddingLarge),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: AppSizes.paddingMedium,
+            right: AppSizes.paddingMedium,
+          ),
           child: Column(
-            mainAxisSize: MainAxisSize.max,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                height: 48,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Center(
-                      child: Text(
-                        'Logros desbloqueados',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: -8,
-                      child: IconButton(
-                        icon: const Icon(Icons.close),
-                        tooltip: 'Cerrar',
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              Expanded(
+              const SizedBox(height: 16),
+              Flexible(
                 child: userAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator.adaptive()),
@@ -78,6 +57,7 @@ class AchievementsDialog extends ConsumerWidget {
                         }
 
                         return ListView.separated(
+                          shrinkWrap: true,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           itemCount: achievements.length,
                           separatorBuilder: (_, _) =>
@@ -85,28 +65,28 @@ class AchievementsDialog extends ConsumerWidget {
                           itemBuilder: (context, index) {
                             final userAchievement = achievements[index];
                             final achievement = userAchievement.achievement;
+                            final iconAsset =
+                                achievement?.localIconAsset ?? AppIcons.star;
 
                             return Card(
                               elevation: 0,
                               color: Colors.transparent,
                               margin: EdgeInsets.zero,
                               child: ListTile(
-                                leading: achievement?.iconUrl != null
-                                    ? Image.network(
-                                        achievement!.iconUrl!,
-                                        width: 48,
-                                        height: 48,
-                                        errorBuilder: (_, _, _) => const Icon(
-                                          Icons.emoji_events,
-                                          size: 48,
-                                          color: Colors.amber,
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.emoji_events,
-                                        size: 48,
-                                        color: Colors.amber,
-                                      ),
+                                contentPadding: EdgeInsets.zero,
+                                leading: Container(
+                                  width: 54,
+                                  height: 54,
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primaryColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: SvgPicture.asset(
+                                    iconAsset,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
                                 title: Text(
                                   achievement?.name ?? 'Logro',
                                   style: const TextStyle(

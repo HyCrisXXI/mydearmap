@@ -21,74 +21,154 @@ class TimeCapsuleView extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        leading: BackButton(
-          onPressed: () {
-            final navigator = Navigator.of(context);
-            if (navigator.canPop()) {
-              navigator.pop();
-            } else {
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).pushReplacementNamed('/notifications');
-            }
-          },
-        ),
-        title: const Text('Detalle de Cápsula'),
-        actions: [
-          PulseButton(
-            child: IconButton(
-              icon: SvgPicture.asset(AppIcons.pencil),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => TimeCapsuleCreateView(capsuleId: capsuleId),
-                  ),
+      body: Stack(
+        children: [
+          // Background
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(AppIcons.profileBG),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          // Content
+          SafeArea(
+            top: false,
+            child: capsuleAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Center(child: Text('Error: $error')),
+              data: (capsule) {
+                if (capsule == null) {
+                  return const Center(child: Text('Cápsula no encontrada'));
+                }
+
+                return Column(
+                  children: [
+                    // Custom Header
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: AppSizes.upperPadding,
+                        left: 20,
+                        right: 20,
+                        bottom: 10,
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: PulseButton(
+                              child: IconButton(
+                                icon: SvgPicture.asset(AppIcons.chevronLeft),
+                                onPressed: () {
+                                  final navigator = Navigator.of(context);
+                                  if (navigator.canPop()) {
+                                    navigator.pop();
+                                  } else {
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).pushReplacementNamed('/notifications');
+                                  }
+                                },
+                                style: AppButtonStyles.circularIconButton,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            capsule.title,
+                            style: AppTextStyles.title,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: PulseButton(
+                              child: IconButton(
+                                icon: SvgPicture.asset(AppIcons.pencil),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => TimeCapsuleCreateView(
+                                        capsuleId: capsuleId,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: AppButtonStyles.circularIconButton,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Body
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (capsule.description != null) ...[
+                              Text(
+                                capsule.description!,
+                                style: AppTextStyles.subtitle.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: capsule.isClosed
+                                    ? Colors.redAccent.withOpacity(0.1)
+                                    : Colors.green.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: capsule.isClosed
+                                      ? Colors.redAccent
+                                      : Colors.green,
+                                ),
+                              ),
+                              child: Text(
+                                capsule.isClosed ? 'Cerrada' : 'Abierta',
+                                style: TextStyle(
+                                  color: capsule.isClosed
+                                      ? Colors.redAccent
+                                      : Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            const Text(
+                              'Recuerdos',
+                              style: AppTextStyles.subtitle,
+                            ),
+                            const SizedBox(height: 16),
+                            _MemoriesList(
+                              capsuleId: capsuleId,
+                              isLocked: capsule.isClosed,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 );
               },
-              style: AppButtonStyles.circularIconButton,
             ),
           ),
         ],
-      ),
-      body: capsuleAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
-        data: (capsule) {
-          if (capsule == null) {
-            return const Center(child: Text('Cápsula no encontrada'));
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  capsule.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                if (capsule.description != null) ...[
-                  const SizedBox(height: 8),
-                  Text(capsule.description!),
-                ],
-                const SizedBox(height: 16),
-                Text('Estado: ${capsule.isClosed ? 'Cerrada' : 'Abierta'}'),
-                const SizedBox(height: 16),
-                const Text(
-                  'Recuerdos:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                _MemoriesList(
-                  capsuleId: capsuleId,
-                  isLocked: capsule.isClosed,
-                ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }
@@ -116,12 +196,7 @@ class _MemoriesList extends ConsumerWidget {
         }
         return Column(
           children: memories
-              .map(
-                (memory) => _MemoryTile(
-                  memory: memory,
-                  isLocked: isLocked,
-                ),
-              )
+              .map((memory) => _MemoryTile(memory: memory, isLocked: isLocked))
               .toList(),
         );
       },
@@ -142,11 +217,8 @@ class _MemoryTile extends StatelessWidget {
       minLeadingWidth: 0,
       leading: _MemoryThumbnail(memory: memory),
       title: Text(memory.title),
-      subtitle:
-          isLocked ? const Text('Disponible al abrir la cápsula') : null,
-      trailing: Icon(
-        isLocked ? Icons.lock_outline : Icons.chevron_right,
-      ),
+      subtitle: isLocked ? const Text('Disponible al abrir la cápsula') : null,
+      trailing: Icon(isLocked ? Icons.lock_outline : Icons.chevron_right),
       onTap: isLocked
           ? null
           : () {
@@ -186,9 +258,9 @@ class _MemoryThumbnail extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.6),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
         ),
       ),
       child: Icon(
@@ -208,7 +280,7 @@ class _MemoryThumbnail extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => placeholder,
+        errorBuilder: (_, _, _) => placeholder,
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
           return SizedBox(
