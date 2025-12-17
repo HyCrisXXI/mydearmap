@@ -16,6 +16,7 @@ import 'package:mydearmap/features/memories/widgets/memory_selection_widget.dart
 
 import 'package:mydearmap/features/relations/views/group_form_view.dart';
 import 'package:mydearmap/core/providers/relation_groups_provider.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class RelationGroupDetailView extends ConsumerStatefulWidget {
   const RelationGroupDetailView({super.key, required this.group});
@@ -203,10 +204,12 @@ class _RelationGroupDetailViewState
                   ),
                   child: Row(
                     children: [
-                      IconButton(
-                        icon: SvgPicture.asset(AppIcons.chevronLeft),
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: AppButtonStyles.circularIconButton,
+                      PulseButton(
+                        child: IconButton(
+                          icon: SvgPicture.asset(AppIcons.chevronLeft),
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: AppButtonStyles.circularIconButton,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -219,16 +222,21 @@ class _RelationGroupDetailViewState
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            icon: SvgPicture.asset(AppIcons.plus),
-                            onPressed: _handleLinkExistingMemory,
-                            style: AppButtonStyles.circularIconButton,
+                          PulseButton(
+                            child: IconButton(
+                              icon: SvgPicture.asset(AppIcons.plus),
+                              onPressed: _handleLinkExistingMemory,
+                              style: AppButtonStyles.circularIconButton,
+                            ),
                           ),
                           const SizedBox(width: 8),
-                          IconButton(
-                            icon: SvgPicture.asset(AppIcons.pencil),
-                            onPressed: () => _navigateToEditGroup(currentGroup),
-                            style: AppButtonStyles.circularIconButton,
+                          PulseButton(
+                            child: IconButton(
+                              icon: SvgPicture.asset(AppIcons.pencil),
+                              onPressed: () =>
+                                  _navigateToEditGroup(currentGroup),
+                              style: AppButtonStyles.circularIconButton,
+                            ),
                           ),
                         ],
                       ),

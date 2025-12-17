@@ -10,6 +10,7 @@ import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class MemoriesTimelineView extends ConsumerWidget {
   const MemoriesTimelineView({super.key});
@@ -70,10 +71,12 @@ class _TimelineBody extends StatelessWidget {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: SvgPicture.asset(AppIcons.chevronLeft),
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: AppButtonStyles.circularIconButton,
+                    child: PulseButton(
+                      child: IconButton(
+                        icon: SvgPicture.asset(AppIcons.chevronLeft),
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: AppButtonStyles.circularIconButton,
+                      ),
                     ),
                   ),
                   const Text('Timeline', style: AppTextStyles.title),

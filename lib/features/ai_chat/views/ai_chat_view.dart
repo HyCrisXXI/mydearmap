@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import '../controllers/ai_chat_controller.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class AiChatView extends ConsumerStatefulWidget {
   const AiChatView({super.key});
@@ -96,10 +97,12 @@ class _AiChatViewState extends ConsumerState<AiChatView> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        icon: SvgPicture.asset(AppIcons.trash),
-                        onPressed: () => chatNotifier.clearChat(),
-                        style: AppButtonStyles.circularIconButton,
+                      PulseButton(
+                        child: IconButton(
+                          icon: SvgPicture.asset(AppIcons.trash),
+                          onPressed: () => chatNotifier.clearChat(),
+                          style: AppButtonStyles.circularIconButton,
+                        ),
                       ),
                       const SizedBox(width: 20),
                       Expanded(

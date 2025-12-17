@@ -4,6 +4,7 @@ import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:mydearmap/features/memories/widgets/memory_card.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 typedef MemoryOverlayBuilder =
     Widget Function(
@@ -70,10 +71,12 @@ class _MemorySelectionWidgetState extends State<MemorySelectionWidget> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: SvgPicture.asset(AppIcons.chevronLeft),
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: AppButtonStyles.circularIconButton,
+                PulseButton(
+                  child: IconButton(
+                    icon: SvgPicture.asset(AppIcons.chevronLeft),
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: AppButtonStyles.circularIconButton,
+                  ),
                 ),
                 const Text('Tus recuerdos', style: AppTextStyles.title),
                 SizedBox(

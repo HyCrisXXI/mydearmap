@@ -11,6 +11,7 @@ import 'package:mydearmap/data/models/user.dart';
 import 'package:mydearmap/features/profile/controllers/profile_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class ProfileEditView extends ConsumerStatefulWidget {
   const ProfileEditView({super.key, required this.user});
@@ -291,10 +292,12 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
                     children: [
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          icon: SvgPicture.asset(AppIcons.chevronLeft),
-                          onPressed: () => Navigator.of(context).pop(),
-                          style: AppButtonStyles.circularIconButton,
+                        child: PulseButton(
+                          child: IconButton(
+                            icon: SvgPicture.asset(AppIcons.chevronLeft),
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: AppButtonStyles.circularIconButton,
+                          ),
                         ),
                       ),
                       const Text('Editar perfil', style: AppTextStyles.title),
@@ -362,12 +365,14 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView>
                               right: 0,
                               child: Transform.translate(
                                 offset: const Offset(5, 5),
-                                child: IconButton(
-                                  style: AppButtonStyles.circularIconButton,
-                                  onPressed: _isUploadingAvatar
-                                      ? null
-                                      : _pickAndUploadAvatar,
-                                  icon: SvgPicture.asset(AppIcons.pencil),
+                                child: PulseButton(
+                                  child: IconButton(
+                                    style: AppButtonStyles.circularIconButton,
+                                    onPressed: _isUploadingAvatar
+                                        ? null
+                                        : _pickAndUploadAvatar,
+                                    icon: SvgPicture.asset(AppIcons.pencil),
+                                  ),
                                 ),
                               ),
                             ),

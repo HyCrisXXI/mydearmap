@@ -6,6 +6,7 @@ import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'timecapsule_create_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class TimeCapsuleView extends ConsumerWidget {
   const TimeCapsuleView({super.key, required this.capsuleId});
@@ -24,23 +25,27 @@ class TimeCapsuleView extends ConsumerWidget {
             if (navigator.canPop()) {
               navigator.pop();
             } else {
-              Navigator.of(context, rootNavigator: true)
-                  .pushReplacementNamed('/notifications');
+              Navigator.of(
+                context,
+                rootNavigator: true,
+              ).pushReplacementNamed('/notifications');
             }
           },
         ),
         title: const Text('Detalle de Cápsula'),
         actions: [
-          IconButton(
-            icon: SvgPicture.asset(AppIcons.pencil),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => TimeCapsuleCreateView(capsuleId: capsuleId),
-                ),
-              );
-            },
-            style: AppButtonStyles.circularIconButton,
+          PulseButton(
+            child: IconButton(
+              icon: SvgPicture.asset(AppIcons.pencil),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => TimeCapsuleCreateView(capsuleId: capsuleId),
+                  ),
+                );
+              },
+              style: AppButtonStyles.circularIconButton,
+            ),
           ),
         ],
       ),

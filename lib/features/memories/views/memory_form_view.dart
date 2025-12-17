@@ -31,6 +31,7 @@ import 'package:mydearmap/features/map/views/map_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:mydearmap/features/memories/widgets/media_action_buttons.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 final _memoryByIdProvider = FutureProvider.family<Memory, String>((
   ref,
@@ -435,20 +436,26 @@ class _MemoryUpsertViewState extends ConsumerState<MemoryUpsertView> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        icon: SvgPicture.asset(
-                          _currentStep == 0 ? AppIcons.x : AppIcons.chevronLeft,
+                      PulseButton(
+                        child: IconButton(
+                          icon: SvgPicture.asset(
+                            _currentStep == 0
+                                ? AppIcons.x
+                                : AppIcons.chevronLeft,
+                          ),
+                          onPressed: _handleSecondaryAction,
+                          style: AppButtonStyles.circularIconButton,
                         ),
-                        onPressed: _handleSecondaryAction,
-                        style: AppButtonStyles.circularIconButton,
                       ),
                       if (isEdit) ...[
                         const SizedBox(width: 16),
-                        IconButton(
-                          icon: SvgPicture.asset(AppIcons.trash),
-                          tooltip: 'Eliminar recuerdo',
-                          onPressed: _handleDelete,
-                          style: AppButtonStyles.circularIconButton,
+                        PulseButton(
+                          child: IconButton(
+                            icon: SvgPicture.asset(AppIcons.trash),
+                            tooltip: 'Eliminar recuerdo',
+                            onPressed: _handleDelete,
+                            style: AppButtonStyles.circularIconButton,
+                          ),
                         ),
                       ],
                     ],

@@ -12,6 +12,7 @@ import 'package:mydearmap/core/utils/avatar_url.dart';
 import 'package:mydearmap/data/models/relation_group.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/features/relations/controllers/relation_group_controller.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class RelationGroupCreateView extends ConsumerStatefulWidget {
   const RelationGroupCreateView({super.key, this.initialGroup});
@@ -303,14 +304,16 @@ class _RelationGroupCreateViewState
                                           right: 0,
                                           child: Transform.translate(
                                             offset: const Offset(5, 5),
-                                            child: IconButton(
-                                              style: AppButtonStyles
-                                                  .circularIconButton,
-                                              onPressed: _saving
-                                                  ? null
-                                                  : _pickImage,
-                                              icon: SvgPicture.asset(
-                                                AppIcons.pencil,
+                                            child: PulseButton(
+                                              child: IconButton(
+                                                style: AppButtonStyles
+                                                    .circularIconButton,
+                                                onPressed: _saving
+                                                    ? null
+                                                    : _pickImage,
+                                                icon: SvgPicture.asset(
+                                                  AppIcons.pencil,
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -386,10 +389,12 @@ class _RelationGroupCreateViewState
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  onPressed: () => _showAddPeopleDialog(relations),
-                  style: AppButtonStyles.circularIconButton,
-                  icon: SvgPicture.asset(AppIcons.plus),
+                PulseButton(
+                  child: IconButton(
+                    onPressed: () => _showAddPeopleDialog(relations),
+                    style: AppButtonStyles.circularIconButton,
+                    icon: SvgPicture.asset(AppIcons.plus),
+                  ),
                 ),
               ],
             ),

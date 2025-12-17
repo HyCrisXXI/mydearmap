@@ -18,6 +18,7 @@ import 'package:mydearmap/features/memories/views/memory_form_view.dart';
 import 'package:mydearmap/features/memories/widgets/memory_comment_card.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mydearmap/core/utils/avatar_url.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 final memoryDetailProvider = FutureProvider.family<Memory, String>((
   ref,
@@ -61,10 +62,12 @@ class MemoryDetailView extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    IconButton(
-                      icon: SvgPicture.asset(AppIcons.chevronLeft),
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: AppButtonStyles.circularIconButton,
+                    PulseButton(
+                      child: IconButton(
+                        icon: SvgPicture.asset(AppIcons.chevronLeft),
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: AppButtonStyles.circularIconButton,
+                      ),
                     ),
                     const SizedBox(width: AppSizes.paddingSmallMedium),
                     Expanded(
@@ -82,24 +85,26 @@ class MemoryDetailView extends ConsumerWidget {
                         orElse: () => const Text('Detalle del recuerdo'),
                       ),
                     ),
-                    IconButton(
-                      icon: SvgPicture.asset(AppIcons.pencil),
-                      style: AppButtonStyles.circularIconButton,
-                      tooltip: 'Editar recuerdo',
-                      onPressed: () async {
-                        final refreshed = await Navigator.of(context)
-                            .push<bool>(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    MemoryDetailEditView(memoryId: memoryId),
-                              ),
-                            );
-                        if (!context.mounted) return;
-                        if (refreshed == true) {
-                          ref.invalidate(memoryDetailProvider(memoryId));
-                          ref.invalidate(memoryMediaProvider(memoryId));
-                        }
-                      },
+                    PulseButton(
+                      child: IconButton(
+                        icon: SvgPicture.asset(AppIcons.pencil),
+                        style: AppButtonStyles.circularIconButton,
+                        tooltip: 'Editar recuerdo',
+                        onPressed: () async {
+                          final refreshed = await Navigator.of(context)
+                              .push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      MemoryDetailEditView(memoryId: memoryId),
+                                ),
+                              );
+                          if (!context.mounted) return;
+                          if (refreshed == true) {
+                            ref.invalidate(memoryDetailProvider(memoryId));
+                            ref.invalidate(memoryMediaProvider(memoryId));
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ),

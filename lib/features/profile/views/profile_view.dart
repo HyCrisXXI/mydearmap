@@ -11,6 +11,7 @@ import 'package:mydearmap/features/profile/views/profile_form_view.dart';
 import 'package:mydearmap/features/auth/controllers/auth_controller.dart';
 import 'package:mydearmap/features/wishlist/views/wishlist_view.dart';
 import 'package:mydearmap/features/profile/widgets/achievements_dialog.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
@@ -117,14 +118,17 @@ class ProfileView extends ConsumerWidget {
                                   right: 0,
                                   child: Transform.translate(
                                     offset: const Offset(5, 5),
-                                    child: IconButton(
-                                      style: AppButtonStyles.circularIconButton,
-                                      onPressed: () => _navigateToEditProfile(
-                                        context,
-                                        ref,
-                                        user,
+                                    child: PulseButton(
+                                      child: IconButton(
+                                        style:
+                                            AppButtonStyles.circularIconButton,
+                                        onPressed: () => _navigateToEditProfile(
+                                          context,
+                                          ref,
+                                          user,
+                                        ),
+                                        icon: SvgPicture.asset(AppIcons.pencil),
                                       ),
-                                      icon: SvgPicture.asset(AppIcons.pencil),
                                     ),
                                   ),
                                 ),

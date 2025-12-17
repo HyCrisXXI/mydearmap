@@ -14,6 +14,7 @@ import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/features/memories/models/memory_filters.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class MemoriesView extends ConsumerStatefulWidget {
   const MemoriesView({super.key});
@@ -100,41 +101,47 @@ class _MemoriesViewState extends ConsumerState<MemoriesView> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.timeline),
-                        tooltip: 'Ver timeline',
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const MemoriesTimelineView(),
-                            ),
-                          );
-                        },
-                        style: AppButtonStyles.circularIconButton,
+                      PulseButton(
+                        child: IconButton(
+                          icon: const Icon(Icons.timeline),
+                          tooltip: 'Ver timeline',
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const MemoriesTimelineView(),
+                              ),
+                            );
+                          },
+                          style: AppButtonStyles.circularIconButton,
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      IconButton(
-                        icon: SvgPicture.asset(AppIcons.heartHandshake),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const RelationsView(),
-                            ),
-                          );
-                        },
-                        style: AppButtonStyles.circularIconButton,
+                      PulseButton(
+                        child: IconButton(
+                          icon: SvgPicture.asset(AppIcons.heartHandshake),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const RelationsView(),
+                              ),
+                            );
+                          },
+                          style: AppButtonStyles.circularIconButton,
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      IconButton(
-                        icon: SvgPicture.asset(AppIcons.plus),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const CreateJoinMemoryView(),
-                            ),
-                          );
-                        },
-                        style: AppButtonStyles.circularIconButton,
+                      PulseButton(
+                        child: IconButton(
+                          icon: SvgPicture.asset(AppIcons.plus),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const CreateJoinMemoryView(),
+                              ),
+                            );
+                          },
+                          style: AppButtonStyles.circularIconButton,
+                        ),
                       ),
                     ],
                   ),

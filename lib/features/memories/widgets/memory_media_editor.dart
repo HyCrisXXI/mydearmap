@@ -485,8 +485,7 @@ class _MemoryMediaEditorState extends ConsumerState<MemoryMediaEditor> {
                     MemoryMediaKind.audio,
                     () => FilePicker.platform.pickFiles(
                       allowMultiple: false,
-                      type: FileType.custom,
-                      allowedExtensions: ['mp3', 'wav', 'm4a', 'aac'],
+                      type: FileType.audio,
                       withData: true,
                     ),
                   ),

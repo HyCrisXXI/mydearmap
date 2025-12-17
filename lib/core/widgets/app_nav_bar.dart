@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class AppNavBar extends StatelessWidget {
   final int currentIndex;
@@ -34,25 +35,29 @@ class AppNavBar extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.ai,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.ai,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.black,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
               activeIcon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.ai,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.accentColor,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.ai,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.accentColor,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
@@ -61,25 +66,29 @@ class AppNavBar extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.sticker,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.sticker,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.black,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
               activeIcon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.sticker,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.accentColor,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.sticker,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.accentColor,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
@@ -88,25 +97,29 @@ class AppNavBar extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.earth,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.earth,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.black,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
               activeIcon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.earth,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.accentColor,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.earth,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.accentColor,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
@@ -115,25 +128,29 @@ class AppNavBar extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.bell,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.bell,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.black,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
               activeIcon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.bell,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.accentColor,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.bell,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.accentColor,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
@@ -142,25 +159,29 @@ class AppNavBar extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.userRound,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.userRound,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.black,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
               activeIcon: Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: SvgPicture.asset(
-                  AppIcons.userRound,
-                  width: AppSizes.iconSize,
-                  height: AppSizes.iconSize,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.accentColor,
-                    BlendMode.srcIn,
+                child: PulseButton(
+                  child: SvgPicture.asset(
+                    AppIcons.userRound,
+                    width: AppSizes.iconSize,
+                    height: AppSizes.iconSize,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.accentColor,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),

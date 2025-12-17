@@ -6,6 +6,7 @@ import 'package:mydearmap/features/relations/controllers/relations_controller.da
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class RelationCreateView extends ConsumerStatefulWidget {
   const RelationCreateView({super.key});
@@ -122,10 +123,12 @@ class RelationCreateViewState extends ConsumerState<RelationCreateView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: SvgPicture.asset(AppIcons.chevronLeft),
-          onPressed: () => Navigator.of(context).pop(),
-          style: AppButtonStyles.circularIconButton,
+        leading: PulseButton(
+          child: IconButton(
+            icon: SvgPicture.asset(AppIcons.chevronLeft),
+            onPressed: () => Navigator.of(context).pop(),
+            style: AppButtonStyles.circularIconButton,
+          ),
         ),
         title: const Text('Añadir vínculo'),
       ),

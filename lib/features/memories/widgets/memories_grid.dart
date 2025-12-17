@@ -8,6 +8,7 @@ import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/utils/media_url.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 typedef MemoryTapCallback = void Function(Memory memory);
 
@@ -199,18 +200,20 @@ class MemoriesGrid extends StatelessWidget {
                           ),
                         ],
                       ),
-                      IconButton(
-                        style: AppButtonStyles.circularIconButton,
-                        icon: SvgPicture.asset(
-                          AppIcons.funnel,
-                          colorFilter: ColorFilter.mode(
-                            filtersActive
-                                ? AppColors.accentColor
-                                : AppColors.textColor,
-                            BlendMode.srcIn,
+                      PulseButton(
+                        child: IconButton(
+                          style: AppButtonStyles.circularIconButton,
+                          icon: SvgPicture.asset(
+                            AppIcons.funnel,
+                            colorFilter: ColorFilter.mode(
+                              filtersActive
+                                  ? AppColors.accentColor
+                                  : AppColors.textColor,
+                              BlendMode.srcIn,
+                            ),
                           ),
+                          onPressed: onFilterTap,
                         ),
-                        onPressed: onFilterTap,
                       ),
                     ],
                   ),
@@ -418,23 +421,25 @@ class _FavoriteMemoryCardState extends State<_FavoriteMemoryCard> {
               alignment: Alignment.topRight,
               child: Padding(
                 padding: const EdgeInsets.only(top: 5.5, right: 5.5),
-                child: IconButton(
-                  style: AppButtonStyles.circularIconButton,
-                  onPressed: () async {
-                    final userId = ref.read(currentUserProvider).value?.id;
-                    if (userId == null || widget.memory.id == null) return;
+                child: PulseButton(
+                  child: IconButton(
+                    style: AppButtonStyles.circularIconButton,
+                    onPressed: () async {
+                      final userId = ref.read(currentUserProvider).value?.id;
+                      if (userId == null || widget.memory.id == null) return;
 
-                    setState(() => isFavorite = !isFavorite);
+                      setState(() => isFavorite = !isFavorite);
 
-                    final repo = ref.read(memoryRepositoryProvider);
-                    await repo.setFavorite(
-                      memoryId: widget.memory.id!,
-                      userId: userId,
-                      isFavorite: isFavorite,
-                    );
-                  },
-                  icon: SvgPicture.asset(
-                    isFavorite ? AppIcons.starFilled : AppIcons.star,
+                      final repo = ref.read(memoryRepositoryProvider);
+                      await repo.setFavorite(
+                        memoryId: widget.memory.id!,
+                        userId: userId,
+                        isFavorite: isFavorite,
+                      );
+                    },
+                    icon: SvgPicture.asset(
+                      isFavorite ? AppIcons.starFilled : AppIcons.star,
+                    ),
                   ),
                 ),
               ),

@@ -17,6 +17,7 @@ import 'package:mydearmap/features/relations/views/relation_create_view.dart';
 import 'package:mydearmap/features/relations/views/group_form_view.dart';
 import 'package:mydearmap/features/relations/views/group_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 import 'package:mydearmap/core/widgets/app_search_bar.dart';
 
 class RelationsView extends ConsumerStatefulWidget {
@@ -418,10 +419,12 @@ class _RelationsLayout extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: SvgPicture.asset(AppIcons.chevronLeft),
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: AppButtonStyles.circularIconButton,
+                  PulseButton(
+                    child: IconButton(
+                      icon: SvgPicture.asset(AppIcons.chevronLeft),
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: AppButtonStyles.circularIconButton,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   const Text('Vínculos', style: AppTextStyles.title),
@@ -429,23 +432,27 @@ class _RelationsLayout extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        icon: SvgPicture.asset(
-                          AppIcons.heartHandshake,
-                          colorFilter: const ColorFilter.mode(
-                            AppColors.blue,
-                            BlendMode.srcIn,
+                      PulseButton(
+                        child: IconButton(
+                          icon: SvgPicture.asset(
+                            AppIcons.heartHandshake,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.blue,
+                              BlendMode.srcIn,
+                            ),
                           ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: AppButtonStyles.circularIconButton,
                         ),
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: AppButtonStyles.circularIconButton,
                       ),
                       if (onAddPressed != null) ...[
                         const SizedBox(width: 8),
-                        IconButton(
-                          icon: SvgPicture.asset(AppIcons.plus),
-                          onPressed: onAddPressed,
-                          style: AppButtonStyles.circularIconButton,
+                        PulseButton(
+                          child: IconButton(
+                            icon: SvgPicture.asset(AppIcons.plus),
+                            onPressed: onAddPressed,
+                            style: AppButtonStyles.circularIconButton,
+                          ),
                         ),
                       ],
                     ],

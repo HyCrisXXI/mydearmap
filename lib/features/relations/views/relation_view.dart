@@ -8,6 +8,7 @@ import 'package:mydearmap/features/memories/widgets/memories_grid.dart';
 import 'package:mydearmap/features/memories/views/memory_view.dart';
 import 'package:mydearmap/core/constants/constants.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class RelationDetailView extends ConsumerStatefulWidget {
   const RelationDetailView({
@@ -130,10 +131,12 @@ class _RelationDetailViewState extends ConsumerState<RelationDetailView> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          IconButton(
-                            icon: SvgPicture.asset(AppIcons.chevronLeft),
-                            onPressed: () => Navigator.of(context).pop(),
-                            style: AppButtonStyles.circularIconButton,
+                          PulseButton(
+                            child: IconButton(
+                              icon: SvgPicture.asset(AppIcons.chevronLeft),
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: AppButtonStyles.circularIconButton,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(

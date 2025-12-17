@@ -22,6 +22,7 @@ import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/current_user_relations_provider.dart';
 import 'package:mydearmap/data/models/user_relation.dart';
 import 'package:mydearmap/features/memories/models/memory_filters.dart';
+import 'package:mydearmap/core/widgets/pulse_button.dart';
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({super.key});
@@ -368,36 +369,40 @@ class _MapViewState extends ConsumerState<MapView> {
                     ),
                   ),
                   const Spacer(),
-                  IconButton(
-                    style: AppButtonStyles.circularIconButton,
-                    icon: SvgPicture.asset(
-                      AppIcons.funnel,
-                      width: 22,
-                      height: 22,
-                      colorFilter: ColorFilter.mode(
-                        _activeFilters.hasFilters
-                            ? AppColors.accentColor
-                            : AppColors.textColor,
-                        BlendMode.srcIn,
+                  PulseButton(
+                    child: IconButton(
+                      style: AppButtonStyles.circularIconButton,
+                      icon: SvgPicture.asset(
+                        AppIcons.funnel,
+                        width: 22,
+                        height: 22,
+                        colorFilter: ColorFilter.mode(
+                          _activeFilters.hasFilters
+                              ? AppColors.accentColor
+                              : AppColors.textColor,
+                          BlendMode.srcIn,
+                        ),
                       ),
+                      onPressed: _openFiltersSheet,
                     ),
-                    onPressed: _openFiltersSheet,
                   ),
                   const SizedBox(width: 8),
-                  IconButton(
-                    style: AppButtonStyles.circularIconButton,
-                    icon: SvgPicture.asset(
-                      AppIcons.plus,
-                      width: 22,
-                      height: 22,
+                  PulseButton(
+                    child: IconButton(
+                      style: AppButtonStyles.circularIconButton,
+                      icon: SvgPicture.asset(
+                        AppIcons.plus,
+                        width: 22,
+                        height: 22,
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const CreateJoinMemoryView(),
+                          ),
+                        );
+                      },
                     ),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const CreateJoinMemoryView(),
-                        ),
-                      );
-                    },
                   ),
                 ],
               ),
