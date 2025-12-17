@@ -130,8 +130,8 @@ class TimeCapsuleView extends ConsumerWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: capsule.isClosed
-                                    ? Colors.redAccent.withOpacity(0.1)
-                                    : Colors.green.withOpacity(0.1),
+                                    ? Colors.redAccent.withAlpha(25)
+                                    : Colors.green.withAlpha(25),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: capsule.isClosed

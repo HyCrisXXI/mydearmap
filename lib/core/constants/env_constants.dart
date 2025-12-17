@@ -22,4 +22,25 @@ class EnvConstants {
   }
 
   static String get geminiApiKey => dotenv.get('GEMINI_API_KEY', fallback: '');
+
+  static List<String> get geminiApiKeys {
+    final keys = <String>[];
+
+    final multiKeyRaw = dotenv.get('GEMINI_API_KEYS', fallback: '');
+    if (multiKeyRaw.trim().isNotEmpty) {
+      keys.addAll(
+        multiKeyRaw
+            .split(',')
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty),
+      );
+    }
+
+    final primary = geminiApiKey.trim();
+    if (primary.isNotEmpty && !keys.contains(primary)) {
+      keys.insert(0, primary);
+    }
+
+    return keys;
+  }
 }
