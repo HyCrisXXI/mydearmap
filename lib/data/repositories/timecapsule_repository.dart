@@ -24,11 +24,38 @@ class TimeCapsuleRepository {
   }
 
   Future<List<Memory>> getTimeCapsuleMemories(String capsuleId) async {
-    final response = await _client
+    final links = await _client
         .from('time_capsule_memories')
-        .select('*, memories(*)')
+        .select('memory_id')
         .eq('capsule_id', capsuleId);
-    return response.map((e) => Memory.fromJson(e['memories'])).toList();
+    final memoryIds = links
+        .map((row) => row['memory_id'])
+        .whereType<String>()
+        .toList();
+    if (memoryIds.isEmpty) return <Memory>[];
+
+    final filterValues =
+      '(${memoryIds.map((id) => '"$id"').join(',')})';
+    final response = await _client
+        .from('memories')
+        .select('*, media(*), participants:memory_users(*, user:users(*))')
+      .filter('id', 'in', filterValues);
+
+    final memories = (response as List)
+        .whereType<Map<String, dynamic>>()
+        .map(Memory.fromJson)
+        .toList();
+
+    final order = <String, int>{
+      for (var i = 0; i < memoryIds.length; i++) memoryIds[i]: i,
+    };
+    memories.sort((a, b) {
+      final aIndex = order[a.id] ?? 0;
+      final bIndex = order[b.id] ?? 0;
+      return aIndex.compareTo(bIndex);
+    });
+
+    return memories;
   }
 
   Future<List<String>> getTimeCapsuleMemoryTitles(String capsuleId) async {

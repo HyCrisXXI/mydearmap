@@ -18,6 +18,7 @@ class TimeCapsuleView extends ConsumerWidget {
     final capsuleAsync = ref.watch(timeCapsuleProvider(capsuleId));
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: BackButton(
           onPressed: () {

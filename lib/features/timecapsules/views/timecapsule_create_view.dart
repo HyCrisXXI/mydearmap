@@ -5,6 +5,8 @@ import 'package:mydearmap/core/constants/app_icons.dart';
 import 'package:mydearmap/core/providers/current_user_provider.dart';
 import 'package:mydearmap/core/providers/memories_provider.dart';
 import 'package:mydearmap/core/providers/timecapsule_provider.dart';
+import 'package:mydearmap/core/utils/media_url.dart';
+import 'package:mydearmap/data/models/media.dart';
 import 'package:mydearmap/data/models/memory.dart';
 import 'package:mydearmap/features/timecapsules/controllers/timecapsule_controller.dart';
 import 'package:mydearmap/features/memories/widgets/memory_selection_widget.dart';
@@ -163,9 +165,67 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
     return all;
   }
 
+  Media? _pickDisplayMedia(Memory memory) {
+    Media? fallback;
+    for (final media in memory.media) {
+      final url = media.url;
+      if (url == null || url.isEmpty) continue;
+      fallback ??= media;
+      if (media.type == MediaType.image) return media;
+    }
+    return fallback;
+  }
+
+  Widget _buildMemoryThumbnail(Memory memory) {
+    const size = 56.0;
+    final media = _pickDisplayMedia(memory);
+    final imageUrl = buildMediaPublicUrl(media?.url);
+    final placeholder = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.6),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
+        ),
+      ),
+      child: Icon(
+        Icons.photo,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    );
+
+    if (imageUrl == null) {
+      return placeholder;
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        imageUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => placeholder,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return SizedBox(
+            width: size,
+            height: size,
+            child: const Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
           widget.capsuleId == null ? 'Crear Cápsula' : 'Editar Cápsula',
@@ -224,6 +284,9 @@ class _TimeCapsuleCreateViewState extends ConsumerState<TimeCapsuleCreateView> {
                     else
                       ..._selectedMemories.map(
                         (memory) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          minLeadingWidth: 0,
+                          leading: _buildMemoryThumbnail(memory),
                           title: Text(memory.title),
                           trailing: IconButton(
                             icon: SvgPicture.asset(AppIcons.x),

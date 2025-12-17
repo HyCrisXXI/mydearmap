@@ -819,13 +819,7 @@ class _CapsuleStackPreview extends StatelessWidget {
     return _CapsuleExpandedTile(
       capsule: nextCapsule,
       readOnly: true,
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => TimeCapsuleView(capsuleId: nextCapsule.id),
-          ),
-        );
-      },
+      onTap: () => _navigateToTimeCapsuleDetails(context, nextCapsule.id),
     );
   }
 }
@@ -949,14 +943,7 @@ class _CapsuleExpandedTile extends StatelessWidget {
     );
 
     final effectiveOnTap =
-        onTap ??
-        () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => TimeCapsuleView(capsuleId: capsule.id),
-            ),
-          );
-        };
+        onTap ?? () => _navigateToTimeCapsuleDetails(context, capsule.id);
 
     final child = readOnly
         ? GestureDetector(onTap: onTap, child: content)
@@ -1100,4 +1087,42 @@ String _capsuleCountdownLabel(TimeCapsule capsule) {
 
   final minutes = diff.inMinutes.clamp(1, 59);
   return '$minutes min';
+}
+
+Future<void> _navigateToTimeCapsuleDetails(
+  BuildContext context,
+  String capsuleId,
+) async {
+  final confirmed = await _showTimeCapsuleDetailsConfirmationDialog(context);
+  if (!context.mounted || !confirmed) return;
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => TimeCapsuleView(capsuleId: capsuleId),
+    ),
+  );
+}
+
+Future<bool> _showTimeCapsuleDetailsConfirmationDialog(
+  BuildContext context,
+) async {
+  return await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Confirmación'),
+          content: const Text(
+            '¿Seguro que desea ver los detalles? Esto puede estropear la esencia de las cápsulas del tiempo.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Ver detalles'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 }
