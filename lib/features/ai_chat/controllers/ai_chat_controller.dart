@@ -51,6 +51,23 @@ class AiChatNotifier extends Notifier<ChatState> {
     'ubicacion precisa',
     'gps',
   ];
+  static const List<String> _memoryKeywords = <String>[
+    'recuerdo',
+    'recuerdos',
+    'memoria',
+    'memorias',
+    'ese dia',
+    'ese día',
+    'aquella vez',
+    'cuando fuimos',
+    'cuando estuve',
+    'lo que hicimos',
+    'lo que hice',
+    'foto',
+    'fotos',
+    'album',
+    'álbum',
+  ];
   static const List<ChatPrompt> _fallbackPrompts = <ChatPrompt>[
     ChatPrompt(
       label: 'Cafetería acogedora',
@@ -117,7 +134,10 @@ class AiChatNotifier extends Notifier<ChatState> {
 
     try {
       final includeCoordinates = _userRequestedCoordinates(state.messages);
-      final memoryContext = await _buildMemoryContext(includeCoordinates);
+      final useMemoryContext = _userRequestedMemoryContext(state.messages);
+      final memoryContext = useMemoryContext
+          ? await _buildMemoryContext(includeCoordinates)
+          : null;
       final aiResponse = await _chatService.sendMessage(
         history: state.messages,
         memoryContext: memoryContext,
@@ -255,6 +275,20 @@ class AiChatNotifier extends Notifier<ChatState> {
     final remaining = memory.participants.length - visible.length;
     final moreLabel = remaining > 0 ? ' y $remaining más' : '';
     return ' con ${visible.join(', ')}$moreLabel';
+  }
+
+  bool _userRequestedMemoryContext(List<ChatMessage> messages) {
+    for (final message in messages.reversed) {
+      if (!message.isUser) continue;
+      final normalized = message.content.toLowerCase();
+      for (final keyword in _memoryKeywords) {
+        if (normalized.contains(keyword)) {
+          return true;
+        }
+      }
+      break;
+    }
+    return false;
   }
 
   String _formatParticipantLabel(UserRole participant) {
